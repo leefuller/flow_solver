@@ -1,6 +1,16 @@
 # For flow puzzle solver
 
-add_executable(solver solver.cpp puzzles.cpp)
+add_executable(solver
+	solver.cpp
+	puzzles.cpp
+	formations.cpp
+	adjacencyLaw.cpp
+	deadend.cpp
+	oneway.cpp
+	RouteGenViaGraph.cpp
+	Helper.cpp
+	log.cpp
+)
 target_compile_features(solver PRIVATE cxx_std_17)
 
 target_link_libraries(solver PRIVATE flow)
