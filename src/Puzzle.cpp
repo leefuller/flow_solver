@@ -123,6 +123,8 @@ bool Puzzle::checkIfSolution (std::shared_ptr<const Puzzle> puzzle, const std::m
     return true;
 }
 
+// Adjacent using Adjacency type ---------------------------------------------
+
 /**
  * Get the adjacent cell in the given direction, regardless of inner walls.
  * (Inner walls are disregarded because diagonally has no direct route.
@@ -153,6 +155,8 @@ std::shared_ptr<Cell> Puzzle::getCellAdjacent (Coordinate c, Adjacency direction
     return std::const_pointer_cast<Cell>(getConstCellAdjacent(c, direction));
 }
 
+// Adjacent using Direction type ---------------------------------------------
+
 /**
  * Return the cell adjacent to the given coordinate in the given direction,
  * only if it is immediately reachable in that direction. Disregards pipes.
@@ -163,14 +167,7 @@ std::shared_ptr<Cell> Puzzle::getCellAdjacent (Coordinate c, Adjacency direction
  */
 std::shared_ptr<Cell> Puzzle::getCellAdjacent (Coordinate c, Direction d) //noexcept
 {
-    if (!passCoordinateRangeCheck(c))
-        return nullptr; // Invalid start coordinate
-    const std::shared_ptr<Cell> pCell = getCellAtCoordinate(c);
-    if (d == Direction::NONE)
-        return pCell;
-    if (pCell->isBorderOpen(d) && coordinateChange(c, d))
-        return getCellAtCoordinate(c);
-    return nullptr;
+    return std::const_pointer_cast<Cell>(getConstCellAdjacent(c, d));
 }
 
 /**
@@ -183,26 +180,14 @@ std::shared_ptr<Cell> Puzzle::getCellAdjacent (Coordinate c, Direction d) //noex
  */
 std::shared_ptr<const Cell> Puzzle::getConstCellAdjacent (Coordinate c, Direction d) const //noexcept
 {
-    std::shared_ptr<const Cell> pCell = getConstCellAtCoordinate(c);
+    if (!passCoordinateRangeCheck(c))
+        return nullptr; // Invalid start coordinate
+    const std::shared_ptr<const Cell> pCell = getConstCellAtCoordinate(c);
     if (d == Direction::NONE)
         return pCell;
     if (pCell->isBorderOpen(d) && coordinateChange(c, d))
         return getConstCellAtCoordinate(c);
     return nullptr;
-}
-
-std::shared_ptr<Cell> Puzzle::getCellAdjacent (std::shared_ptr<const Cell> cell, Direction d) //noexcept
-{
-    return std::const_pointer_cast<Cell>(getConstCellAdjacent(cell, d));
-}
-
-std::shared_ptr<const Cell> Puzzle::getConstCellAdjacent (std::shared_ptr<const Cell> cell, Direction d) const //noexcept;
-{
-    if (d == Direction::NONE)
-        return cell;
-    if (!cell->isBorderOpen(d))
-        return nullptr;
-    return getConstCellAtCoordinate(cell->getCoordinate());
 }
 
 /**
@@ -217,7 +202,7 @@ std::map<Direction, std::shared_ptr<const Cell>> Puzzle::getAdjacentCells (std::
 
     for (Direction d : allTraversalDirections)
     {
-        std::shared_ptr<const Cell> p = getConstCellAdjacent(cell, d);
+        std::shared_ptr<const Cell> p = getConstCellAdjacent(cell->getCoordinate(), d);
         if (p != nullptr)
             result[d] = p;
     }

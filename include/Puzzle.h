@@ -65,9 +65,6 @@ class Puzzle
     std::shared_ptr<Cell> getCellAtCoordinate(Coordinate coord, bool rangeCheck = false) noexcept(false);
     std::shared_ptr<const Cell> getConstCellAtCoordinate(Coordinate c, bool rangeCheck = false) const noexcept(false);
 
-    std::shared_ptr<Cell> getCellAdjacent (std::shared_ptr<const Cell> cell, Direction d) ;//noexcept;
-    std::shared_ptr<const Cell> getConstCellAdjacent (std::shared_ptr<const Cell> cell, Direction d) const ;//noexcept;
-
 	std::shared_ptr<Cell> getCellAdjacent (Coordinate c, Direction d) ;//noexcept;
 	std::shared_ptr<const Cell> getConstCellAdjacent (Coordinate c, Direction d) const ;//noexcept;
 
