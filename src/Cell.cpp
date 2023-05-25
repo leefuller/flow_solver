@@ -43,15 +43,22 @@ bool Cell::operator== (const Cell & c) const noexcept
     return true;
 }
 
+bool Cell::outputConnectorRep = false;
+
+void Cell::setOutputConnectorRep (bool repr) noexcept
+{ outputConnectorRep = repr; }
+
 extern std::ostream & outputBorderRepr (std::ostream & os, Direction direction, CellBorder border);
 extern std::ostream & outputConnectionRepr (std::ostream & os, Direction direction, CellConnection connection);
 
 std::ostream & operator<< (std::ostream & os, const Cell & cell) noexcept
 {
     os << (!cell.isBorderOpen(Direction::LEFT) ? VERTICAL_WALL_DEF_CH : ' ');
-    outputConnectionRepr(os, Direction::LEFT, cell.getConnection(Direction::LEFT));
+    if (Cell::isOutputConnectorRep())
+        outputConnectionRepr(os, Direction::LEFT, cell.getConnection(Direction::LEFT));
     os << (cell.isEmpty() ? EMPTY_CELL_DEF_CH : cell.getPipeId());
-    outputConnectionRepr(os, Direction::RIGHT, cell.getConnection(Direction::RIGHT));
+    if (Cell::isOutputConnectorRep())
+        outputConnectionRepr(os, Direction::RIGHT, cell.getConnection(Direction::RIGHT));
     os << (!cell.isBorderOpen(Direction::RIGHT) ? VERTICAL_WALL_DEF_CH : ' ');
     return os;
 }
@@ -74,27 +81,33 @@ std::ostream & operator<< (std::ostream & os, const std::vector<std::shared_ptr<
     os << std::endl;
 #endif
 
-    // Upper connector
-    for (std::shared_ptr<const Cell> cell : row)
+    if (Cell::isOutputConnectorRep())
     {
-        os << (!cell->isBorderOpen(Direction::LEFT) ? VERTICAL_WALL_DEF_CH : ' ');
-        outputConnectionRepr(os, Direction::UP, cell->getConnection(Direction::UP));
-        os << (!cell->isBorderOpen(Direction::RIGHT) ? VERTICAL_WALL_DEF_CH : ' ');
+        // Upper connector
+        for (std::shared_ptr<const Cell> cell : row)
+        {
+            os << (!cell->isBorderOpen(Direction::LEFT) ? VERTICAL_WALL_DEF_CH : ' ');
+            outputConnectionRepr(os, Direction::UP, cell->getConnection(Direction::UP));
+            os << (!cell->isBorderOpen(Direction::RIGHT) ? VERTICAL_WALL_DEF_CH : ' ');
+        }
+        os << std::endl;
     }
-    os << std::endl;
 
     for (std::shared_ptr<const Cell> cell : row)
         os << *cell;
     os << std::endl;
 
-    // Lower connector
-    for (std::shared_ptr<const Cell> cell : row)
+    if (Cell::isOutputConnectorRep())
     {
-        os << (!cell->isBorderOpen(Direction::LEFT) ? VERTICAL_WALL_DEF_CH : ' ');
-        outputConnectionRepr(os, Direction::DOWN, cell->getConnection(Direction::DOWN));
-        os << (!cell->isBorderOpen(Direction::RIGHT) ? VERTICAL_WALL_DEF_CH : ' ');
+        // Lower connector
+        for (std::shared_ptr<const Cell> cell : row)
+        {
+            os << (!cell->isBorderOpen(Direction::LEFT) ? VERTICAL_WALL_DEF_CH : ' ');
+            outputConnectionRepr(os, Direction::DOWN, cell->getConnection(Direction::DOWN));
+            os << (!cell->isBorderOpen(Direction::RIGHT) ? VERTICAL_WALL_DEF_CH : ' ');
+        }
+        os << std::endl;
     }
-    os << std::endl;
 
 #if 1
     // Lower border

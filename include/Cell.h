@@ -185,9 +185,17 @@ class Cell
 
     std::ostream & describe (std::ostream & os) const noexcept;
 
+    static void setOutputConnectorRep (bool repr = true) noexcept;
+
+    static bool isOutputConnectorRep () noexcept
+    { return outputConnectorRep; }
+
   private:
 
     static std::shared_ptr<Cell> createCell (Coordinate c, PipeId idPipe) noexcept;
+
+    /** Whether or not output to stream includes connector representation */
+    static bool outputConnectorRep;
 
     /**
      * Set the border of the cell in the given direction.

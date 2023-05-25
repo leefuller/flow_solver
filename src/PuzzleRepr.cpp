@@ -37,7 +37,10 @@ std::ostream & outputBorderRepr (std::ostream & os, Direction direction, CellBor
     {
         case Direction::UP:
         case Direction::DOWN:
-            os << (border == CellBorder::WALL ? CELL_BORDER_SYMBOL_HORIZONTAL_WALL : CELL_BORDER_SYMBOL_HORIZONTAL_OPEN);
+            if (Cell::isOutputConnectorRep())
+                os << (border == CellBorder::WALL ? CELL_BORDER_SYMBOL_HORIZONTAL_WALL : CELL_BORDER_SYMBOL_HORIZONTAL_OPEN);
+            else
+                os << (border == CellBorder::WALL ? HORIZONTAL_WALL_DEF_CH : ' ');
             break;
         case Direction::LEFT:
         case Direction::RIGHT:
