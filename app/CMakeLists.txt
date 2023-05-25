@@ -1,7 +1,7 @@
 # For flow puzzle solver
 
 add_executable(solver
-	solver.cpp
+	Solver.cpp
 	puzzles.cpp
 	formations.cpp
 	adjacencyLaw.cpp
@@ -9,7 +9,6 @@ add_executable(solver
 	oneway.cpp
 	RouteGenViaGraph.cpp
 	Helper.cpp
-	log.cpp
 )
 target_compile_features(solver PRIVATE cxx_std_17)
 

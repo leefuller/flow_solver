@@ -63,8 +63,8 @@ std::ostream & operator<< (std::ostream & os, const std::vector<std::shared_ptr<
 //std::ostream & operator<< (std::ostream & os, const PuzzleRow & row) noexcept
 {
 #if 0
-    // Upper border (typically just complicates the look.
-    // If left out, only the slightly negative is that top border of the puzzle is not output.
+    // Upper border (typically just complicates the look by showing horizontal borders between cells twice.)
+    // If left out, the slightly negative impact is that top border of the puzzle is not output.
     for (std::shared_ptr<const Cell> cell : row)
     {
         os << (cell->getBorder(Direction::LEFT) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
@@ -158,4 +158,19 @@ void Cell::changeConnections (CellConnection from, CellConnection to) noexcept(f
         setConnection(Direction::LEFT, to);
     if (m_connection[Direction::RIGHT] == from)
         setConnection(Direction::RIGHT, to);
+}
+
+/**
+ * Determine whether a new connection can be made in the given direction.
+ * @return true if a new connection can be made in the given direction
+ */
+bool Cell::canAcceptConnection (Direction d) const noexcept
+{
+    if (!isBorderOpen(d))
+        return false;
+    if (getConnection(d) == CellConnection::NO_CONNECTOR)
+        return false;
+    if (isEndpoint() && countFixtureConnections() == 1)
+        return false;
+    return countFixtureConnections() < 2 && getConnection(d) != CellConnection::FIXTURE_CONNECTION;
 }

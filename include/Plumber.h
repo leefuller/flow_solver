@@ -41,7 +41,10 @@ class Plumber
 
         // TODO? void disconnect (Coordinate c1, Coordinate c2) const noexcept(false);
 
+        bool removeConnector (std::shared_ptr<Cell> pCell, Direction d);
+
     private:
+
         //std::shared_ptr<Puzzle> m_puzzle;
         Puzzle * m_puzzle;
 };

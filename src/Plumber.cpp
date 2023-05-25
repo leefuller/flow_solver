@@ -1,6 +1,9 @@
 #include "Plumber.h"
 #include "Cell.h"
 #include "Puzzle.h"
+#include "Logger.h"
+
+static Logger & logger = Logger::getDefaultLogger();
 
 PlumberException::PlumberException (const char * fmt,...) noexcept
 {
@@ -29,6 +32,26 @@ static void plumberCheckFalse (bool condition, const char * msg) noexcept(false)
 { plumberCheck(false, condition, msg); }
 
 /**
+ * Remove connector from cell, if possible.
+ * @return true if the cell connection status was changed
+ * @throw PlumberException if removal of connector would leave the cell invalid (so impossible to solve the puzzle)
+ */
+bool Plumber::removeConnector (std::shared_ptr<Cell> pCell, Direction d)
+{
+    if (pCell->getConnection(d) == CellConnection::NO_CONNECTOR)
+        return false; // Nothing to do
+    unsigned countConnectors = std::count_if(std::begin(pCell->m_connection), std::end(pCell->m_connection),
+            [](CellConnection c){ return c != CellConnection::NO_CONNECTOR; });
+    if (pCell->isEndpoint() && countConnectors == 1)
+        throw PlumberException("cannot remove last connection from endpoint");
+    if (!pCell->isEndpoint() && countConnectors == 2)
+        throw PlumberException("cannot have less than 2 connections for cell");
+
+    pCell->setConnection(d, CellConnection::NO_CONNECTOR);
+    return true;
+}
+
+/**
  * Connect cells at given coordinates. Coordinates should be adjacent.
  * Checks that it is possible to do so, before anything is done.
  * Connection can occur if:
@@ -38,8 +61,6 @@ static void plumberCheckFalse (bool condition, const char * msg) noexcept(false)
  *
  * When the connection is deemed ok to proceed, the result is:
  * - If either open connector is on a fixture, then both become fixtures.
- * - For a cell having 2 fixings, the other connectors are removed from the cell.
- *      (Helps to enforce the rule of no intersecting pipes)
  * - For a cell becoming a new fixture, but not yet having 2 fixtures connected,
  *   the open connectors are changed to open fixture connectors.
  *
@@ -51,6 +72,7 @@ static void plumberCheckFalse (bool condition, const char * msg) noexcept(false)
  */
 void Plumber::connect (Coordinate c1, Coordinate c2, PipeId idPipe, CellConnection con) const noexcept(false)
 {
+    logger << "Plumb " << con << " from " << c1 << " to " << c2 << " for pipe " << idPipe << std::endl;
     if (con != CellConnection::FIXTURE_CONNECTION && con != CellConnection::TEMPORARY_CONNECTION)
         throw PlumberException("attempt invalid connection %d", con);
 
@@ -94,49 +116,31 @@ void Plumber::connect (Coordinate c1, Coordinate c2, PipeId idPipe, CellConnecti
         pCell1->setConnection(dFrom, CellConnection::FIXTURE_CONNECTION);
         pCell2->setConnection(opposite(dFrom), CellConnection::FIXTURE_CONNECTION);
 
-        // Open connectors on the newly connected fixture become open fixtures
-        for (Direction dNew : allTraversalDirections)
+        // Open connectors on fixtures become open fixture connectors
+        for (Direction d : allTraversalDirections)
         {
-            if (dNew == opposite(dFrom))
-                continue; // skip connection just made
-            if (pCell2->getConnection(dNew) == CellConnection::OPEN_CONNECTOR)
-                pCell2->setConnection(dNew, CellConnection::OPEN_FIXTURE);
-        }
-
-        // Remove connectors from newly connected fixture that point to a different
-        // pipe that is a fixture. Correspondingly, remove connectors from the adjacent fixture
-        // that face the newly connected fixture.
-        for (Direction dAdj : allTraversalDirections)
-        {
-            if (dAdj == opposite(dFrom))
-                continue; // skip connection just made
-            std::shared_ptr<Cell> pCellAdj = m_puzzle->getCellAdjacent(pCell2->getCoordinate(), dAdj);
-            if (pCellAdj == nullptr)
-                continue;
-            if (!pCellAdj->isFixture())
-                continue;
-            if (pCell2->getPipeId() != pCellAdj->getPipeId())
-            {
-                pCell2->setConnection(dAdj, CellConnection::NO_CONNECTOR);
-                pCellAdj->setConnection(opposite(dAdj), CellConnection::NO_CONNECTOR);
-            }
+            if (pCell1->getConnection(d) == CellConnection::OPEN_CONNECTOR)
+                pCell1->setConnection(d, CellConnection::OPEN_FIXTURE);
+            if (pCell2->getConnection(d) == CellConnection::OPEN_CONNECTOR)
+                pCell2->setConnection(d, CellConnection::OPEN_FIXTURE);
         }
 
         // The plumber is not responsible to connect adjacent other open fixtures automatically.
         // ie. If after connection just done, another could be done due to the changes,
         // then it is not done here. It should be part of solution generator logic.
-        // The plumber can only do what it is told directly, if the checks are passed,
-        // except for those things above, being removing no-longer possible connectors from cells
-        // in the new fixed connection.
+        // The plumber only does what it is told directly.
     }
     else if (con == CellConnection::TEMPORARY_CONNECTION)
     {
-        // TODO
+        // TODO? not required for current solution process
     }
-    else // CellConnection::OPEN_CONNECTOR, CellConnection::OPEN_FIXTURE, CellConnection::NO_CONNECTOR
+    // else CellConnection::OPEN_FIXTURE is a result of other work. It is not a logical request.
+
+    else // CellConnection::OPEN_CONNECTOR, CellConnection::NO_CONNECTOR
     {
+        // TODO? not required for current solution process. Otherwise:
         // TODO probably use disconnect for CellConnection::NO_CONNECTOR
-        // TODO or implement here to catch any "out of range" condition (which should only occur due to a bug)
+        // TODO or implement here to catch any out of range condition (which should only occur due to a bug)
 
     }
 }

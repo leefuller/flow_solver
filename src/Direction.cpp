@@ -19,33 +19,36 @@ const char * asString (Direction d) noexcept
 }
 
 /**
- * Return coordinate resulting in moving one step in the given direction, from a start coordinate.
+ * Get coordinate resulting in moving distance in the given direction, from a start coordinate.
  * @param start         Starting coordinate
  * @param direction     Direction to move
+ * @param distance      Distance to move
  * @return true if coordinate changed
- * @return false if the coordinate would become invalid in that direction
+ * @return false if the coordinate did not change
  */
-bool coordinateChange (Coordinate & start, Direction direction) noexcept
+bool coordinateChange (Coordinate & start, Direction direction, unsigned distance) noexcept
 {
+    if (!distance)
+        return false;
     unsigned r = start[0];
     unsigned c = start[1];
     switch (direction)
     {
         case Direction::UP:
-            if (r < 1)
+            if (r < distance)
                 return false;
-            --r;
+            r -= distance;
             break;
         case Direction::DOWN:
-            ++r;
+            r += distance;
             break;
         case Direction::LEFT:
-            if (c < 1)
+            if (c < distance)
                 return false;
-            --c;
+            c -= distance;
             break;
         case Direction::RIGHT:
-            ++c;
+            c += distance;
             break;
         case Direction::NONE:
             return true;
@@ -55,7 +58,7 @@ bool coordinateChange (Coordinate & start, Direction direction) noexcept
 }
 
 /**
- * Return coordinate resulting in moving one step in the given direction, from a start coordinate.
+ * Get coordinate resulting in moving one step in the given direction, from a start coordinate.
  * @param start         Starting coordinate
  * @param direction     Direction to move
  * @return true if coordinate changed

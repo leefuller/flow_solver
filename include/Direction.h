@@ -111,7 +111,7 @@ inline Adjacency opposite (Adjacency a) noexcept(false)
      throw std::invalid_argument("invalid argument");
 }
 
-bool coordinateChange (Coordinate & start, Direction direction) noexcept;
+bool coordinateChange (Coordinate & start, Direction direction, unsigned distance = 1) noexcept;
 
 bool coordinateChange (Coordinate & start, Adjacency direction) noexcept;
 

@@ -9,6 +9,7 @@ set(SOURCE_LIST
 	${flow_SOURCE_DIR}/src/PuzzleException.cpp
 	${flow_SOURCE_DIR}/src/PuzzleRepr.cpp
 	${flow_SOURCE_DIR}/src/Plumber.cpp
+	${flow_SOURCE_DIR}/src/Logger.cpp
 )
 
 add_library(flow STATIC Puzzle.cpp ${HEADER_LIST} ${SOURCE_LIST})

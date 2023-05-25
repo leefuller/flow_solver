@@ -21,6 +21,7 @@ enum CellBorder
 
 const std::array<const char *, 2> borderStr = {"open", "wall"};
 
+// Cell types labeled according to borders up, down, left, right
 const std::array<CellBorder, 4> openBorders = {OPEN, OPEN, OPEN, OPEN};
 const std::array<CellBorder, 4> horizontalChannel = {WALL, WALL, OPEN, OPEN};
 const std::array<CellBorder, 4> verticalChannel = {OPEN, OPEN, WALL, WALL};
@@ -152,6 +153,8 @@ class Cell
     unsigned countFixtureConnections () const noexcept
     { return std::count_if(std::begin(m_connection), std::end(m_connection), [](CellConnection c){ return c == CellConnection::FIXTURE_CONNECTION; }); }
 
+    bool canAcceptConnection (Direction from) const noexcept;
+
     /**
      * @return true if the cell border is defined as open in the given direction.
      * NOTE a border does not change once defined.
@@ -160,11 +163,19 @@ class Cell
     bool isBorderOpen (Direction d) const noexcept
     { return getBorder(d) == OPEN; }
 
-    // TODO maybe move to solver
+    /**
+     * Considering only borders (not pipes), determine if the cell is only traversable
+     * both left and right.
+     * @return true if the cell borders mean the traversable directions are only left and right.
+     */
     bool isHorizontalChannel () const noexcept
     { return getBorders() == horizontalChannel; }
 
-    // TODO maybe move to solver
+    /**
+     * Considering only borders (not pipes), determine if the cell is only traversable
+     * both up and down.
+     * @return true if the cell borders mean the traversable directions are only up and down.
+     */
     bool isVerticalChannel () const noexcept
     { return getBorders() == verticalChannel; }
 
@@ -198,13 +209,7 @@ class Cell
      * Set the connection status for the given direction.
      */
     void setConnection (Direction d, CellConnection c) noexcept
-    {
-#if ANNOUNCE_CELL_CONNECTION
-        std::cout << "Set cell [" << std::get<0>(getCoordinate()) << "," << std::get<1>(getCoordinate()) << "] connection "
-                << d << " from " << connectionStr[getConnection(d)] << " to " << connectionStr[c] << std::endl;
-#endif
-        m_connection[d] = c;
-    }
+    { m_connection[d] = c; }
 
     /**
      * Set the connection status for all directions.

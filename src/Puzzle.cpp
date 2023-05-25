@@ -1,11 +1,15 @@
 #include "Puzzle.h"
 #include "PuzzleException.h"
 #include "Cell.h"
+//#include "log.h"
+#include "Logger.h"
 
 #include <memory>
 #include <charconv> // to_chars
 #include <iostream>
 #include <map>
+
+static Logger & logger = Logger::getDefaultLogger();
 
 Puzzle::Puzzle (const PuzzleDefinition & def)
     : m_def(def), m_puzzleRows(def.generateRows())//, m_plumber(this)
@@ -44,34 +48,52 @@ std::ostream & Puzzle::streamPuzzleMatrix (std::ostream & os) const noexcept
  * Get the cell at the given coordinate.
  * @return pointer to cell, if existing
  */
-std::shared_ptr<Cell> Puzzle::getCellAtCoordinate(Coordinate c, bool rangeCheck) noexcept(false)
+std::shared_ptr<Cell> Puzzle::getCellAtCoordinate(Coordinate c) noexcept
 {
-    return std::const_pointer_cast<Cell>(getConstCellAtCoordinate(c, rangeCheck));
+    return std::const_pointer_cast<Cell>(getConstCellAtCoordinate(c));
 }
 
 /**
  * Get the cell at the given coordinate.
- * If the coordinate is outside the puzzle, an exception is thrown if rangeCheck is true, otherwise result is undefined.
+ * If the coordinate is outside the puzzle, nullptr is returned.
  * @param coord         Coordinate
- * @param rangeCheck    true to execute a range check for coord.
  * @return const pointer to cell, if existing
  */
-std::shared_ptr<const Cell> Puzzle::getConstCellAtCoordinate (Coordinate c, bool rangeCheck) const noexcept(false)
+std::shared_ptr<const Cell> Puzzle::getConstCellAtCoordinate (Coordinate c) const noexcept
 {
     //if (!passCoordinateRangeCheck(c))
         //return nullptr;
-    unsigned row = std::get<0>(c);
-    unsigned col = std::get<1>(c);
-    if (rangeCheck)
+    if (c[0] >= m_puzzleRows.size())
+        return nullptr;
+    if (c[1] >= m_puzzleRows[c[0]].size())
+        return nullptr;
+    return m_puzzleRows[c[0]][c[1]];
+}
+
+/**
+ * From the given coordinate determine how many cells can be traversed before reaching
+ * an obstruction. The obstruction can be a wall or any pipe.
+ * @param c     Starting coordinate
+ * @param d     Traversal direction
+ * @return number of empty cells between c and obstruction
+ */
+unsigned Puzzle::gapToObstruction (Coordinate c, Direction d) const noexcept
+{
+    unsigned count = 0;
+    std::shared_ptr<const Cell> pCell = getConstCellAtCoordinate(c);
+    while (1)
     {
-        if (row >= m_puzzleRows.size())
-            throw std::invalid_argument("row out of range");
-        if (col >= m_puzzleRows[row].size())
-            throw std::invalid_argument("column out of range");
+        // check if cell has a border in that direction.
+        if (pCell->getBorder(d) == CellBorder::WALL)
+            break;
+        if (!coordinateChange(c, d))
+            break;
+        pCell = getConstCellAtCoordinate(c);
+        if (!pCell->isEmpty())
+            break;
+        ++count;
     }
-    if (m_puzzleRows[row][col]->getCoordinate() != c)
-        throw PuzzleIntegrityCheckFail("coordinate mismatch in getConstCellAtCoordinate");
-    return m_puzzleRows[row][col];
+    return count;
 }
 
 /**
@@ -79,22 +101,16 @@ std::shared_ptr<const Cell> Puzzle::getConstCellAtCoordinate (Coordinate c, bool
  */
 bool Puzzle::checkIfSolution (std::shared_ptr<const Puzzle> puzzle, const std::map<PipeId, Route> & s)
 {
-    //std::cout << "Check solution size " << s.size() << " for " << puzzle.getNumPipes() << " pipes" << std::endl;
     if (s.size() != puzzle->getNumPipes())
-    {
-        std::cout << "Incorrect number (" << s.size() << ") of pipes. Expected " << puzzle->getNumPipes() << std::endl;
         return false; // Require one route per pipe
-    }
+
     std::set<Coordinate> coordinates;
     for (auto p : s)
     {
         for (const Coordinate & coord : p.second)
         {
             if (coordinates.find(coord) != coordinates.end())
-            {
-                //std::cout << "Repeated coordinate " << coord << std::endl;
                 return false; // Coordinate repeated. So given routes are not a solution.
-            }
             coordinates.insert(coord);
         }
     }
@@ -109,15 +125,12 @@ bool Puzzle::checkIfSolution (std::shared_ptr<const Puzzle> puzzle, const std::m
                 return false;
         }
     }
-    std::cout << "Solution found:" << std::endl;
+    logger << "Solution found:" << std::endl;
     for (std::pair<PipeId, Route> p : s)
     {
-        std::cout << p.first << ": " << p.second << std::endl;
+        logger << p.first << ": " << p.second << std::endl;
         for (Coordinate coord : p.second)
-        {
-            //puzzle->getCellAtCoordinate(coord)->setPipeId(p.first);
             puzzle->m_puzzleRows[std::get<0>(coord)][std::get<1>(coord)]->setPipeId(p.first);
-        }
     }
     puzzle->streamPuzzleMatrix(std::cout);
     return true;
@@ -291,7 +304,7 @@ static bool continueDirectionForRoute (std::shared_ptr<const Cell> pCell, Route 
         return false;
     if (pCell->isConnected(direction) && visited.find(coord) == visited.end())
     {
-        std::cout << " to " << coord;
+        logger << " to " << coord;
         route.push_back(coord);
         return true;
     }
@@ -308,7 +321,7 @@ bool Puzzle::traceRoute (PipeId idPipe, Route & route) const
     {
         // start
         Coordinate coordStart = findPipeEnd(idPipe, PipeEnd::PIPE_END_1);
-        std::cout << "Trace " << idPipe << " from " << coordStart;
+        logger << "Trace " << idPipe << " from " << coordStart;
         visited.clear();
         route.push_back(coordStart);
     }
@@ -317,7 +330,7 @@ bool Puzzle::traceRoute (PipeId idPipe, Route & route) const
     std::shared_ptr<const Cell> pCell = getConstCellAtCoordinate(coord);
     if (pCell->getEndpoint() == PipeEnd::PIPE_END_2)
     {
-        std::cout << " endpoint." << std::endl;
+        logger << " endpoint." << std::endl;
         return true;
     }
     //std::bind();
@@ -337,13 +350,13 @@ bool Puzzle::traceRoute (PipeId idPipe, Route & route) const
         return traceRoute(idPipe, route);
     else if (continueDirectionForRoute(pCell, route, Direction::RIGHT))
         return traceRoute(idPipe, route);
-    std::cout << " stopped." << std::endl;
+    logger << " stopped." << std::endl;
     return false;
 }
 
 void Puzzle::traceRoutes (std::map<PipeId, Route> & m) const
 {
-    std::cout << "Trace routes" << std::endl;
+    logger << "Trace routes" << std::endl;
     Route route = {};
     m.clear();
     for (PipeId idPipe : m_def.getPipeIds())

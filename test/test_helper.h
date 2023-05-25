@@ -6,7 +6,7 @@
 inline bool check (const char * p, bool condition)
 {
     if (p != nullptr)
-        std::cout << p << std::endl;
+        std::cout << p << (condition ? " passed" : " FAILED") << std::endl;
     return condition;
 }
 

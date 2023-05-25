@@ -3,17 +3,96 @@
 #include "../include/Puzzle.h"
 #include "test_helper.h"
 
-int main ()
+bool testRoute ()
 {
     bool result = true;
-    //std::shared_ptr<LogScope> sl = logger.getScopedLogger("Test puzzle");
     Route route = { createCoordinate(2,5) };
     Coordinate coord = createCoordinate(1, 1);
     result = result && check(!coordinateInRoute(coord, route));
     result = result && check(coordinateInRoute(createCoordinate(2,5), route));
     route.push_back(createCoordinate(1,1));
     result = result && check(coordinateInRoute(coord, route));
+    return result;
+}
 
+bool testdistanceToObstruction ()
+{
+    bool result = true;
+    const char * p = \
+            {" = = = = = = = ,"  \
+             "|. . .|. . . .|,"  \
+             "|             |,"  \
+             "|A B . . . B A|,"  \
+             " = = = = = = = "   \
+            };
+    PuzzleDefinition def(p);
+    std::shared_ptr<Puzzle> puzzle = def.generatePuzzle();
+    for (unsigned r = 0; r < puzzle->getNumRows(); ++r)
+    {
+        // Check against puzzle border
+        for (unsigned c = 0; c < puzzle->getNumCols(); ++c)
+        {
+            if (r == 0)
+                result = result && check(puzzle->gapToObstruction({r,c}, Direction::UP) == 0);
+            if (r == puzzle->getNumRows() - 1)
+                result = result && check(puzzle->gapToObstruction({r,c}, Direction::DOWN) == 0);
+            if (c == 0)
+                result = result && check(puzzle->gapToObstruction({r,c}, Direction::LEFT) == 0);
+            if (c == puzzle->getNumCols() - 1)
+                result = result && check(puzzle->gapToObstruction({r,c}, Direction::RIGHT) == 0);
+        }
+    }
+    result = result && check(puzzle->gapToObstruction({0,0}, Direction::RIGHT) == 2);
+    result = result && check(puzzle->gapToObstruction({0,1}, Direction::RIGHT) == 1);
+    result = result && check(puzzle->gapToObstruction({0,2}, Direction::RIGHT) == 0);
+    result = result && check(puzzle->gapToObstruction({0,3}, Direction::RIGHT) == 3);
+    result = result && check(puzzle->gapToObstruction({0,4}, Direction::RIGHT) == 2);
+    result = result && check(puzzle->gapToObstruction({0,5}, Direction::RIGHT) == 1);
+    result = result && check(puzzle->gapToObstruction({0,6}, Direction::LEFT) == 3);
+    result = result && check(puzzle->gapToObstruction({0,5}, Direction::LEFT) == 2);
+    result = result && check(puzzle->gapToObstruction({0,4}, Direction::LEFT) == 1);
+    result = result && check(puzzle->gapToObstruction({0,3}, Direction::LEFT) == 0);
+    result = result && check(puzzle->gapToObstruction({0,2}, Direction::LEFT) == 2);
+    result = result && check(puzzle->gapToObstruction({0,1}, Direction::LEFT) == 1);
+    result = result && check(puzzle->gapToObstruction({0,0}, Direction::LEFT) == 0);
+
+    result = result && check(puzzle->gapToObstruction({0,0}, Direction::DOWN) == 0);
+    result = result && check(puzzle->gapToObstruction({0,1}, Direction::DOWN) == 0);
+    result = result && check(puzzle->gapToObstruction({0,2}, Direction::DOWN) == 1);
+    result = result && check(puzzle->gapToObstruction({0,3}, Direction::DOWN) == 1);
+    result = result && check(puzzle->gapToObstruction({0,4}, Direction::DOWN) == 1);
+    result = result && check(puzzle->gapToObstruction({0,5}, Direction::DOWN) == 0);
+    result = result && check(puzzle->gapToObstruction({0,6}, Direction::DOWN) == 0);
+
+    result = result && check(puzzle->gapToObstruction({1,0}, Direction::RIGHT) == 0);
+    result = result && check(puzzle->gapToObstruction({1,1}, Direction::RIGHT) == 3);
+    result = result && check(puzzle->gapToObstruction({1,2}, Direction::RIGHT) == 2);
+    result = result && check(puzzle->gapToObstruction({1,3}, Direction::RIGHT) == 1);
+    result = result && check(puzzle->gapToObstruction({1,4}, Direction::RIGHT) == 0);
+    result = result && check(puzzle->gapToObstruction({1,5}, Direction::RIGHT) == 0);
+    result = result && check(puzzle->gapToObstruction({1,6}, Direction::RIGHT) == 0);
+    result = result && check(puzzle->gapToObstruction({1,6}, Direction::LEFT) == 0);
+    result = result && check(puzzle->gapToObstruction({1,5}, Direction::LEFT) == 3);
+    result = result && check(puzzle->gapToObstruction({1,4}, Direction::LEFT) == 2);
+    result = result && check(puzzle->gapToObstruction({1,3}, Direction::LEFT) == 1);
+    result = result && check(puzzle->gapToObstruction({1,2}, Direction::LEFT) == 0);
+    result = result && check(puzzle->gapToObstruction({1,1}, Direction::LEFT) == 0);
+    result = result && check(puzzle->gapToObstruction({1,0}, Direction::LEFT) == 0);
+
+    result = result && check(puzzle->gapToObstruction({1,0}, Direction::UP) == 1);
+    result = result && check(puzzle->gapToObstruction({1,1}, Direction::UP) == 1);
+    result = result && check(puzzle->gapToObstruction({1,2}, Direction::UP) == 1);
+    result = result && check(puzzle->gapToObstruction({1,3}, Direction::UP) == 1);
+    result = result && check(puzzle->gapToObstruction({1,4}, Direction::UP) == 1);
+    result = result && check(puzzle->gapToObstruction({1,5}, Direction::UP) == 1);
+    result = result && check(puzzle->gapToObstruction({1,5}, Direction::UP) == 1);
+
+    return result;
+}
+
+bool testPuzzleGeneration ()
+{
+    bool result = true;
     const char * p = \
             {" = = = = = = = ,"  \
              "|. . . . . . .|,"  \
@@ -89,14 +168,6 @@ int main ()
     result = result && check(pCell->isEmpty());
     result = result && check(!pCell->isHorizontalChannel());
     result = result && check(!pCell->isVerticalChannel());
-    //FIXME result = result && check(pCell->isPipeAllowed('A'));
-    //FIXME result = result && check(pCell->isPipeAllowed('B'));
-    //result = result && check(!pCell->isPipeAllowed('C'));
-
-    /*
-    // TODO return is the same cell as above
-    std::shared_ptr<const Cell> pCellConst = puzzle->getConstCellAtCoordinate(createCoordinate(0, 0));
-    */
 
     result = result && check(puzzle->isCellReachable(createCoordinate(0, 0)));
     result = result && check(puzzle->isCellReachable(createCoordinate(0, 6)));
@@ -104,6 +175,7 @@ int main ()
     result = result && check(puzzle->isCellReachable(createCoordinate(1, 6)));
     result = result && check(!puzzle->isCellReachable(createCoordinate(0, 7)));
     result = result && check(!puzzle->isCellReachable(createCoordinate(2, 6)));
+
 
     /* TODO
     std::shared_ptr<Cell> puzzle->getCellAdjacent (Coordinate coord, Direction direction);
@@ -114,15 +186,7 @@ int main ()
     std::shared_ptr<const Cell> puzzle->getConstCellAdjacent (Coordinate coord, Adjacency direction);
     */
 
-    std::set<Direction> directions = puzzle->getConnectedDirections (createCoordinate(0,0));
-    result = result && check(directions == std::set<Direction>({Direction::DOWN, Direction::RIGHT}));
-    /* TODO
-    std::set<Direction> puzzle->getNowTraversableDirections (Coordinate coord, PipeId idPipe);
-    bool puzzle->canNowTraverseDirectionFrom(Coordinate coord, Direction direction, PipeId idPipe);
-    std::vector<std::shared_ptr<const Cell>> puzzle->getCellsUntilObstruction(Coordinate coord, Direction);
-    */
-
-    route = { {0,3},{0,4} };
+    Route route = { {0,3},{0,4} };
     puzzle->insertRoute ('X', route);
     puzzle->removeRoute ();
     // TODO verify above
@@ -130,7 +194,6 @@ int main ()
     bool puzzle->traceRoute (PipeId idPipe, Route & route);
     void puzzle->traceRoutes (std::map<PipeId, Route> &);
     void puzzle->forEveryCell (std::function<void(std::shared_ptr<Cell>)> * f)
-    //std::tuple<Coordinate, Coordinate> puzzle->getCoordinateRange ()
     void puzzle->forEachTraversalDirection (std::function<void(Direction d)> * f);
     */
     Coordinate coordEnd1 = puzzle->findPipeEnd('A', PipeEnd::PIPE_END_1);
@@ -146,11 +209,17 @@ int main ()
     result = result && check(puzzle->isEndpoint(createCoordinate(1,6)));
     result = result && check(puzzle->isEndpoint(createCoordinate(1,5)));
 
-    /* TODO
-    bool puzzle->isHorizontalChannel (Coordinate coord);
-    bool puzzle->isVerticalChannel (Coordinate coord);
-    bool puzzle->isAdjacentToChannelOpening (Coordinate coord);
-    */
+    std::set<Direction> directions = puzzle->getConnectedDirections (createCoordinate(0,0));
+    result = result && check(directions == std::set<Direction>({Direction::DOWN, Direction::RIGHT}));
 
+    return result;
+}
+
+int main ()
+{
+    bool result = true;
+    result = result && testRoute();
+    result = result && testPuzzleGeneration();
+    result = result && testdistanceToObstruction();
     return result ? 0 : 1;
 }

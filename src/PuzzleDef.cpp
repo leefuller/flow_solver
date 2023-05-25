@@ -2,10 +2,14 @@
 #include "PuzzleException.h"
 #include "PuzzleRepr.h"
 #include "Puzzle.h"
+//#include "log.h"
+#include "Logger.h"
 
 #include <map>
 #include <algorithm>
 #include <iostream>
+
+static Logger & logger = Logger::getDefaultLogger();
 
 /**
  * Parse puzzle definition row expected to define horizontal wall(s), if any.
@@ -340,7 +344,8 @@ void PuzzleDefinition::validatePuzzle ()
 {
     if (m_puzzleRows.size() < 1)
         throw PuzzleException("A valid puzzle definition requires at least 1 row");
-    std::cout << "Validate puzzle with " << m_puzzleRows.size() << " rows." << std::endl;
+    //logger.log("Validate puzzle with %d rows", m_puzzleRows.size());
+    logger << "Validate puzzle with " << m_puzzleRows.size() << " rows" << std::endl;
 
     std::map<PipeId, unsigned> endpoints; // count endpoints per pipe id
     unsigned r = 0;
@@ -376,7 +381,6 @@ void PuzzleDefinition::validatePuzzle ()
                     // and for this cell, remove the connection on the side of the adjacent cell.
                     if (pCellAdjacent->getPipeId() != cell->getPipeId())
                     {
-                        //std::cout << "Remove connector to adjacent endpoint " << pCellAdjacent->getPipeId() << std::endl;
                         pCellAdjacent->setConnection(opposite(d), CellConnection::NO_CONNECTOR);
                         cell->setConnection(d, CellConnection::NO_CONNECTOR);
                     }
@@ -410,5 +414,6 @@ void PuzzleDefinition::validatePuzzle ()
                 throw PuzzleException("Bottom border not complete");
         }
     }
-    std::cout << "Validated puzzle with " << m_puzzleRows.size() << " rows." << std::endl;
+    //logger.log("Validated puzzle with %d rows", m_puzzleRows.size());
+    logger << "Validated puzzle with " << m_puzzleRows.size() << " rows";
 }
