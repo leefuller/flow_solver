@@ -100,5 +100,5 @@ static NullLogger nullLogger;
 { m_defaultLogger = (logger == nullptr ? &nullLogger : logger); }*/
 
 Logger & Logger::getDefaultLogger ()
-//{ return logging::logger(); }
-{ return nullLogger; }
+{ return logging::logger(); }
+//{ return nullLogger; }
