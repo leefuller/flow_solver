@@ -9,7 +9,7 @@
 
 static Logger & logger = Logger::getDefaultLogger();
 
-static Direction checkOneAdjacentOnly (std::shared_ptr<const Cell> pCell, Direction d, std::shared_ptr<const Cell> pAdj)
+static Direction checkOneAdjacentOnly (ConstCellPtr pCell, Direction d, ConstCellPtr pAdj)
 {
     if (pAdj->isEmpty())
         return d;
@@ -30,7 +30,7 @@ static Direction checkOneAdjacentOnly (std::shared_ptr<const Cell> pCell, Direct
     return Direction::NONE;
 }
 
-static Direction checkForChannel (std::shared_ptr<const Puzzle> puzzle, Coordinate coord, const std::set<Direction> & directions)
+static Direction checkForChannel (ConstPuzzlePtr puzzle, Coordinate coord, const std::set<Direction> & directions)
 {
     /*
      Simplest form is a cell that is a channel by itself.
@@ -48,7 +48,7 @@ static Direction checkForChannel (std::shared_ptr<const Puzzle> puzzle, Coordina
      */
     for (Direction d : directions)
     {
-        std::shared_ptr<const Cell> cellNext = puzzle->getConstCellAdjacent(coord, d);
+        ConstCellPtr cellNext = puzzle->getConstCellAdjacent(coord, d);
         if (cellNext == nullptr)
             continue;
         if (!cellNext->isEmpty())
@@ -77,13 +77,13 @@ static Direction checkForChannel (std::shared_ptr<const Puzzle> puzzle, Coordina
  So, only need to know it is adjacent to at least one wall, and that up to 2 cells
  are empty until reaching the obstruction.
 */
-static Direction checkFillToObstruction (std::shared_ptr<const Puzzle> puzzle, std::shared_ptr<const Cell> pCell)
+static Direction checkFillToObstruction (ConstPuzzlePtr puzzle, ConstCellPtr pCell)
 {
 #if ANNOUNCE_ONE_WAY_DETECT
     logger << "Try one way algorithm to obstruction" << std::endl;
 #endif
     std::set<Direction> dirAdjFixtures; // Directions from cell to immediately adjacent fixtures
-    std::shared_ptr<const Cell> pCellNext = pCell;
+    ConstCellPtr pCellNext = pCell;
     // Get adjacent fixtures
     for (Direction dirAdj : allTraversalDirections)
     {
@@ -91,7 +91,7 @@ static Direction checkFillToObstruction (std::shared_ptr<const Puzzle> puzzle, s
         if (!adjBlock)
         {
             // check if blocked by pipe fixture
-            std::shared_ptr<const Cell> pAdj = puzzle->getConstCellAdjacent(pCellNext->getCoordinate(), dirAdj);
+            ConstCellPtr pAdj = puzzle->getConstCellAdjacent(pCellNext->getCoordinate(), dirAdj);
             if (pAdj != nullptr)
                 adjBlock = pAdj->isFixture();
         }
@@ -118,7 +118,7 @@ static Direction checkFillToObstruction (std::shared_ptr<const Puzzle> puzzle, s
     //   . . . X .|       . . . Y . .|
     //
 
-    std::map<Direction, std::vector<std::shared_ptr<const Cell>>> cellsPerDir;
+    std::map<Direction, std::vector<ConstCellPtr>> cellsPerDir;
     const Coordinate start = pCell->getCoordinate();
     Coordinate c = start;
 
@@ -177,12 +177,12 @@ static Direction checkFillToObstruction (std::shared_ptr<const Puzzle> puzzle, s
  * @param coord     Coordinate that is the point from which we might only go one way
  * @return direction that is the only valid way from the coordinate (or Direction::NONE if none, or more that 1)
  */
-Direction theOnlyWay (std::shared_ptr<const Puzzle> puzzle, Coordinate coord)
+Direction theOnlyWay (ConstPuzzlePtr puzzle, Coordinate coord)
 {
 #if ANNOUNCE_ONE_WAY_DETECT
     logger << "Check only way formations." << std::endl;
 #endif
-    std::shared_ptr<const Cell> pCell = puzzle->getConstCellAtCoordinate(coord);
+    ConstCellPtr pCell = puzzle->getConstCellAtCoordinate(coord);
     if (pCell->isEmpty())
     {
 #if ANNOUNCE_ONE_WAY_DETECT
@@ -191,7 +191,7 @@ Direction theOnlyWay (std::shared_ptr<const Puzzle> puzzle, Coordinate coord)
         return Direction::NONE;
     }
     PipeId idPipe = pCell->getPipeId();
-    std::map<Direction, std::shared_ptr<const Cell>> adjacentCells = puzzle->getAdjacentCells(pCell);
+    std::map<Direction, ConstCellPtr> adjacentCells = puzzle->getAdjacentCells(pCell);
 
     for (auto it = adjacentCells.begin(); it != adjacentCells.end();) {
         if (it->second == nullptr)

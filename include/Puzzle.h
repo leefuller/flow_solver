@@ -18,6 +18,10 @@ class Cell;
 
 using PuzzleRow = std::vector<std::shared_ptr<Cell>>;
 
+class Puzzle;
+using PuzzlePtr = std::shared_ptr<Puzzle>;
+using ConstPuzzlePtr = std::shared_ptr<const Puzzle>;
+
 /**
  * This class is a data class, with helper functions for getting aspects of puzzle state.
  *
@@ -46,7 +50,7 @@ class Puzzle
 	bool isCoordinateChangeValid (Coordinate from, Adjacency a) const noexcept
 	{ return m_def.isCoordinateChangeValid(from, a); }
 
-    static bool checkIfSolution (std::shared_ptr<const Puzzle> puzzle, const std::map<PipeId, Route> & s);
+    static bool checkIfSolution (ConstPuzzlePtr puzzle, const std::map<PipeId, Route> & s);
 
     /** @return a Plumber able to work on this puzzle */
     std::shared_ptr<Plumber> getPlumber () noexcept
@@ -62,17 +66,17 @@ class Puzzle
 
 	// Cell lookup -----------------------
 
-    std::shared_ptr<Cell> getCellAtCoordinate(Coordinate c) noexcept;
-    std::shared_ptr<const Cell> getConstCellAtCoordinate(Coordinate c) const noexcept;
+    CellPtr getCellAtCoordinate(Coordinate c) noexcept;
+    ConstCellPtr getConstCellAtCoordinate(Coordinate c) const noexcept;
 
-	std::shared_ptr<Cell> getCellAdjacent (Coordinate c, Direction d) ;//noexcept;
-	std::shared_ptr<const Cell> getConstCellAdjacent (Coordinate c, Direction d) const ;//noexcept;
+	CellPtr getCellAdjacent (Coordinate c, Direction d) ;//noexcept;
+	ConstCellPtr getConstCellAdjacent (Coordinate c, Direction d) const ;//noexcept;
 
-	std::map<Direction, std::shared_ptr<const Cell>> getAdjacentCells (std::shared_ptr<const Cell> cell) const noexcept;
+	std::map<Direction, ConstCellPtr> getAdjacentCells (ConstCellPtr cell) const noexcept;
 
-	std::array<std::shared_ptr<const Cell>, 9> getAdjacentCells (Coordinate c) const ;//noexcept;
-	std::shared_ptr<Cell> getCellAdjacent (Coordinate c, Adjacency d) ;//noexcept;
-    std::shared_ptr<const Cell> getConstCellAdjacent (Coordinate c, Adjacency d) const ;//noexcept;
+	std::array<ConstCellPtr, 9> getAdjacentCells (Coordinate c) const ;//noexcept;
+	CellPtr getCellAdjacent (Coordinate c, Adjacency d) ;//noexcept;
+    ConstCellPtr getConstCellAdjacent (Coordinate c, Adjacency d) const ;//noexcept;
 
     // Query directions ------------------------
 
@@ -96,11 +100,11 @@ class Puzzle
     // ------------------------------
 	// Helpers
 
-    void forEveryCell (std::function<void(std::shared_ptr<Cell>)> * f)
+    void forEveryCell (std::function<void(CellPtr)> * f)
 	{
-	    for (std::vector<std::shared_ptr<Cell>> & row : m_puzzleRows)
+	    for (std::vector<CellPtr> & row : m_puzzleRows)
 	    {
-	        for (std::shared_ptr<Cell> cell : row)
+	        for (CellPtr cell : row)
 	            (*f)(cell);
 	    }
 	}

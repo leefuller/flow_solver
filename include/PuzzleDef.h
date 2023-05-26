@@ -10,7 +10,8 @@
 class Puzzle;
 class Cell;
 
-using PuzzleRow = std::vector<std::shared_ptr<Cell>>;
+using PuzzlePtr = std::shared_ptr<Puzzle>;
+using PuzzleRow = std::vector<CellPtr>;
 
 /**
  * Definition of a puzzle.
@@ -44,7 +45,7 @@ class PuzzleDefinition
       const std::set<PipeId> getPipeIds () const noexcept
       { return m_pipeIds; }
 
-      std::shared_ptr<Puzzle> generatePuzzle () const;
+      PuzzlePtr generatePuzzle () const;
 
       std::vector<PuzzleRow> generateRows () const;
 
@@ -67,9 +68,9 @@ class PuzzleDefinition
       bool isEndpoint (Coordinate coord) const noexcept;
 
     private:
-      std::shared_ptr<const Cell> getConstCellAtCoordinate(Coordinate coord, bool rangeCheck = false) const noexcept(false);
+      ConstCellPtr getConstCellAtCoordinate(Coordinate coord, bool rangeCheck = false) const noexcept(false);
       Cell * getCellAtCoordinate(Coordinate coord, bool rangeCheck = false) noexcept(false);
-      std::shared_ptr<const Cell> getConstCellAdjacent (Coordinate coord, Direction direction) const noexcept;
+      ConstCellPtr getConstCellAdjacent (Coordinate coord, Direction direction) const noexcept;
       Cell * getCellAdjacent (Coordinate coord, Direction direction) noexcept;
 
       void parsePuzzleDef (const char * puzzleDef);

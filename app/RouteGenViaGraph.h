@@ -2,7 +2,6 @@
 #define ROUTEGENVIAGRAPH_H
 
 #include <map>
-#include <memory> // unique_ptr, shared_ptr
 
 #include "RouteGenerator.h"
 #include "Puzzle.h"
@@ -15,24 +14,24 @@
 class RouteGenViaGraph : public RouteGenerator
 {
   public:
-    RouteGenViaGraph (std::shared_ptr<const Puzzle> puzzle);
+    RouteGenViaGraph (ConstPuzzlePtr puzzle);
 
-    virtual void generateRoutes (PipeId id, std::shared_ptr<const Puzzle> puzzle) override;
+    virtual void generateRoutes (PipeId id, ConstPuzzlePtr puzzle) override;
 
   private:
     void createGraph (const Puzzle & puzzle, PipeId idPipe);
 
     void traverseToCreateGraph (const Puzzle & puzzle, PipeId idPipe, Coordinate from, Matrix<bool> & visited);
 
-    void handleStartEndPoint (const Puzzle & puzzle, std::shared_ptr<const Cell> pCell, Matrix<bool> & visited);
+    void handleStartEndPoint (const Puzzle & puzzle, ConstCellPtr pCell, Matrix<bool> & visited);
 
-    void receivePath (Graph<std::shared_ptr<const Cell>>::Path & path);
+    void receivePath (Graph<ConstCellPtr>::Path & path);
 
-    Graph<std::shared_ptr<const Cell>> m_graph;
+    Graph<ConstCellPtr> m_graph;
 
     Matrix<bool> m_visited;
 
-    std::function<void(Graph<std::shared_ptr<const Cell>>::Path&)> m_pathReceiver;
+    std::function<void(Graph<ConstCellPtr>::Path&)> m_pathReceiver;
 };
 
 #endif

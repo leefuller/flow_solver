@@ -9,9 +9,9 @@
  * @param coord     Coordinate of cell to check
  * @return true if the cell at the given coordinate is a corner
  */
-bool Helper::isCorner (std::shared_ptr<const Puzzle> puzzle, Coordinate coord) noexcept
+bool Helper::isCorner (ConstPuzzlePtr puzzle, Coordinate coord) noexcept
 {
-    std::shared_ptr<const Cell> pCell = puzzle->getConstCellAtCoordinate(coord);
+    ConstCellPtr pCell = puzzle->getConstCellAtCoordinate(coord);
     // A corner has 2 connected walls that are not opposite
     if (pCell->countWalls() != 2)
         return false;
@@ -26,7 +26,7 @@ bool Helper::isCorner (std::shared_ptr<const Puzzle> puzzle, Coordinate coord) n
  * @param pipes     To return directions to adjacent pipes.
  * @return number of obstructions
  */
-unsigned Helper::getObstructedDirections (std::shared_ptr<const Puzzle> puzzle, std::shared_ptr<const Cell> pCell, std::set<Direction> & walls, std::set<Direction> & pipes) noexcept
+unsigned Helper::getObstructedDirections (ConstPuzzlePtr puzzle, ConstCellPtr pCell, std::set<Direction> & walls, std::set<Direction> & pipes) noexcept
 {
     unsigned count = 0;
     for (Direction d : allTraversalDirections)
@@ -40,7 +40,7 @@ unsigned Helper::getObstructedDirections (std::shared_ptr<const Puzzle> puzzle, 
         {
             for (Direction d : allTraversalDirections)
             {
-                std::shared_ptr<const Cell> pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), d);
+                ConstCellPtr pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), d);
                 if (pCellAdjacent == nullptr) // no cell adjacent
                     continue; // No addition to count, because there should be a wall that was counted above
                 if (pCellAdjacent->getPipeId() != NO_PIPE_ID)
@@ -59,15 +59,15 @@ unsigned Helper::getObstructedDirections (std::shared_ptr<const Puzzle> puzzle, 
  * Result includes the cell at the given coordinate, if it is empty.
  * ie. If the cell at the coordinate is not empty, the result is an empty list.
  */
-std::vector<std::shared_ptr<const Cell>> Helper::getCellsUntilObstruction(std::shared_ptr<const Puzzle> puzzle, Coordinate c, Direction d) noexcept
+std::vector<ConstCellPtr> Helper::getCellsUntilObstruction(ConstPuzzlePtr puzzle, Coordinate c, Direction d) noexcept
 {
-    std::vector<std::shared_ptr<const Cell>> result;
+    std::vector<ConstCellPtr> result;
 
     if (puzzle->passCoordinateRangeCheck(c))
     {
         while (true)
         {
-            std::shared_ptr<const Cell> pCell = puzzle->getConstCellAtCoordinate(c);
+            ConstCellPtr pCell = puzzle->getConstCellAtCoordinate(c);
             if (pCell == nullptr)
                 break;
             if (pCell->getPipeId() != NO_PIPE_ID)
@@ -88,7 +88,7 @@ std::vector<std::shared_ptr<const Cell>> Helper::getCellsUntilObstruction(std::s
  *
  * @return all traversable directions from coordinate.
  */
-std::set<Direction> Helper::getNowTraversableDirections (std::shared_ptr<const Puzzle> puzzle, Coordinate coord, PipeId idPipe)
+std::set<Direction> Helper::getNowTraversableDirections (ConstPuzzlePtr puzzle, Coordinate coord, PipeId idPipe)
 {
     std::set<Direction> result;
     for (Direction d : allTraversalDirections)
@@ -107,9 +107,9 @@ std::set<Direction> Helper::getNowTraversableDirections (std::shared_ptr<const P
  * @param coord         Start coordinate
  * @param idPipe        Pipe identifier. Can be NO_PIPE_ID to check disregarding pipes (TODO remove this complexity).
  */
-bool Helper::canNowTraverseDirectionFrom (std::shared_ptr<const Puzzle> puzzle, Coordinate coord, Direction direction, PipeId idPipe) noexcept
+bool Helper::canNowTraverseDirectionFrom (ConstPuzzlePtr puzzle, Coordinate coord, Direction direction, PipeId idPipe) noexcept
 {
-    std::shared_ptr<const Cell> pCellFrom = puzzle->getConstCellAtCoordinate(coord);
+    ConstCellPtr pCellFrom = puzzle->getConstCellAtCoordinate(coord);
     if (!pCellFrom->isBorderOpen(direction))
         return false;
 
@@ -145,7 +145,7 @@ bool Helper::canNowTraverseDirectionFrom (std::shared_ptr<const Puzzle> puzzle, 
         return false;
 
     // At this point we know a cell exists in the given direction, and there is no wall preventing traversal.
-    std::shared_ptr<const Cell> pCellNext = puzzle->getConstCellAtCoordinate(nextCoord);
+    ConstCellPtr pCellNext = puzzle->getConstCellAtCoordinate(nextCoord);
 
     if (idPipe == NO_PIPE_ID)
         return true;

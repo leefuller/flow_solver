@@ -1,7 +1,6 @@
 #include "Puzzle.h"
 #include "PuzzleException.h"
 #include "Cell.h"
-//#include "log.h"
 #include "Logger.h"
 
 #include <memory>
@@ -22,10 +21,10 @@ Puzzle::Puzzle (const PuzzleDefinition & def)
 Puzzle::Puzzle (const Puzzle & p) :
     m_def(p.m_def)//, m_plumber(p.m_plumber)
 {
-    for (std::vector<std::shared_ptr<Cell>> row : p.m_puzzleRows)
+    for (std::vector<CellPtr> row : p.m_puzzleRows)
     {
-        std::vector<std::shared_ptr<Cell>> rowCopy;
-        for (std::shared_ptr<Cell> cell : row)
+        std::vector<CellPtr> rowCopy;
+        for (CellPtr cell : row)
             rowCopy.push_back(std::make_shared<Cell>(*cell)); // make a copy of the cell
         m_puzzleRows.push_back(rowCopy);
     }
@@ -48,7 +47,7 @@ std::ostream & Puzzle::streamPuzzleMatrix (std::ostream & os) const noexcept
  * Get the cell at the given coordinate.
  * @return pointer to cell, if existing
  */
-std::shared_ptr<Cell> Puzzle::getCellAtCoordinate(Coordinate c) noexcept
+CellPtr Puzzle::getCellAtCoordinate(Coordinate c) noexcept
 {
     return std::const_pointer_cast<Cell>(getConstCellAtCoordinate(c));
 }
@@ -59,7 +58,7 @@ std::shared_ptr<Cell> Puzzle::getCellAtCoordinate(Coordinate c) noexcept
  * @param coord         Coordinate
  * @return const pointer to cell, if existing
  */
-std::shared_ptr<const Cell> Puzzle::getConstCellAtCoordinate (Coordinate c) const noexcept
+ConstCellPtr Puzzle::getConstCellAtCoordinate (Coordinate c) const noexcept
 {
     //if (!passCoordinateRangeCheck(c))
         //return nullptr;
@@ -80,7 +79,7 @@ std::shared_ptr<const Cell> Puzzle::getConstCellAtCoordinate (Coordinate c) cons
 unsigned Puzzle::gapToObstruction (Coordinate c, Direction d) const noexcept
 {
     unsigned count = 0;
-    std::shared_ptr<const Cell> pCell = getConstCellAtCoordinate(c);
+    ConstCellPtr pCell = getConstCellAtCoordinate(c);
     while (1)
     {
         // check if cell has a border in that direction.
@@ -99,7 +98,7 @@ unsigned Puzzle::gapToObstruction (Coordinate c, Direction d) const noexcept
 /**
  * Check whether set of routes is a puzzle solution.
  */
-bool Puzzle::checkIfSolution (std::shared_ptr<const Puzzle> puzzle, const std::map<PipeId, Route> & s)
+bool Puzzle::checkIfSolution (ConstPuzzlePtr puzzle, const std::map<PipeId, Route> & s)
 {
     if (s.size() != puzzle->getNumPipes())
         return false; // Require one route per pipe
@@ -146,7 +145,7 @@ bool Puzzle::checkIfSolution (std::shared_ptr<const Puzzle> puzzle, const std::m
  * @param c     Coordinate of start cell
  * @return adjacent cell, regardless of inner walls. If an outer wall is in the direction, return nullptr.
  */
-std::shared_ptr<const Cell> Puzzle::getConstCellAdjacent (Coordinate c, Adjacency direction) const //noexcept
+ConstCellPtr Puzzle::getConstCellAdjacent (Coordinate c, Adjacency direction) const //noexcept
 {
     if (!passCoordinateRangeCheck(c))
         return nullptr; // Invalid start coordinate
@@ -163,7 +162,7 @@ std::shared_ptr<const Cell> Puzzle::getConstCellAdjacent (Coordinate c, Adjacenc
  * @param c     Coordinate of start cell
  * @return adjacent cell, regardless of inner walls. If an outer wall is in the direction, return nullptr.
  */
-std::shared_ptr<Cell> Puzzle::getCellAdjacent (Coordinate c, Adjacency direction) //noexcept
+CellPtr Puzzle::getCellAdjacent (Coordinate c, Adjacency direction) //noexcept
 {
     return std::const_pointer_cast<Cell>(getConstCellAdjacent(c, direction));
 }
@@ -178,7 +177,7 @@ std::shared_ptr<Cell> Puzzle::getCellAdjacent (Coordinate c, Adjacency direction
  * @param d     Direction to adjacent cell
  * @return adjacent Cell if direction is open, or nullptr if the direction is blocked by a wall.
  */
-std::shared_ptr<Cell> Puzzle::getCellAdjacent (Coordinate c, Direction d) //noexcept
+CellPtr Puzzle::getCellAdjacent (Coordinate c, Direction d) //noexcept
 {
     return std::const_pointer_cast<Cell>(getConstCellAdjacent(c, d));
 }
@@ -191,11 +190,11 @@ std::shared_ptr<Cell> Puzzle::getCellAdjacent (Coordinate c, Direction d) //noex
  * @param d     Direction to adjacent cell
  * @return adjacent Cell if direction is open, or nullptr if the direction is blocked by a wall.
  */
-std::shared_ptr<const Cell> Puzzle::getConstCellAdjacent (Coordinate c, Direction d) const //noexcept
+ConstCellPtr Puzzle::getConstCellAdjacent (Coordinate c, Direction d) const //noexcept
 {
     if (!passCoordinateRangeCheck(c))
         return nullptr; // Invalid start coordinate
-    const std::shared_ptr<const Cell> pCell = getConstCellAtCoordinate(c);
+    const ConstCellPtr pCell = getConstCellAtCoordinate(c);
     if (d == Direction::NONE)
         return pCell;
     if (pCell->isBorderOpen(d) && coordinateChange(c, d))
@@ -207,15 +206,15 @@ std::shared_ptr<const Cell> Puzzle::getConstCellAdjacent (Coordinate c, Directio
  * Get the cells adjacent to the given one.
  * @return adjacent cells mapped by direction. The direction is from the cell towards the adjacement.
  */
-std::map<Direction, std::shared_ptr<const Cell>> Puzzle::getAdjacentCells (std::shared_ptr<const Cell> cell) const noexcept
+std::map<Direction, ConstCellPtr> Puzzle::getAdjacentCells (ConstCellPtr cell) const noexcept
 {
-    std::map<Direction, std::shared_ptr<const Cell>> result;
+    std::map<Direction, ConstCellPtr> result;
     if (cell == nullptr)
         return result;
 
     for (Direction d : allTraversalDirections)
     {
-        std::shared_ptr<const Cell> p = getConstCellAdjacent(cell->getCoordinate(), d);
+        ConstCellPtr p = getConstCellAdjacent(cell->getCoordinate(), d);
         if (p != nullptr)
             result[d] = p;
     }
@@ -225,9 +224,9 @@ std::map<Direction, std::shared_ptr<const Cell>> Puzzle::getAdjacentCells (std::
 /**
  * Get all cells surrounding the given coordinate. Disregards inner walls.
  */
-std::array<std::shared_ptr<const Cell>, 9> Puzzle::getAdjacentCells (Coordinate coord) const //noexcept
+std::array<ConstCellPtr, 9> Puzzle::getAdjacentCells (Coordinate coord) const //noexcept
 {
-    std::array<std::shared_ptr<const Cell>, 9> result;
+    std::array<ConstCellPtr, 9> result;
     result[Adjacency::ADJACENT_NORTH_WEST] = (isCoordinateChangeValid(coord, Adjacency::ADJACENT_NORTH_WEST) ?
             getConstCellAdjacent(coord, Adjacency::ADJACENT_NORTH_WEST) : nullptr);
     result[Adjacency::ADJACENT_NORTH] = (isCoordinateChangeValid(coord, Adjacency::ADJACENT_NORTH) ?
@@ -258,7 +257,7 @@ void Puzzle::insertRoute (PipeId idPipe, const Route & route)
 {
     for (Coordinate coord : route)
     {
-        std::shared_ptr<Cell> pCell = getCellAtCoordinate(coord);
+        CellPtr pCell = getCellAtCoordinate(coord);
         if (pCell->getPipeId() != idPipe)
         {
             if (pCell->getPipeId() != NO_PIPE_ID)
@@ -283,7 +282,7 @@ void Puzzle::removeRoute ()
 {
     for (Coordinate coord : m_injectedRoute)
     {
-        std::shared_ptr<Cell> pCell = getCellAtCoordinate(coord);
+        CellPtr pCell = getCellAtCoordinate(coord);
         pCell->setPipeId(NO_PIPE_ID);
     }
     m_injectedRoute.clear();
@@ -297,7 +296,7 @@ static std::set<Coordinate> visited;
  * then add the next coordinate in that direction to the route.
  * @return true if the route can go in direction from cell
  */
-static bool continueDirectionForRoute (std::shared_ptr<const Cell> pCell, Route & route, Direction direction)
+static bool continueDirectionForRoute (ConstCellPtr pCell, Route & route, Direction direction)
 {
     Coordinate coord = pCell->getCoordinate();
     if (!coordinateChange(coord, direction))
@@ -327,7 +326,7 @@ bool Puzzle::traceRoute (PipeId idPipe, Route & route) const
     }
     Coordinate coord = route.back();
     visited.insert(coord);
-    std::shared_ptr<const Cell> pCell = getConstCellAtCoordinate(coord);
+    ConstCellPtr pCell = getConstCellAtCoordinate(coord);
     if (pCell->getEndpoint() == PipeEnd::PIPE_END_2)
     {
         logger << " endpoint." << std::endl;

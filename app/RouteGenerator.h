@@ -18,7 +18,7 @@ class Puzzle;
 class RouteGenerator
 {
   public:
-    virtual void generateRoutes (PipeId id, std::shared_ptr<const Puzzle> puzzle) = 0;
+    virtual void generateRoutes (PipeId id, ConstPuzzlePtr puzzle) = 0;
 
     virtual ~RouteGenerator () {}
 

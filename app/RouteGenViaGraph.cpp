@@ -38,7 +38,7 @@ class GraphOutputter : public Graph<NodeT>::Visitor
         std::ostream & m_os;
 };
 
-void RouteGenViaGraph::receivePath (Graph<std::shared_ptr<const Cell>>::Path & path)
+void RouteGenViaGraph::receivePath (Graph<ConstCellPtr>::Path & path)
 {
     // The emission from the graph does not identify anything other than the path between nodes.
     // Need to convert path to Route and emit
@@ -48,13 +48,13 @@ void RouteGenViaGraph::receivePath (Graph<std::shared_ptr<const Cell>>::Path & p
     if (idPipe == NO_PIPE_ID) // should not happen
         return;
     Route route;
-    for (std::shared_ptr<const Cell> pCell : path)
+    for (ConstCellPtr pCell : path)
         route.push_back(pCell->getCoordinate());
     RouteGenerator::emitRoute(idPipe, route);
 
 }
 
-RouteGenViaGraph::RouteGenViaGraph (std::shared_ptr<const Puzzle> puzzle)
+RouteGenViaGraph::RouteGenViaGraph (ConstPuzzlePtr puzzle)
     : m_visited(puzzle->getNumRows(), puzzle->getNumCols()),
       m_pathReceiver(std::bind(&RouteGenViaGraph::receivePath, std::reference_wrapper<RouteGenViaGraph>(*this), std::placeholders::_1))
 {
@@ -65,8 +65,8 @@ RouteGenViaGraph::RouteGenViaGraph (std::shared_ptr<const Puzzle> puzzle)
 /**
  * 
  */
-//void RouteGenViaGraph::generateRoutes (PipeId id, std::shared_ptr<const Puzzle> puzzle, const Route & existing)
-void RouteGenViaGraph::generateRoutes (PipeId id, std::shared_ptr<const Puzzle> puzzle)
+//void RouteGenViaGraph::generateRoutes (PipeId id, ConstPuzzlePtr puzzle, const Route & existing)
+void RouteGenViaGraph::generateRoutes (PipeId id, ConstPuzzlePtr puzzle)
 {
     createGraph(*puzzle, id); // No need to use existing routes parameter, because puzzle should now reflect those.
 
@@ -74,15 +74,15 @@ void RouteGenViaGraph::generateRoutes (PipeId id, std::shared_ptr<const Puzzle> 
     Coordinate end = puzzle->findPipeEnd(id, PipeEnd::PIPE_END_2);
 
     Route route;
-    std::shared_ptr<const Cell> startCell = puzzle->getConstCellAtCoordinate(start);
-    std::shared_ptr<const Cell> destCell = puzzle->getConstCellAtCoordinate(end);
+    ConstCellPtr startCell = puzzle->getConstCellAtCoordinate(start);
+    ConstCellPtr destCell = puzzle->getConstCellAtCoordinate(end);
     m_graph.genAllPaths(startCell, destCell);
 }
 
 /**
  *
  */
-void RouteGenViaGraph::handleStartEndPoint (const Puzzle & puzzle, std::shared_ptr<const Cell> pCell, Matrix<bool> & visited)
+void RouteGenViaGraph::handleStartEndPoint (const Puzzle & puzzle, ConstCellPtr pCell, Matrix<bool> & visited)
 {
     // Check for a fixed connection.
     // If a fixed connection is found, the start/end point only needs 1 directed edge
@@ -90,7 +90,7 @@ void RouteGenViaGraph::handleStartEndPoint (const Puzzle & puzzle, std::shared_p
     {
         if (pCell->getConnection(direction) == CellConnection::FIXTURE_CONNECTION)
         {
-            std::shared_ptr<const Cell> pCellAdjacent = puzzle.getConstCellAdjacent(pCell->getCoordinate(), direction);
+            ConstCellPtr pCellAdjacent = puzzle.getConstCellAdjacent(pCell->getCoordinate(), direction);
             if (pCellAdjacent == nullptr)
                 continue;
             //if (pCellAdjacent->getPipeId() != pCell->getPipeId())
@@ -108,7 +108,7 @@ void RouteGenViaGraph::handleStartEndPoint (const Puzzle & puzzle, std::shared_p
         if (pCell->getConnection(direction) == CellConnection::NO_CONNECTOR)
             continue;
 
-        std::shared_ptr<const Cell> pCellAdjacent = puzzle.getConstCellAdjacent(pCell->getCoordinate(), direction);
+        ConstCellPtr pCellAdjacent = puzzle.getConstCellAdjacent(pCell->getCoordinate(), direction);
         if (pCellAdjacent == nullptr)
             continue;
         //if (pCellAdjacent->getPipeId() != pCell->getPipeId())
@@ -125,7 +125,7 @@ void RouteGenViaGraph::traverseToCreateGraph (const Puzzle & puzzle, PipeId idPi
     if (visited.at(from))
         return;
     // Cell for current graph node
-    std::shared_ptr<const Cell> pCell = puzzle.getConstCellAtCoordinate(from);
+    ConstCellPtr pCell = puzzle.getConstCellAtCoordinate(from);
     visited.at(from) = true;
     if (pCell->getPipeId() != idPipe && pCell->getPipeId() != NO_PIPE_ID)
         return; // cell is for different pipe
@@ -148,7 +148,7 @@ void RouteGenViaGraph::traverseToCreateGraph (const Puzzle & puzzle, PipeId idPi
                 continue;
 
             // Cell adjacent in direction
-            std::shared_ptr<const Cell> pCellAdjacent = puzzle.getConstCellAdjacent(pCell->getCoordinate(), direction);
+            ConstCellPtr pCellAdjacent = puzzle.getConstCellAdjacent(pCell->getCoordinate(), direction);
             if (pCellAdjacent == nullptr)
                 continue;
             if (pCellAdjacent->getPipeId() != NO_PIPE_ID && pCellAdjacent->getPipeId() != idPipe)
@@ -176,7 +176,7 @@ void RouteGenViaGraph::traverseToCreateGraph (const Puzzle & puzzle, PipeId idPi
     // Recurse for each neighbour
     for (Direction direction : allTraversalDirections)
     {
-        std::shared_ptr<const Cell> pCellAdjacent = puzzle.getConstCellAdjacent(pCell->getCoordinate(), direction);
+        ConstCellPtr pCellAdjacent = puzzle.getConstCellAdjacent(pCell->getCoordinate(), direction);
         if (pCellAdjacent != nullptr)
         {
             if (pCellAdjacent->getPipeId() == idPipe || pCellAdjacent->getPipeId() == NO_PIPE_ID)

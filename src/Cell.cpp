@@ -8,10 +8,10 @@
 /**
  * Factory function to create a new Cell object
  */
-std::shared_ptr<Cell> Cell::createCell (Coordinate c, PipeId idPipe) noexcept
+CellPtr Cell::createCell (Coordinate c, PipeId idPipe) noexcept
 {
-    //std::shared_ptr<Cell> p = std::make_shared<Cell>();
-    std::shared_ptr<Cell> p = std::shared_ptr<Cell>(new Cell);
+    //CellPtr p = std::make_shared<Cell>();
+    CellPtr p = std::shared_ptr<Cell>(new Cell);
     p->setCoordinate(c);
     return p;
 }
@@ -63,16 +63,16 @@ std::ostream & operator<< (std::ostream & os, const Cell & cell) noexcept
     return os;
 }
 
-std::ostream & operator<< (std::ostream & os, const std::shared_ptr<Cell> cell) noexcept
+std::ostream & operator<< (std::ostream & os, const CellPtr cell) noexcept
 { return os << *cell; }
 
-std::ostream & operator<< (std::ostream & os, const std::vector<std::shared_ptr<Cell>> & row) noexcept
+std::ostream & operator<< (std::ostream & os, const std::vector<CellPtr> & row) noexcept
 //std::ostream & operator<< (std::ostream & os, const PuzzleRow & row) noexcept
 {
 #if 0
     // Upper border (typically just complicates the look by showing horizontal borders between cells twice.)
     // If left out, the slightly negative impact is that top border of the puzzle is not output.
-    for (std::shared_ptr<const Cell> cell : row)
+    for (ConstCellPtr cell : row)
     {
         os << (cell->getBorder(Direction::LEFT) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
         outputBorderRepr(os, Direction::UP, cell->getBorder(Direction::UP));
@@ -84,7 +84,7 @@ std::ostream & operator<< (std::ostream & os, const std::vector<std::shared_ptr<
     if (Cell::isOutputConnectorRep())
     {
         // Upper connector
-        for (std::shared_ptr<const Cell> cell : row)
+        for (ConstCellPtr cell : row)
         {
             os << (!cell->isBorderOpen(Direction::LEFT) ? VERTICAL_WALL_DEF_CH : ' ');
             outputConnectionRepr(os, Direction::UP, cell->getConnection(Direction::UP));
@@ -93,14 +93,14 @@ std::ostream & operator<< (std::ostream & os, const std::vector<std::shared_ptr<
         os << std::endl;
     }
 
-    for (std::shared_ptr<const Cell> cell : row)
+    for (ConstCellPtr cell : row)
         os << *cell;
     os << std::endl;
 
     if (Cell::isOutputConnectorRep())
     {
         // Lower connector
-        for (std::shared_ptr<const Cell> cell : row)
+        for (ConstCellPtr cell : row)
         {
             os << (!cell->isBorderOpen(Direction::LEFT) ? VERTICAL_WALL_DEF_CH : ' ');
             outputConnectionRepr(os, Direction::DOWN, cell->getConnection(Direction::DOWN));
@@ -111,7 +111,7 @@ std::ostream & operator<< (std::ostream & os, const std::vector<std::shared_ptr<
 
 #if 1
     // Lower border
-    for (std::shared_ptr<const Cell> cell : row)
+    for (ConstCellPtr cell : row)
     {
         os << (cell->getBorder(Direction::LEFT) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
         outputBorderRepr(os, Direction::DOWN, cell->getBorder(Direction::DOWN));

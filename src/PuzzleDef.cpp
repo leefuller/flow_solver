@@ -159,7 +159,7 @@ void PuzzleDefinition::parsePuzzleDef (const char * puzzleDef)
  * @param rangeCheck    true to execute a range check for coord.
  * @return const pointer to cell
  */
-std::shared_ptr<const Cell> PuzzleDefinition::getConstCellAtCoordinate (Coordinate coord, bool rangeCheck) const noexcept(false)
+ConstCellPtr PuzzleDefinition::getConstCellAtCoordinate (Coordinate coord, bool rangeCheck) const noexcept(false)
 {
     unsigned row = coord[0];
     unsigned col = coord[1];
@@ -170,7 +170,7 @@ std::shared_ptr<const Cell> PuzzleDefinition::getConstCellAtCoordinate (Coordina
         if (col >= m_puzzleRows[row].size())
             throw std::invalid_argument("column out of range");
     }
-    return std::shared_ptr<const Cell>(new Cell(m_puzzleRows[row][col]));
+    return ConstCellPtr(new Cell(m_puzzleRows[row][col]));
 }
 
 /**
@@ -217,9 +217,9 @@ Cell * PuzzleDefinition::getCellAdjacent (Coordinate coord, Direction d) noexcep
  * @param direction     Direction to adjacent cell
  * @return adjacent Cell if direction is open, or nullptr if the direction is blocked by a wall.
  */
-std::shared_ptr<const Cell> PuzzleDefinition::getConstCellAdjacent (Coordinate coord, Direction d) const noexcept
+ConstCellPtr PuzzleDefinition::getConstCellAdjacent (Coordinate coord, Direction d) const noexcept
 {
-    const std::shared_ptr<const Cell> & pCell = getConstCellAtCoordinate(coord);
+    const ConstCellPtr & pCell = getConstCellAtCoordinate(coord);
     if (d == NONE)
         return pCell;
     if (pCell->isBorderOpen(d) && coordinateChange(coord, d))
@@ -302,7 +302,7 @@ std::set<Direction> PuzzleDefinition::getConnectedDirections (Coordinate coord) 
 {
     //if (!passCoordinateRangeCheck(coord))
         //return ;
-    std::shared_ptr<const Cell> cell = getConstCellAtCoordinate(coord);
+    ConstCellPtr cell = getConstCellAtCoordinate(coord);
     std::set<Direction> result;
     for (Direction direction : allTraversalDirections)
     {
@@ -315,9 +315,9 @@ std::set<Direction> PuzzleDefinition::getConnectedDirections (Coordinate coord) 
 /**
  * Create a Puzzle from the definition
  */
-std::shared_ptr<Puzzle> PuzzleDefinition::generatePuzzle () const
+PuzzlePtr PuzzleDefinition::generatePuzzle () const
 {
-    return std::shared_ptr<Puzzle>(new Puzzle(*this));
+    return PuzzlePtr(new Puzzle(*this));
 }
 
 std::vector<PuzzleRow> PuzzleDefinition::generateRows () const

@@ -55,6 +55,10 @@ const std::array<CellConnection, 4> noConnections = {NO_CONNECTOR, NO_CONNECTOR,
 
 const std::array<const char *, 5> connectionStr = {"no connector", "open connector", "temporary connection", "fixture connection", "open fixture"};
 
+class Cell;
+using CellPtr = std::shared_ptr<Cell>;
+using ConstCellPtr = std::shared_ptr<const Cell>;
+
 /**
  * Represent a single cell in a puzzle.
  * Intended as a data holder. Should contain little to no logic.
@@ -192,7 +196,7 @@ class Cell
 
   private:
 
-    static std::shared_ptr<Cell> createCell (Coordinate c, PipeId idPipe) noexcept;
+    static CellPtr createCell (Coordinate c, PipeId idPipe) noexcept;
 
     /** Whether or not output to stream includes connector representation */
     static bool outputConnectorRep;
@@ -252,8 +256,8 @@ class Cell
 };
 
 std::ostream & operator<< (std::ostream & os, const Cell & cell) noexcept;
-std::ostream & operator<< (std::ostream & os, const std::shared_ptr<Cell>) noexcept;
+std::ostream & operator<< (std::ostream & os, const CellPtr) noexcept;
 std::ostream & operator<< (std::ostream & os, const std::vector<Cell> & row) noexcept;
-std::ostream & operator<< (std::ostream & os, const std::vector<std::shared_ptr<Cell>> & row) noexcept;
+std::ostream & operator<< (std::ostream & os, const std::vector<CellPtr> & row) noexcept;
 
 #endif

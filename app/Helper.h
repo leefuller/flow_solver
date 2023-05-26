@@ -10,16 +10,19 @@
 class Puzzle;
 class Cell;
 
+using ConstPuzzlePtr = std::shared_ptr<const Puzzle>;
+using ConstCellPtr = std::shared_ptr<const Cell>;
+
 class Helper
 {
   public:
-    static bool isCorner (std::shared_ptr<const Puzzle> puzzle, Coordinate coord) noexcept;
+    static bool isCorner (ConstPuzzlePtr puzzle, Coordinate coord) noexcept;
 
-    static unsigned getObstructedDirections (std::shared_ptr<const Puzzle> puzzle, std::shared_ptr<const Cell> pCell, std::set<Direction> & walls, std::set<Direction> & pipes) noexcept;
-    static std::vector<std::shared_ptr<const Cell>> getCellsUntilObstruction(std::shared_ptr<const Puzzle> puzzle, Coordinate, Direction) noexcept;
+    static unsigned getObstructedDirections (ConstPuzzlePtr puzzle, ConstCellPtr pCell, std::set<Direction> & walls, std::set<Direction> & pipes) noexcept;
+    static std::vector<ConstCellPtr> getCellsUntilObstruction(ConstPuzzlePtr puzzle, Coordinate, Direction) noexcept;
 
-    static std::set<Direction> getNowTraversableDirections (std::shared_ptr<const Puzzle> puzzle, Coordinate coord, PipeId idPipe);
-    static bool canNowTraverseDirectionFrom (std::shared_ptr<const Puzzle> puzzle, Coordinate coord, Direction direction, PipeId idPipe) noexcept;
+    static std::set<Direction> getNowTraversableDirections (ConstPuzzlePtr puzzle, Coordinate coord, PipeId idPipe);
+    static bool canNowTraverseDirectionFrom (ConstPuzzlePtr puzzle, Coordinate coord, Direction direction, PipeId idPipe) noexcept;
 };
 
 #endif

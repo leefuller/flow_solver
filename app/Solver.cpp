@@ -21,7 +21,7 @@ static Logger & logger = Logger::getDefaultLogger();
  * Add pipe identifier to set of identifiers, if the cell at coordinate has endpoint PipeEnd::PIPE_END_1. Otherwise, do nothing.
  * @param cell      Cell to assess
  */
-void Solver::addPipeIdToIdSetIfCellIsStart (std::shared_ptr<Cell> cell) noexcept
+void Solver::addPipeIdToIdSetIfCellIsStart (CellPtr cell) noexcept
 {
     if (cell->getEndpoint() == PipeEnd::PIPE_END_1)
         m_pipeIds.insert(cell->getPipeId());
@@ -49,7 +49,7 @@ void Solver::generateRoutes (const std::map<PipeId, Route> & existing)
         // Follow fixtures to get to the point where the path is unknown
         Route route;
         route.push_back(start);
-        std::shared_ptr<const Cell> pCell = m_puzzle->getConstCellAtCoordinate(start);
+        ConstCellPtr pCell = m_puzzle->getConstCellAtCoordinate(start);
         Direction forward = Direction::NONE;
         for (bool fixed = true; fixed && pCell->getEndpoint() != PipeEnd::PIPE_END_2;)
         {
@@ -106,7 +106,7 @@ void Solver::addRoute (PipeId idPipe, const Route & route)
 class TryRoute
 {
     public:
-        TryRoute (std::shared_ptr<Puzzle> puzzle, PipeId idPipe, const Route & route)
+        TryRoute (PuzzlePtr puzzle, PipeId idPipe, const Route & route)
             : m_puzzle(puzzle), m_route(route)
         {
             m_puzzle->insertRoute(idPipe, route);
@@ -118,7 +118,7 @@ class TryRoute
         }
 
     private:
-        std::shared_ptr<Puzzle> m_puzzle;
+        PuzzlePtr m_puzzle;
         Route m_route;
 };
 
@@ -171,7 +171,7 @@ bool Solver::checkSolution (std::vector<std::pair<PipeId, Route>>::iterator star
 // Recursive template function to process combinations
 // (From n items, process combinations of r items)
 template <class RanIt, class Func>
-bool recursive_combination (std::shared_ptr<Puzzle> puzzle, RanIt nbegin, RanIt nend, int n_column,
+bool recursive_combination (PuzzlePtr puzzle, RanIt nbegin, RanIt nend, int n_column,
     RanIt rbegin, RanIt rend, int r_column, int loop, 
     Func func)
 {
@@ -213,7 +213,7 @@ bool recursive_combination (std::shared_ptr<Puzzle> puzzle, RanIt nbegin, RanIt 
  */
 bool Solver::isAdjacentToChannelOpening (Coordinate coord) const noexcept
 {
-    std::shared_ptr<const Cell> pCell = m_puzzle->getConstCellAtCoordinate(coord);
+    ConstCellPtr pCell = m_puzzle->getConstCellAtCoordinate(coord);
 
     for (Direction direction : allTraversalDirections)
     {
@@ -233,11 +233,11 @@ bool Solver::isAdjacentToChannelOpening (Coordinate coord) const noexcept
         if (!Helper::isCorner(m_puzzle, coord2))
             continue; // try next direction
 
-        std::shared_ptr<const Cell> pCellNext = m_puzzle->getConstCellAtCoordinate(coord2);
+        ConstCellPtr pCellNext = m_puzzle->getConstCellAtCoordinate(coord2);
         // For a corner to be part of a channel, a cell next to it must be a channel, or an opposing corner.
 
         // The corner must have a wall in the same direction. and a wall 90 degrees to direction.
-        std::shared_ptr<const Cell> pCellNextAgain = nullptr;
+        ConstCellPtr pCellNextAgain = nullptr;
         Coordinate coord3 = coord;
         switch (direction)
         {
@@ -275,7 +275,7 @@ bool Solver::isAdjacentToChannelOpening (Coordinate coord) const noexcept
     return false;
 }
 
-static void describeConnection (std::shared_ptr<const Cell> cellFrom, std::shared_ptr<const Cell> cellAdjacent)
+static void describeConnection (ConstCellPtr cellFrom, ConstCellPtr cellAdjacent)
 {
     std::cout << "Connect from ";
     cellFrom->describe(std::cout);
@@ -290,10 +290,10 @@ static void describeConnection (std::shared_ptr<const Cell> cellFrom, std::share
  * - A non-fixed connection next to a fixed endpoint can be removed.
  * @return cells where any change is made
  */
-std::set<std::shared_ptr<Cell>> Solver::reviseCell (std::shared_ptr<Cell> pCell) noexcept(false)
+std::set<CellPtr> Solver::reviseCell (CellPtr pCell) noexcept(false)
 {
     logger << "Revise " << pCell->getCoordinate() << std::endl;
-    std::set<std::shared_ptr<Cell>> result;
+    std::set<CellPtr> result;
     bool changed = false;
     for (Direction d : allTraversalDirections)
     {
@@ -315,7 +315,7 @@ std::set<std::shared_ptr<Cell>> Solver::reviseCell (std::shared_ptr<Cell> pCell)
         // else can accept connection
         if (pCell->isFixture())
         {
-            std::shared_ptr<Cell> pAdj = m_puzzle->getCellAdjacent(pCell->getCoordinate(), d);
+            CellPtr pAdj = m_puzzle->getCellAdjacent(pCell->getCoordinate(), d);
             if (pAdj != nullptr)
             {
                 if (pAdj->isFixture())
@@ -366,9 +366,9 @@ bool Solver::solve()
     try
     {
         // Visit each cell to find all pipe start points, and build the set of pipe identifiers.
-        std::function<void(std::shared_ptr<Cell>)> f =
+        std::function<void(CellPtr)> f =
                 std::bind(&Solver::addPipeIdToIdSetIfCellIsStart, std::reference_wrapper<Solver>(*this),
-            std::placeholders::_1); // Placeholder for shared_ptr<Cell>
+            std::placeholders::_1); // Placeholder for CellPtr
         m_puzzle->forEveryCell(&f);
         logger << "Pipes expected: " << m_pipeIds.size() << std::endl;
 
@@ -390,20 +390,20 @@ bool Solver::solve()
                     if (oneWay != Direction::NONE)
                     {
                         changed = true;
-                        std::shared_ptr<Cell> cellFrom = m_puzzle->getCellAtCoordinate({r,c});
-                        std::shared_ptr<Cell> cellAdjacent = m_puzzle->getCellAdjacent({r,c}, oneWay);
+                        CellPtr cellFrom = m_puzzle->getCellAtCoordinate({r,c});
+                        CellPtr cellAdjacent = m_puzzle->getCellAdjacent({r,c}, oneWay);
                         m_puzzle->getPlumber()->connect(cellFrom->getCoordinate(), cellAdjacent->getCoordinate(),
                                 cellFrom->getPipeId(), CellConnection::FIXTURE_CONNECTION);
 
                         // Check other cells to be revised after plumber action
-                        std::set<std::shared_ptr<Cell>> toRevise = { cellFrom, cellAdjacent };
-                        std::set<std::shared_ptr<Cell>> reviseMore;
+                        std::set<CellPtr> toRevise = { cellFrom, cellAdjacent };
+                        std::set<CellPtr> reviseMore;
                         do
                         {
-                            for (std::shared_ptr<Cell> p : toRevise)
+                            for (CellPtr p : toRevise)
                             {
-                                std::set<std::shared_ptr<Cell>> r = reviseCell(p);
-                                for (std::shared_ptr<Cell> pr : r)
+                                std::set<CellPtr> r = reviseCell(p);
+                                for (CellPtr pr : r)
                                     reviseMore.insert(pr);
                             };
                             toRevise = reviseMore;

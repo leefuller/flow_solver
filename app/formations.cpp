@@ -17,7 +17,7 @@ static Logger & logger = Logger::getDefaultLogger();
  * @param inwardDirection   The side from which the cell is entered.
  * @return true if a deviation has formed that would invalidate any route possible there
  */
-bool detectInvalidDeviation (std::shared_ptr<const Puzzle> puzzle, const Route & route, PipeId idPipe)
+bool detectInvalidDeviation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPipe)
 {
 /*
  * Need to eliminate a route like this:
@@ -60,7 +60,7 @@ bool detectInvalidDeviation (std::shared_ptr<const Puzzle> puzzle, const Route &
  * @param idPipe    The pipe id for the route
  * @return true if the route traps something
  */
-bool detectEntrapment (std::shared_ptr<const Puzzle> puzzle, const Route & route, PipeId idPipe)
+bool detectEntrapment (ConstPuzzlePtr puzzle, const Route & route, PipeId idPipe)
 {
     // Note, there can be more than 1 entrapped area. Return true on detection of first.
     // An area entrapped could be a lot of the puzzle.
@@ -71,7 +71,7 @@ bool detectEntrapment (std::shared_ptr<const Puzzle> puzzle, const Route & route
     return false;
 }
 
-bool detectBadFormation (std::shared_ptr<const Puzzle> puzzle, const Route & route, PipeId idPipe)
+bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPipe)
 {
     try
     {

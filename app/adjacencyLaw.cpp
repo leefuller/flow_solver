@@ -30,16 +30,16 @@ static Logger & logger = Logger::getDefaultLogger();
  * @param inwardDirection   The side from which the cell is entered.
  * @return true if adjacency rule is broken
  */
-bool adjacencyRuleBroken (std::shared_ptr<const Puzzle> puzzle, const Route & route)
+bool adjacencyRuleBroken (ConstPuzzlePtr puzzle, const Route & route)
 {
     for (Coordinate coord : route)
     {
-        std::shared_ptr<const Cell> pCell = puzzle->getConstCellAtCoordinate(coord);
+        ConstCellPtr pCell = puzzle->getConstCellAtCoordinate(coord);
 
         // Out of a group of cells covering all directions from current, including diagonal
         // (ie. 3x3 formation, with the current cell in the center),
         // there can be up to 4 formations of 2x2
-        std::array<std::shared_ptr<const Cell>, 9> cellGroup = puzzle->getAdjacentCells(coord);
+        std::array<ConstCellPtr, 9> cellGroup = puzzle->getAdjacentCells(coord);
         /* The 4 possible 2x2 formations are as follows:
            central, up, up right, right;
              . X X
@@ -68,19 +68,19 @@ bool adjacencyRuleBroken (std::shared_ptr<const Puzzle> puzzle, const Route & ro
         // This means:
         // The 1st cell and 3rd cell in each array below share a border with the center cell.
         // The 2nd cell in each array is the one diagonally opposite the center cell.
-        std::array<std::shared_ptr<const Cell>, 3> quadrantUpRight = {
+        std::array<ConstCellPtr, 3> quadrantUpRight = {
             cellGroup[Adjacency::ADJACENT_NORTH], cellGroup[Adjacency::ADJACENT_NORTH_EAST],
             cellGroup[Adjacency::ADJACENT_EAST] };
-        std::array<std::shared_ptr<const Cell>, 3> quadrantDownRight = {
+        std::array<ConstCellPtr, 3> quadrantDownRight = {
             cellGroup[Adjacency::ADJACENT_EAST], cellGroup[Adjacency::ADJACENT_SOUTH_EAST],
             cellGroup[Adjacency::ADJACENT_SOUTH] };
-        std::array<std::shared_ptr<const Cell>, 3> quadrantDownLeft = {
+        std::array<ConstCellPtr, 3> quadrantDownLeft = {
             cellGroup[Adjacency::ADJACENT_SOUTH], cellGroup[Adjacency::ADJACENT_SOUTH_WEST],
             cellGroup[Adjacency::ADJACENT_WEST] };
-        std::array<std::shared_ptr<const Cell>, 3> quadrantUpLeft = {
+        std::array<ConstCellPtr, 3> quadrantUpLeft = {
             cellGroup[Adjacency::ADJACENT_WEST], cellGroup[Adjacency::ADJACENT_NORTH_WEST],
             cellGroup[Adjacency::ADJACENT_NORTH] };
-        std::array<std::array<std::shared_ptr<const Cell>, 3>, 4> twoByTwo = {
+        std::array<std::array<ConstCellPtr, 3>, 4> twoByTwo = {
                 quadrantUpRight, quadrantDownRight, quadrantDownLeft, quadrantUpLeft };
 
         // For each potential 2x2 square, there is no adjacency issue,
@@ -96,10 +96,10 @@ bool adjacencyRuleBroken (std::shared_ptr<const Puzzle> puzzle, const Route & ro
             throw PuzzleException("expected pipe for adjacency check");
         }
         unsigned pos = 0;
-        for (std::array<std::shared_ptr<const Cell>, 3> & a : twoByTwo)
+        for (std::array<ConstCellPtr, 3> & a : twoByTwo)
         {
             bool issue = true;
-            for (std::shared_ptr<const Cell> p : a)
+            for (ConstCellPtr p : a)
             {
                 if (p == nullptr)
                 {

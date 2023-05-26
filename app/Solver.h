@@ -31,9 +31,9 @@ class Solver : public RouteReceiver
 
 	void addRoute (PipeId idPipe, const Route & route);
 
-	void addPipeIdToIdSetIfCellIsStart (std::shared_ptr<Cell> cell) noexcept;
+	void addPipeIdToIdSetIfCellIsStart (CellPtr cell) noexcept;
 
-	std::set<std::shared_ptr<Cell>> reviseCell (std::shared_ptr<Cell> pCell) noexcept(false);
+	std::set<CellPtr> reviseCell (CellPtr pCell) noexcept(false);
 
 	/**
 	 * Check whether a cell is a vertical channel, defined by the walls.
@@ -59,7 +59,7 @@ class Solver : public RouteReceiver
     PuzzleDefinition m_puzzleDef;
 
     /** Puzzle to be solved */
-    std::shared_ptr<Puzzle> m_puzzle;
+    PuzzlePtr m_puzzle;
 
     /** Pipe identifiers from puzzle */
     std::set<PipeId> m_pipeIds;

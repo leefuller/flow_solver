@@ -36,7 +36,7 @@ static void plumberCheckFalse (bool condition, const char * msg) noexcept(false)
  * @return true if the cell connection status was changed
  * @throw PlumberException if removal of connector would leave the cell invalid (so impossible to solve the puzzle)
  */
-bool Plumber::removeConnector (std::shared_ptr<Cell> pCell, Direction d)
+bool Plumber::removeConnector (CellPtr pCell, Direction d)
 {
     if (pCell->getConnection(d) == CellConnection::NO_CONNECTOR)
         return false; // Nothing to do
@@ -79,9 +79,9 @@ void Plumber::connect (Coordinate c1, Coordinate c2, PipeId idPipe, CellConnecti
     Direction dFrom = areAdjacent(c1, c2); // Direction from c1 to c2, if adjacent
     plumberCheckFalse(dFrom == Direction::NONE, "cannot connect cells not adjacent");
 
-    std::shared_ptr<Cell> pCell1 = m_puzzle->getCellAtCoordinate(c1);
+    CellPtr pCell1 = m_puzzle->getCellAtCoordinate(c1);
     plumberCheckFalse(pCell1 == nullptr, "attempt to connect cell not existing");
-    std::shared_ptr<Cell> pCell2 = m_puzzle->getCellAtCoordinate(c2);
+    CellPtr pCell2 = m_puzzle->getCellAtCoordinate(c2);
     plumberCheckFalse(pCell2 == nullptr, "attempt to connect cell not existing");
 
     if (pCell1->getPipeId() == NO_PIPE_ID && pCell2->getPipeId() == NO_PIPE_ID)
@@ -152,10 +152,10 @@ void Plumber::disconnect (Coordinate c1, Coordinate c2) const noexcept(false)
     if (d == Direction::NONE)
         throw PlumberException("attempt to disconnect cells not adjacent");
 
-    std::shared_ptr<Cell> pCell1 = m_puzzle->getCellAtCoordinate(c1);
+    CellPtr pCell1 = m_puzzle->getCellAtCoordinate(c1);
     if (pCell1 == nullptr)
         throw PlumberException("attempt to disconnect cell not existing");
-    std::shared_ptr<Cell> pCell2 = m_puzzle->getCellAtCoordinate(c1);
+    CellPtr pCell2 = m_puzzle->getCellAtCoordinate(c1);
     if (pCell2 == nullptr)
         throw PlumberException("attempt to disconnect cell not existing");
 

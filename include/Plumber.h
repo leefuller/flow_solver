@@ -32,7 +32,7 @@ class PlumberException : public PuzzleException
 class Plumber
 {
     public:
-        //Plumber (std::shared_ptr<Puzzle> puzzle)
+        //Plumber (PuzzlePtr puzzle)
         Plumber (Puzzle * p) noexcept
             : m_puzzle(p)
         {}
@@ -41,11 +41,11 @@ class Plumber
 
         // TODO? void disconnect (Coordinate c1, Coordinate c2) const noexcept(false);
 
-        bool removeConnector (std::shared_ptr<Cell> pCell, Direction d);
+        bool removeConnector (CellPtr pCell, Direction d);
 
     private:
 
-        //std::shared_ptr<Puzzle> m_puzzle;
+        //PuzzlePtr m_puzzle;
         Puzzle * m_puzzle;
 };
 

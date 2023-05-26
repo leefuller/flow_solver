@@ -10,12 +10,12 @@
  * @param idPipe    The pipe id for a route, or NO_PIPE_ID if only considering walls.
  * @return true if dead end formation exists
  */
-static bool detectDeadEndFormation (std::shared_ptr<const Puzzle> puzzle, Coordinate coord)
+static bool detectDeadEndFormation (ConstPuzzlePtr puzzle, Coordinate coord)
 {
     std::set<Direction> directions = puzzle->getConnectedDirections(coord);
     if (directions.size() == 0)
         return true;
-    std::shared_ptr<const Cell> pCell = puzzle->getConstCellAtCoordinate(coord);
+    ConstCellPtr pCell = puzzle->getConstCellAtCoordinate(coord);
     if (pCell == nullptr) // should not happen
         return false;
 
@@ -34,7 +34,7 @@ static bool detectDeadEndFormation (std::shared_ptr<const Puzzle> puzzle, Coordi
     PipeId idPipe = pCell->getPipeId();
 
     // Create list of adjacent pipes, and set of the adjacent pipe ids
-    std::vector<std::shared_ptr<const Cell>> adjacentPipes;
+    std::vector<ConstCellPtr> adjacentPipes;
     std::set<PipeId> adjacentIds;
     for (Direction d : allTraversalDirections)
     {
@@ -42,7 +42,7 @@ static bool detectDeadEndFormation (std::shared_ptr<const Puzzle> puzzle, Coordi
         if (std::find_if(pipesAdjacentDirections.begin(), pipesAdjacentDirections.end(), matchDirection)
                 != pipesAdjacentDirections.end()) // direction d has an adjacent pipe
         {
-            std::shared_ptr<const Cell> pCellAdjacent = puzzle->getConstCellAdjacent(coord, d);
+            ConstCellPtr pCellAdjacent = puzzle->getConstCellAdjacent(coord, d);
             adjacentIds.insert(pCellAdjacent->getPipeId());
             adjacentPipes.push_back(pCellAdjacent);
         }
@@ -78,7 +78,7 @@ static bool detectDeadEndFormation (std::shared_ptr<const Puzzle> puzzle, Coordi
     }
     // Cell contains a pipe
     // Count number of cells adjacent matching the pipe.
-    unsigned matchAdjacent = std::count_if(adjacentPipes.begin(), adjacentPipes.end(), [idPipe](std::shared_ptr<const Cell> p){ return p->getPipeId() == idPipe; });
+    unsigned matchAdjacent = std::count_if(adjacentPipes.begin(), adjacentPipes.end(), [idPipe](ConstCellPtr p){ return p->getPipeId() == idPipe; });
     //unsigned matchAdjacent = matchAdjacentPipes.size();
     if ((emptyAdjacent + matchAdjacent) > 1)
         return false;
@@ -100,7 +100,7 @@ static bool detectDeadEndFormation (std::shared_ptr<const Puzzle> puzzle, Coordi
  * @param idPipe    The pipe id for a route, or NO_PIPE_ID if only considering walls.
  * @return true if dead end formation exists
  */
-bool detectDeadEndFormation (std::shared_ptr<const Puzzle> puzzle, const Route & route, PipeId idPipe)
+bool detectDeadEndFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPipe)
 {
     /*
      Where "|" and "-" is wall, or another pipe, and "[X]" is a pipe start or end point:
@@ -161,10 +161,10 @@ bool detectDeadEndFormation (std::shared_ptr<const Puzzle> puzzle, const Route &
             if (coordinateInRoute(coordCheck, route))
                 continue;
 
-            std::shared_ptr<const Cell> pCell = puzzle->getConstCellAtCoordinate(coordCheck);
+            ConstCellPtr pCell = puzzle->getConstCellAtCoordinate(coordCheck);
             for (Direction directionAdjacent : puzzle->getConnectedDirections(coordCheck))
             {
-                std::shared_ptr<const Cell> pCellAdjacent = puzzle->getConstCellAdjacent(coordCheck, directionAdjacent);
+                ConstCellPtr pCellAdjacent = puzzle->getConstCellAdjacent(coordCheck, directionAdjacent);
                 if (pCellAdjacent == nullptr)
                     continue;
                 if (coordinateInRoute(pCellAdjacent->getCoordinate(), route))
