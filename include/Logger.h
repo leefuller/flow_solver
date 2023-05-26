@@ -85,6 +85,9 @@ class Logger
         return this;
     }
 
+    Logger(const Logger&) = delete;
+    Logger& operator= (const Logger&) = delete;
+
     static void setDefaultLogger (Logger * logger);
 
     static Logger & getDefaultLogger ();
