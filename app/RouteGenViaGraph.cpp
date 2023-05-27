@@ -120,6 +120,9 @@ void RouteGenViaGraph::handleStartEndPoint (const Puzzle & puzzle, ConstCellPtr 
     }
 }
 
+/**
+ * Recursive function used to create graph for pipe.
+ */
 void RouteGenViaGraph::traverseToCreateGraph (const Puzzle & puzzle, PipeId idPipe, Coordinate from, Matrix<bool> & visited)
 {
     if (visited.at(from))
@@ -168,7 +171,8 @@ void RouteGenViaGraph::traverseToCreateGraph (const Puzzle & puzzle, PipeId idPi
             }
             else if (pCellAdjacent->getPipeId() == NO_PIPE_ID)
             {
-                m_graph.addEdge(pCell, pCellAdjacent);
+                if (pCellAdjacent->hasPossible(idPipe))
+                    m_graph.addEdge(pCell, pCellAdjacent);
             }
         }
     }

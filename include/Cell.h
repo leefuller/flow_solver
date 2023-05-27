@@ -81,9 +81,21 @@ class Cell
     /**
      * Set what is contained in the cell.
      * @param idPipe    Pipe identifier, or NO_PIPE_ID
+     * @param permanent     If true, changes the set of possibilities to only contain the given identifier.
      */
-    void setPipeId (PipeId idPipe) noexcept
-    { m_idPipe = idPipe; }
+    void setPipeId (PipeId idPipe, bool permanent = false) noexcept
+    {
+        m_idPipe = idPipe;
+        if (permanent)
+            setPossiblePipes(idPipe);
+    }
+
+    /**
+     * Set what is contained in the cell, and remove other possible ids.
+     * @param idPipe    Pipe identifier
+     */
+    void setPipeIdPermanent (PipeId idPipe) noexcept
+    { setPipeId(idPipe, true); }
 
     /**
      * @return cell coordinate.
@@ -194,6 +206,32 @@ class Cell
     static bool isOutputConnectorRep () noexcept
     { return outputConnectorRep; }
 
+    /** Add the given pipe identifier to list of possibilities for this cell. */
+    void addPossibility (PipeId id) noexcept
+    { m_possibilePipes.insert(id); }
+
+    /** Remove the given pipe identifier to list of possibilities for this cell. */
+    void removePossibility (PipeId id) noexcept
+    { m_possibilePipes.erase(id); }
+
+    /** Set list of possible pipes. */
+    void setPossiblePipes (const std::set<PipeId> & s) noexcept
+    { m_possibilePipes = s; }
+
+    /** Set list of possible pipes. */
+    void setPossiblePipes (PipeId id) noexcept
+    {
+        m_possibilePipes.clear();
+        addPossibility(id);
+    }
+
+    /** Get possible pipes. */
+    const std::set<PipeId> & getPossiblePipes () const noexcept
+    { return m_possibilePipes; }
+
+    bool hasPossible (PipeId id) const noexcept
+    { return std::find(std::begin(m_possibilePipes), std::end(m_possibilePipes), id) != m_possibilePipes.end(); }
+
   private:
 
     static CellPtr createCell (Coordinate c, PipeId idPipe) noexcept;
@@ -233,6 +271,9 @@ class Cell
 
     /** Coordinate of cell */
     Coordinate m_coordinate;
+
+    /** For potential external logic to keep a set of possible pipe identifiers */
+    std::set<PipeId> m_possibilePipes;
 
     PipeId m_idPipe{NO_PIPE_ID};
 
