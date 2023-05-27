@@ -241,10 +241,10 @@ bool Solver::isAdjacentToChannelOpening (Coordinate coord) const noexcept
         Coordinate coord3 = coord;
         switch (direction)
         {
-            case Direction::UP:
+            case Direction::NORTH:
                 [[fallthrough]]
-            case Direction::DOWN:
-                if (coordinateChange(coord3, pCellNext->getBorder(Direction::LEFT) == CellBorder::OPEN ? Direction::LEFT : Direction::RIGHT))
+            case Direction::SOUTH:
+                if (coordinateChange(coord3, pCellNext->getBorder(Direction::WEST) == CellBorder::OPEN ? Direction::WEST : Direction::EAST))
                     return false;
                 // We already checked that it is not a vertical channel, so get direction of corner
                 pCellNextAgain = m_puzzle->getConstCellAtCoordinate(coord3);
@@ -255,11 +255,11 @@ bool Solver::isAdjacentToChannelOpening (Coordinate coord) const noexcept
                 // else not a valid corner for channel
                 break;
 
-            case Direction::LEFT:
+            case Direction::WEST:
                 [[fallthrough]]
-            case Direction::RIGHT:
+            case Direction::EAST:
                 // We already checked that it is not a horizontal channel, so get direction of corner
-                if (coordinateChange(coord3,pCellNext->getBorder(Direction::UP) == CellBorder::OPEN ? Direction::UP : Direction::DOWN))
+                if (coordinateChange(coord3,pCellNext->getBorder(Direction::NORTH) == CellBorder::OPEN ? Direction::NORTH : Direction::SOUTH))
                     return false;
                 pCellNextAgain = m_puzzle->getConstCellAtCoordinate(coord3);
                 // If that cell is a channel in the new direction,
@@ -372,6 +372,15 @@ bool Solver::solve()
         m_puzzle->forEveryCell(&f);
         logger << "Pipes expected: " << m_pipeIds.size() << std::endl;
 
+        // Initialize possibilities for every cell that is not an endpoint
+        std::set<PipeId> & allPipesSet = m_pipeIds;
+        // Set pipe possibilities
+        std::function<void(CellPtr)> lam = [allPipesSet](CellPtr cell){
+            if (!cell->isEndpoint())
+            { cell->setPossiblePipes(allPipesSet); }
+        };
+        m_puzzle->forEveryCell(&lam);
+
         std::map<PipeId, Route> prelimRoutes;
 
         ++phase;
@@ -382,9 +391,9 @@ bool Solver::solve()
         for (bool changed = true; changed;)
         {
             changed = false;
-            for (unsigned r = 0; r < m_puzzle->getNumRows(); ++r)
+            for (int r = 0; r < m_puzzle->getNumRows(); ++r)
             {
-                for (unsigned c = 0; c < m_puzzle->getNumCols(); ++c)
+                for (int c = 0; c < m_puzzle->getNumCols(); ++c)
                 {
                     Direction oneWay = theOnlyWay(m_puzzle, {r,c});
                     if (oneWay != Direction::NONE)
@@ -425,10 +434,15 @@ bool Solver::solve()
         }
 
         std::cout << "After one way rule applied:" << std::endl;
+        Cell::setOutputConnectorRep(true);
         m_puzzle->streamPuzzleMatrix(std::cout);
 
         // TODO
-        // Run other bad formation detectors
+        // Run "one from corner" algorithm to reduce possibilities there
+        //forEveryCell(checkOneFromCorner())
+
+        // TODO
+        // Run bad formation detectors
 
         //---------------------------------------------------------
 

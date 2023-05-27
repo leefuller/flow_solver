@@ -7,27 +7,37 @@
 #include <array>
 #include <vector>
 
-/** Traversable directions */
+/*
+ * Although traversal of cells allows 4 directions, adjacency view includes the cells diagonally adjacent.
+ * The order here is important. The first 4 entries list the directions for traversal.
+ */
 enum Direction
 {
-    UP = 0,
-    DOWN,
-    LEFT,
-    RIGHT,
-    NONE // Listed after the 4 directions that are used as array indexes
+    NORTH,
+    SOUTH,
+    WEST,
+    EAST,
+
+    NORTH_WEST,
+    NORTH_EAST,
+    CENTRAL,
+    SOUTH_WEST,
+    SOUTH_EAST,
+
+    NONE // Listed after the directions that are used as array indexes
 };
 
 /** All traversal directions (excluding NONE) indexed by the Direction */
 const std::array<Direction, 4> allTraversalDirections =
-    { Direction::UP, Direction::DOWN, Direction::LEFT, Direction::RIGHT };
+    { Direction::NORTH, Direction::SOUTH, Direction::WEST, Direction::EAST };
 /** All traversal directions as a set, excluding NONE. */
 const std::set<Direction> allTraversalDirectionsSet =
-    { Direction::UP, Direction::DOWN, Direction::LEFT, Direction::RIGHT };
+    { Direction::NORTH, Direction::SOUTH, Direction::WEST, Direction::EAST };
 
-using Coordinate = std::array<unsigned, 2>;
+using Coordinate = std::array<int, 2>;
 using Route = std::vector<Coordinate>;
 
-inline Coordinate createCoordinate (unsigned r, unsigned c) noexcept
+inline Coordinate createCoordinate (int r, int c) noexcept
 { return {r, c}; }
 
 inline std::ostream & operator<< (std::ostream & os, Coordinate c) noexcept
@@ -60,59 +70,42 @@ inline std::ostream & operator<< (std::ostream & os, Direction d) noexcept
     return os;
 }
 
-/** @return true if the direction is vertical. (UP or DOWN) */
+/** @return true if the direction is vertical. */
 inline bool isVertical (Direction d) noexcept
-{ return d == Direction::UP || d == Direction::DOWN; }
+{ return d == Direction::NORTH || d == Direction::SOUTH; }
+
+inline bool isDiagonal (Direction d) noexcept
+{
+    return d == Direction::NORTH_EAST ||
+           d == Direction::NORTH_WEST ||
+           d == Direction::SOUTH_EAST ||
+           d == Direction::SOUTH_WEST;
+}
 
 /** @return the opposite direction to d */
 inline Direction opposite (Direction d) noexcept
 {
-    if (d < Direction::LEFT)
-        return d == Direction::UP ? Direction::DOWN : Direction::UP;
-    return d == Direction::LEFT ? Direction::RIGHT : Direction::LEFT;
+    switch (d)
+    {
+        case NORTH_WEST:   return SOUTH_EAST;
+        case NORTH:        return SOUTH;
+        case NORTH_EAST:   return SOUTH_WEST;
+        case WEST:         return EAST;
+        case CENTRAL:      return CENTRAL;
+        case EAST:         return WEST;
+        case SOUTH_WEST:   return NORTH_EAST;
+        case SOUTH:        return NORTH;
+        case SOUTH_EAST:   return NORTH_WEST;
+        case NONE:         return NONE;
+    }
+    [[unlikely]]
+    return NONE;
 }
 
 Direction areAdjacent (Coordinate c1, Coordinate c2) noexcept;
 
-/**
- * Although traversal of cells allows 4 directions, adjacency view includes the cells diagonally adjacent.
- * ie. This can be used as directional indicators to all 8 cells surrounding an individual cell.
- * The order here is important, so that it can correspond to a 3x3 matrix in row & column order.
- * (Labels as compass directions for obvious difference to Direction)
- */
-enum Adjacency
-{
-    ADJACENT_NORTH_WEST,
-    ADJACENT_NORTH,
-    ADJACENT_NORTH_EAST,
-    ADJACENT_WEST,
-    ADJACENT_CENTRAL,
-    ADJACENT_EAST,
-    ADJACENT_SOUTH_WEST,
-    ADJACENT_SOUTH,
-    ADJACENT_SOUTH_EAST,
-};
-
-inline Adjacency opposite (Adjacency a) noexcept(false)
-{
-    switch (a)
-    {
-        case ADJACENT_NORTH_WEST:   return ADJACENT_SOUTH_EAST;
-        case ADJACENT_NORTH:        return ADJACENT_SOUTH;
-        case ADJACENT_NORTH_EAST:   return ADJACENT_SOUTH_WEST;
-        case ADJACENT_WEST:         return ADJACENT_EAST;
-        case ADJACENT_CENTRAL:      return ADJACENT_CENTRAL;
-        case ADJACENT_EAST:         return ADJACENT_WEST;
-        case ADJACENT_SOUTH_WEST:   return ADJACENT_NORTH_EAST;
-        case ADJACENT_SOUTH:        return ADJACENT_NORTH;
-        case ADJACENT_SOUTH_EAST:   return ADJACENT_NORTH_WEST;
-    }
-    [[unlikely]]
-     throw std::invalid_argument("invalid argument");
-}
+Direction addDirections (Direction d1, Direction d2);
 
 bool coordinateChange (Coordinate & start, Direction direction, unsigned distance = 1) noexcept;
-
-bool coordinateChange (Coordinate & start, Adjacency direction) noexcept;
 
 #endif

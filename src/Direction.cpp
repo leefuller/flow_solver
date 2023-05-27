@@ -1,4 +1,6 @@
 #include "Direction.h"
+//#include "PuzzleException.h"
+#include "exceptions.h"
 
 #include <cmath>
 
@@ -9,156 +11,139 @@ const char * asString (Direction d) noexcept
 {
     switch (d)
     {
-        case UP:    return "up";
-        case DOWN:  return "down";
-        case LEFT:  return "left";
-        case RIGHT: return "right";
-        case NONE:  return "none";
+        case NORTH:         return "north";
+        case NORTH_EAST:    return "north east";
+        case NORTH_WEST:    return "north west";
+        case SOUTH:         return "south";
+        case SOUTH_EAST:    return "south east";
+        case SOUTH_WEST:    return "south west";
+        case EAST:          return "east";
+        case WEST:          return "west";
+        case CENTRAL:       return "central";
+        case NONE:          return "none";
     }
     return nullptr;
 }
 
 /**
- * Get coordinate resulting in moving distance in the given direction, from a start coordinate.
- * @param start         Starting coordinate
- * @param direction     Direction to move
- * @param distance      Distance to move
- * @return true if coordinate changed
- * @return false if the coordinate did not change
+ * Create a coordinate corresponding to a change of coordinate due to given direction.
+ * ie. Adding the result to a puzzle coordinate will give the new puzzle coordinate.
+ * @return result as a coordinate representing the change. (Not representing a puzzle coordinate)
  */
-bool coordinateChange (Coordinate & start, Direction direction, unsigned distance) noexcept
+static Coordinate createCoordinateChange (Direction d, int distance = 1)
 {
-    if (!distance)
-        return false;
-    unsigned r = start[0];
-    unsigned c = start[1];
-    switch (direction)
+    switch (d)
     {
-        case Direction::UP:
-            if (r < distance)
-                return false;
-            r -= distance;
-            break;
-        case Direction::DOWN:
-            r += distance;
-            break;
-        case Direction::LEFT:
-            if (c < distance)
-                return false;
-            c -= distance;
-            break;
-        case Direction::RIGHT:
-            c += distance;
-            break;
-        case Direction::NONE:
-            return true;
+        case NORTH:         return {-distance, 0};
+        case SOUTH:         return { distance, 0};
+        case EAST:          return { 0, distance};
+        case WEST:          return { 0,-distance};
+        case NORTH_EAST:    return {-distance, distance};
+        case NORTH_WEST:    return {-distance,-distance};
+        case SOUTH_EAST:    return { distance, distance};
+        case SOUTH_WEST:    return { distance,-distance};
+        case CENTRAL:       return { 0, 0};
+        case NONE:          return { 0, 0};
     }
-    start = {r,c};
-    return true;
+    throw std::invalid_argument("invalid direction");
 }
 
 /**
- * Get coordinate resulting in moving one step in the given direction, from a start coordinate.
+ * Get coordinate resulting in moving in the given direction, from a start coordinate.
  * @param start         Starting coordinate
  * @param direction     Direction to move
- * @return true if coordinate changed
+ * @param distance      Number of steps
+ * @return true if coordinate changed, or direction is NONE
  * @return false if the coordinate would become invalid in that direction
  */
-bool coordinateChange (Coordinate & start, Adjacency direction) noexcept
+bool coordinateChange (Coordinate & start, Direction direction, unsigned distance) noexcept
 {
+    if (direction == Direction::NONE)
+        return true;
     Coordinate c = start; // local copy until change confirmed ok
-    switch (direction)
-    {
-        case ADJACENT_NORTH_WEST:
-            if (!coordinateChange(c, Direction::UP))
-                return false;
-            if (!coordinateChange(c, Direction::LEFT))
-                return false;
-            start = c;
-            return true;
-        case ADJACENT_NORTH:
-            return coordinateChange(start, Direction::UP);
-        case ADJACENT_NORTH_EAST:
-            if (!coordinateChange(c, Direction::UP))
-                return false;
-            if (!coordinateChange(c, Direction::RIGHT))
-                return false;
-            start = c;
-            return true;
-        case ADJACENT_WEST:
-            return coordinateChange(start, Direction::LEFT);
-        case ADJACENT_CENTRAL:
-            return true;
-        case ADJACENT_EAST:
-            return coordinateChange(start, Direction::RIGHT);
-        case ADJACENT_SOUTH_WEST:
-            if (!coordinateChange(c, Direction::DOWN))
-                return false;
-            if (!coordinateChange(c, Direction::LEFT))
-                return false;
-            start = c;
-            return true;
-        case ADJACENT_SOUTH:
-            return coordinateChange(start, Direction::DOWN);
-        case ADJACENT_SOUTH_EAST:
-            if (!coordinateChange(c, Direction::DOWN))
-                return false;
-            if (!coordinateChange(c, Direction::RIGHT))
-                return false;
-            start = c;
-            return true;
-    }
-    [[unlikely]]
+    Coordinate change = createCoordinateChange(direction, distance);
+    c[0] = c[0] + change[0];
+    c[1] = c[1] + change[1];
+    if (c[0] < 0 || c[1] < 0)
+        return false;
+    start = c;
     return true;
 }
 
 /**
  * Check if coordinates are adjacent.
- * @return direction from coord1 to coord2 if they are adjacent. Direction::NONE if not adjacent
+ * @return direction from start to end if they are adjacent. Direction::NONE if not adjacent
  */
-Direction areAdjacent (Coordinate coord1, Coordinate coord2) noexcept
+Direction areAdjacent (Coordinate start, Coordinate end) noexcept
 {
-    if (coord1 == coord2)
+    if (start == end)
         return Direction::NONE;
-    unsigned r1 = coord1[0], r2 = coord2[0];
-    unsigned c1 = coord1[1], c2 = coord2[1];
-    Direction rowDirection = Direction::NONE;
-    if (r1 != r2)
+    int rStart = start[0], rEnd = end[0];
+    int cStart = start[1], cEnd = end[1];
+    Coordinate diff = { abs(rStart - rEnd), abs(cStart - cEnd) };
+    // Adjacent means the difference between coordinates is 1
+    if (diff[0] > 1 || diff[1] > 1)
+        return Direction::NONE;
+    if (!diff[0]) // Difference is in column (east or west)
+        return cEnd < cStart ? Direction::WEST : Direction::EAST;
+    if (!diff[1]) // Difference is in row (north or south)
+        return rEnd < rStart ? Direction::NORTH : Direction::SOUTH;
+    // Diagonal
+    /*
+    if (rEnd < rStart)
+        return cEnd < cStart ? Direction::NORTH_WEST : Direction::NORTH_EAST;
+    return cEnd < cStart ? Direction::SOUTH_WEST : Direction::SOUTH_EAST;
+    */
+    return Direction::NONE; // Diagonal is not adjacent
+}
+
+Direction addDirections (Direction d1, Direction d2)
+{
+    if (d1 == opposite(d2))
+        return Direction::NONE;
+    if (d1 == Direction::NONE || d1 == Direction::CENTRAL)
+        return d2;
+    if (d1 == d2 || d2 == Direction::NONE || d2 == Direction::CENTRAL)
+        return d1;
+    // Directions are not the same, and not opposite.
+
+    Coordinate c1 = createCoordinateChange(d1);
+    Coordinate c2 = createCoordinateChange(d2);
+    // Add the relative coordinate changes.
+    // A valid result will be between {-1,-1} and {1,1}, inclusive.
+    // A value outside that range can only be achieved by an unsupported/invalid operation.
+    // For example, adding EAST and SOUTH_EAST (which in the real world is EAST-SOUTH-EAST, but is not supported here)
+    // produces a column change of 2.
+    int r = c1[0] + c2[0];
+    int c = c1[1] + c2[1];
+    switch (r)
     {
-        if (r1 < r2)  // row index increasing = DOWN
-        {
-            if (r2 - r1 > 1)
-                return Direction::NONE;
-            rowDirection = Direction::DOWN;
-        }
-        else if (r1 > r2)
-        {
-            if (r1 - r2 > 1)
-                return Direction::NONE;
-            rowDirection = Direction::UP;
-        }
+        case -1: // NORTH
+            if (c == -1)
+                return NORTH_WEST;
+            if (c == 1)
+                return NORTH_EAST;
+            if (c == 0)
+                return NORTH;
+            break;
+        case 0:  // CENTRAL
+            if (c == -1)
+                return WEST;
+            if (c == 1)
+                return EAST;
+            if (c == 0)
+                return NONE;
+            break;
+        case 1:  // SOUTH
+            if (c == -1)
+                return SOUTH_WEST;
+            if (c == 1)
+                return SOUTH_EAST;
+            if (c == 0)
+                return SOUTH;
+            break;
     }
-    Direction colDirection = Direction::NONE;
-    if (c1 != c2)
-    {
-        if (c1 < c2)  // column index increasing = RIGHT
-        {
-            if (c2 - c1 > 1)
-                return Direction::NONE;
-            colDirection = Direction::RIGHT;
-        }
-        else if (c1 > c2)
-        {
-            if (c1 - c2 > 1)
-                return Direction::NONE;
-            colDirection = Direction::LEFT;
-        }
-    }
-    if (rowDirection == Direction::NONE)
-        return colDirection;
-    if (colDirection == Direction::NONE)
-        return rowDirection;
-    return Direction::NONE; // diagonal
+    throw InvalidOperation("Cannot define direction from addition");
 }
 
 std::ostream & operator<< (std::ostream & os, const Route & route) noexcept

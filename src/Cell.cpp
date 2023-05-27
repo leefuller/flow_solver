@@ -22,22 +22,23 @@ bool Cell::operator== (const Cell & c) const noexcept
         return false;
     if (getCoordinate() != c.getCoordinate())
         return false;
-    if (getBorder(Direction::UP) != c.getBorder(Direction::UP))
+    if (getBorder(Direction::NORTH) != c.getBorder(Direction::NORTH))
         return false;
-    if (getConnection(Direction::UP) != c.getConnection(Direction::UP))
+    if (getConnection(Direction::NORTH) != c.getConnection(Direction::NORTH))
         return false;
-    if (getBorder(Direction::DOWN) != c.getBorder(Direction::DOWN))
+    if (getBorder(Direction::SOUTH) != c.getBorder(Direction::SOUTH))
         return false;
-    if (getConnection(Direction::DOWN) != c.getConnection(Direction::DOWN))
+    if (getConnection(Direction::SOUTH) != c.getConnection(Direction::SOUTH))
         return false;
-    if (getBorder(Direction::LEFT) != c.getBorder(Direction::LEFT))
+    if (getBorder(Direction::WEST) != c.getBorder(Direction::WEST))
         return false;
-    if (getConnection(Direction::LEFT) != c.getConnection(Direction::LEFT))
+    if (getConnection(Direction::WEST) != c.getConnection(Direction::WEST))
         return false;
-    if (getBorder(Direction::RIGHT) != c.getBorder(Direction::RIGHT))
+    if (getBorder(Direction::EAST) != c.getBorder(Direction::EAST))
         return false;
-    if (getConnection(Direction::RIGHT) != c.getConnection(Direction::RIGHT))
+    if (getConnection(Direction::EAST) != c.getConnection(Direction::EAST))
         return false;
+    // TODO diagonal
     if (getEndpoint() != c.getEndpoint())
         return false;
     return true;
@@ -53,13 +54,13 @@ extern std::ostream & outputConnectionRepr (std::ostream & os, Direction directi
 
 std::ostream & operator<< (std::ostream & os, const Cell & cell) noexcept
 {
-    os << (!cell.isBorderOpen(Direction::LEFT) ? VERTICAL_WALL_DEF_CH : ' ');
+    os << (!cell.isBorderOpen(Direction::WEST) ? VERTICAL_WALL_DEF_CH : ' ');
     if (Cell::isOutputConnectorRep())
-        outputConnectionRepr(os, Direction::LEFT, cell.getConnection(Direction::LEFT));
+        outputConnectionRepr(os, Direction::WEST, cell.getConnection(Direction::WEST));
     os << (cell.isEmpty() ? EMPTY_CELL_DEF_CH : cell.getPipeId());
     if (Cell::isOutputConnectorRep())
-        outputConnectionRepr(os, Direction::RIGHT, cell.getConnection(Direction::RIGHT));
-    os << (!cell.isBorderOpen(Direction::RIGHT) ? VERTICAL_WALL_DEF_CH : ' ');
+        outputConnectionRepr(os, Direction::EAST, cell.getConnection(Direction::EAST));
+    os << (!cell.isBorderOpen(Direction::EAST) ? VERTICAL_WALL_DEF_CH : ' ');
     return os;
 }
 
@@ -74,9 +75,9 @@ std::ostream & operator<< (std::ostream & os, const std::vector<CellPtr> & row) 
     // If left out, the slightly negative impact is that top border of the puzzle is not output.
     for (ConstCellPtr cell : row)
     {
-        os << (cell->getBorder(Direction::LEFT) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
-        outputBorderRepr(os, Direction::UP, cell->getBorder(Direction::UP));
-        os << (cell->getBorder(Direction::RIGHT) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
+        os << (cell->getBorder(Direction::WEST) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
+        outputBorderRepr(os, Direction::NORTH, cell->getBorder(Direction::NORTH));
+        os << (cell->getBorder(Direction::EAST) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
     }
     os << std::endl;
 #endif
@@ -86,9 +87,9 @@ std::ostream & operator<< (std::ostream & os, const std::vector<CellPtr> & row) 
         // Upper connector
         for (ConstCellPtr cell : row)
         {
-            os << (!cell->isBorderOpen(Direction::LEFT) ? VERTICAL_WALL_DEF_CH : ' ');
-            outputConnectionRepr(os, Direction::UP, cell->getConnection(Direction::UP));
-            os << (!cell->isBorderOpen(Direction::RIGHT) ? VERTICAL_WALL_DEF_CH : ' ');
+            os << (!cell->isBorderOpen(Direction::WEST) ? VERTICAL_WALL_DEF_CH : ' ');
+            outputConnectionRepr(os, Direction::NORTH, cell->getConnection(Direction::NORTH));
+            os << (!cell->isBorderOpen(Direction::EAST) ? VERTICAL_WALL_DEF_CH : ' ');
         }
         os << std::endl;
     }
@@ -102,9 +103,9 @@ std::ostream & operator<< (std::ostream & os, const std::vector<CellPtr> & row) 
         // Lower connector
         for (ConstCellPtr cell : row)
         {
-            os << (!cell->isBorderOpen(Direction::LEFT) ? VERTICAL_WALL_DEF_CH : ' ');
-            outputConnectionRepr(os, Direction::DOWN, cell->getConnection(Direction::DOWN));
-            os << (!cell->isBorderOpen(Direction::RIGHT) ? VERTICAL_WALL_DEF_CH : ' ');
+            os << (!cell->isBorderOpen(Direction::WEST) ? VERTICAL_WALL_DEF_CH : ' ');
+            outputConnectionRepr(os, Direction::SOUTH, cell->getConnection(Direction::SOUTH));
+            os << (!cell->isBorderOpen(Direction::EAST) ? VERTICAL_WALL_DEF_CH : ' ');
         }
         os << std::endl;
     }
@@ -113,9 +114,9 @@ std::ostream & operator<< (std::ostream & os, const std::vector<CellPtr> & row) 
     // Lower border
     for (ConstCellPtr cell : row)
     {
-        os << (cell->getBorder(Direction::LEFT) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
-        outputBorderRepr(os, Direction::DOWN, cell->getBorder(Direction::DOWN));
-        os << (cell->getBorder(Direction::RIGHT) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
+        os << (cell->getBorder(Direction::WEST) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
+        outputBorderRepr(os, Direction::SOUTH, cell->getBorder(Direction::SOUTH));
+        os << (cell->getBorder(Direction::EAST) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
     }
     os << std::endl;
 #endif
@@ -125,9 +126,9 @@ return os;
 std::string Cell::toString () const noexcept
 {
     std::ostringstream ss;
-    ss << (getBorder(Direction::LEFT) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
+    ss << (getBorder(Direction::WEST) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
     ss << (getPipeId() == NO_PIPE_ID ? '.' : (char)getPipeId());
-    ss << (getBorder(Direction::RIGHT) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
+    ss << (getBorder(Direction::EAST) == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
     return ss.str();
 }
 
@@ -163,14 +164,15 @@ void Cell::changeConnections (CellConnection from, CellConnection to) noexcept(f
 {
     if (from == CellConnection::FIXTURE_CONNECTION && to != CellConnection::FIXTURE_CONNECTION)
         throw PuzzleException("Cell attempt to change fixed connection at [%u,%u]", std::get<0>(getCoordinate()), std::get<1>(getCoordinate()));
-    if (m_connection[Direction::UP] == from)
-        setConnection(Direction::UP, to);
-    if (m_connection[Direction::DOWN] == from)
-        setConnection(Direction::DOWN, to);
-    if (m_connection[Direction::LEFT] == from)
-        setConnection(Direction::LEFT, to);
-    if (m_connection[Direction::RIGHT] == from)
-        setConnection(Direction::RIGHT, to);
+    if (m_connection[Direction::NORTH] == from)
+        setConnection(Direction::NORTH, to);
+    if (m_connection[Direction::SOUTH] == from)
+        setConnection(Direction::SOUTH, to);
+    if (m_connection[Direction::WEST] == from)
+        setConnection(Direction::WEST, to);
+    if (m_connection[Direction::EAST] == from)
+        setConnection(Direction::EAST, to);
+    // Diagonal have no connections to centre
 }
 
 /**
@@ -179,6 +181,8 @@ void Cell::changeConnections (CellConnection from, CellConnection to) noexcept(f
  */
 bool Cell::canAcceptConnection (Direction d) const noexcept
 {
+    if (isDiagonal(d))
+        return false;
     if (!isBorderOpen(d))
         return false;
     if (getConnection(d) == CellConnection::NO_CONNECTOR)

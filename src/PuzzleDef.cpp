@@ -2,7 +2,6 @@
 #include "PuzzleException.h"
 #include "PuzzleRepr.h"
 #include "Puzzle.h"
-//#include "log.h"
 #include "Logger.h"
 
 #include <map>
@@ -18,6 +17,7 @@ static Logger & logger = Logger::getDefaultLogger();
  */
 std::vector<CellBorder> PuzzleDefinition::parseHorizontalWall (const char ** pDef, std::vector<std::unique_ptr<Cell>> * cellsAbove)
 {
+    //logger << "Parse horizontal wall" << std::endl;
     std::vector<CellBorder> row;
     bool skip = true; // to skip character that corresponds to where the cell definition may define a vertical wall, or not
     unsigned iCell = 0;
@@ -35,8 +35,8 @@ std::vector<CellBorder> PuzzleDefinition::parseHorizontalWall (const char ** pDe
             row.push_back(CellBorder::WALL);
             if (cellsAbove != nullptr)
             {
-                (*cellsAbove)[iCell]->setBorder(Direction::DOWN, CellBorder::WALL);
-                (*cellsAbove)[iCell]->setConnection(Direction::DOWN, CellConnection::NO_CONNECTOR);
+                (*cellsAbove)[iCell]->setBorder(Direction::SOUTH, CellBorder::WALL);
+                (*cellsAbove)[iCell]->setConnection(Direction::SOUTH, CellConnection::NO_CONNECTOR);
             }
         }
         else if (c == ' ')
@@ -51,6 +51,7 @@ std::vector<CellBorder> PuzzleDefinition::parseHorizontalWall (const char ** pDe
         skip = true;
         ++iCell;
     }
+    //logger << "Parsed horizontal wall" << std::endl;
     return row;
 }
 
@@ -60,6 +61,7 @@ std::vector<CellBorder> PuzzleDefinition::parseHorizontalWall (const char ** pDe
  */
 std::vector<std::unique_ptr<Cell>> PuzzleDefinition::parseHorizontalCells (const char ** pDef, const std::vector<CellBorder> & borderAbove)
 {
+    //logger << "Parse horizontal cells" << std::endl;
     auto parseCellBorder = [](char c) -> CellBorder { return c == VERTICAL_WALL_DEF_CH ? CellBorder::WALL : CellBorder::OPEN; };
 
     std::vector<std::unique_ptr<Cell>> row;
@@ -82,10 +84,11 @@ std::vector<std::unique_ptr<Cell>> PuzzleDefinition::parseHorizontalCells (const
         CellBorder vborder = parseCellBorder(c);
         if (pCell != nullptr) // The cell pending result of parsing border
         {
-            pCell->setBorder(Direction::RIGHT, vborder);
+            pCell->setBorder(Direction::EAST, vborder);
             if (vborder == CellBorder::WALL)
-                pCell->setConnection(Direction::RIGHT, CellConnection::NO_CONNECTOR);
+                pCell->setConnection(Direction::EAST, CellConnection::NO_CONNECTOR);
             row.push_back(std::move(pCell));
+            // pCell is nullptr after move
         }
         c = *((*pDef)++);
         if (c == (ROW_SEPARATOR_DEF_CH) || !c)
@@ -101,16 +104,16 @@ std::vector<std::unique_ptr<Cell>> PuzzleDefinition::parseHorizontalCells (const
         }
         else
         {
-            pCell->setBorder(Direction::LEFT, vborder); // cell has same left border as previous right border
-            pCell->setBorder(Direction::UP, borderAbove[iCell]); // set upper border from lower border of row above
-            pCell->setConnection(Direction::UP, borderAbove[iCell] == CellBorder::WALL ? CellConnection::NO_CONNECTOR : CellConnection::OPEN_CONNECTOR);
+            pCell->setBorder(Direction::WEST, vborder); // cell has same left border as previous right border
+            pCell->setBorder(Direction::NORTH, borderAbove[iCell]); // set upper border from lower border of row above
+            pCell->setConnection(Direction::NORTH, borderAbove[iCell] == CellBorder::WALL ? CellConnection::NO_CONNECTOR : CellConnection::OPEN_CONNECTOR);
 
             pCell->setPipeId(c == (EMPTY_CELL_DEF_CH) ? NO_PIPE_ID : c);
             if (vborder == CellBorder::WALL)
-                pCell->setConnection(Direction::LEFT, CellConnection::NO_CONNECTOR);
+                pCell->setConnection(Direction::WEST, CellConnection::NO_CONNECTOR);
         }
-        // cell RIGHT border is determined on parsing next char
-        // cell DOWN border is determined on parsing next row definiton
+        // cell EAST border is determined on parsing next char
+        // cell SOUTH border is determined on parsing next row definiton
         ++iCell;
     }
     return row;
@@ -122,6 +125,7 @@ std::vector<std::unique_ptr<Cell>> PuzzleDefinition::parseHorizontalCells (const
  */
 void PuzzleDefinition::parsePuzzleDef (const char * puzzleDef)
 {
+    logger << "Parse puzzle definition" << std::endl;
     std::vector<std::unique_ptr<Cell>> rowAbove;
     std::vector<CellBorder> borderAbove;
     unsigned parserState = 0; // 0 to parse horizontal wall definition; 1 for row of cells
@@ -150,6 +154,7 @@ void PuzzleDefinition::parsePuzzleDef (const char * puzzleDef)
                 break;
         }
     }
+    logger << "Parsed puzzle definition" << std::endl;
 }
 
 /**
@@ -246,21 +251,21 @@ bool PuzzleDefinition::passCoordinateRangeCheck (Coordinate coord) const noexcep
     return r >= 0 && r < getNumRows() && c >= 0 && c < getNumCols();
 }
 
-bool PuzzleDefinition::isCoordinateChangeValid (Coordinate coord, Adjacency adj) const noexcept
+bool PuzzleDefinition::isCoordinateChangeValid (Coordinate coord, Direction adj) const noexcept
 {
     if (!passCoordinateRangeCheck(coord))
         return false;
     switch (adj)
     {
-        case ADJACENT_NORTH_WEST:   return coord[0] > 0 && coord[1] > 0;
-        case ADJACENT_NORTH:        return coord[0] > 0;
-        case ADJACENT_NORTH_EAST:   return coord[0] > 0 && coord[1] < getNumCols() - 1;
-        case ADJACENT_WEST:         return coord[1] > 0;
-        case ADJACENT_CENTRAL:      return true;
-        case ADJACENT_EAST:         return coord[1] < getNumCols() - 1;
-        case ADJACENT_SOUTH_WEST:   return coord[0] < getNumRows() - 1 && coord[1] > 0;
-        case ADJACENT_SOUTH:        return coord[0] < getNumRows() - 1;
-        case ADJACENT_SOUTH_EAST:   return coord[0] < getNumRows() - 1 && coord[1] < getNumCols() - 1;
+        case NORTH_WEST:   return coord[0] > 0 && coord[1] > 0;
+        case NORTH:        return coord[0] > 0;
+        case NORTH_EAST:   return coord[0] > 0 && coord[1] < getNumCols() - 1;
+        case WEST:         return coord[1] > 0;
+        case CENTRAL:      return true;
+        case EAST:         return coord[1] < getNumCols() - 1;
+        case SOUTH_WEST:   return coord[0] < getNumRows() - 1 && coord[1] > 0;
+        case SOUTH:        return coord[0] < getNumRows() - 1;
+        case SOUTH_EAST:   return coord[0] < getNumRows() - 1 && coord[1] < getNumCols() - 1;
     }
     [[unlikely]]
     return false;
@@ -275,10 +280,10 @@ bool PuzzleDefinition::isCoordinateChangeValid (Coordinate coord, Adjacency adj)
  */
 Coordinate PuzzleDefinition::findPipeEnd (PipeId id, PipeEnd end) const noexcept(false)
 {
-    unsigned r = 0;
+    int r = 0;
     for (const std::vector<std::unique_ptr<Cell>> & row : m_puzzleRows)
     {
-        unsigned c = 0;
+        int c = 0;
         for (const std::unique_ptr<Cell> & cell : row)
         {
             if (id == cell->getPipeId() && cell->getEndpoint() == end)
@@ -317,6 +322,7 @@ std::set<Direction> PuzzleDefinition::getConnectedDirections (Coordinate coord) 
  */
 PuzzlePtr PuzzleDefinition::generatePuzzle () const
 {
+    logger << "Generate puzzle" << std::endl;
     return PuzzlePtr(new Puzzle(*this));
 }
 
@@ -328,7 +334,10 @@ std::vector<PuzzleRow> PuzzleDefinition::generateRows () const
         PuzzleRow destRow;
         for (const std::unique_ptr<Cell> & cell : row)
         {
-            destRow.push_back(std::make_shared<Cell>(cell));
+            CellPtr p = std::make_shared<Cell>(cell);
+            if (cell->isEndpoint())
+                cell->setPossiblePipes(cell->getPipeId());
+            destRow.push_back(p);
         }
         puzzleRows.push_back(destRow);
     }
@@ -348,20 +357,20 @@ void PuzzleDefinition::validatePuzzle ()
     logger << "Validate puzzle with " << m_puzzleRows.size() << " rows" << std::endl;
 
     std::map<PipeId, unsigned> endpoints; // count endpoints per pipe id
-    unsigned r = 0;
+    int r = 0;
     for (std::vector<std::unique_ptr<Cell>> & row : m_puzzleRows)
     {
-        for (unsigned c = 0; c < row.size(); ++c)
+        for (int c = 0; c < row.size(); ++c)
         {
             std::unique_ptr<Cell> & cell = row[c];
             cell->setCoordinate({r, c});
             if (!cell->isEmpty() && (cell->getPipeId() != UNREACHABLE_CELL_DEF_CH)) // cell is a pipe endpoint
             {
                 cell->changeConnections(CellConnection::OPEN_CONNECTOR, CellConnection::OPEN_FIXTURE);
-                cell->setConnection(Direction::UP, cell->getBorder(Direction::UP) == CellBorder::OPEN ? CellConnection::OPEN_FIXTURE : CellConnection::NO_CONNECTOR);
-                cell->setConnection(Direction::DOWN, cell->getBorder(Direction::DOWN) == CellBorder::OPEN ? CellConnection::OPEN_FIXTURE : CellConnection::NO_CONNECTOR);
-                cell->setConnection(Direction::LEFT, cell->getBorder(Direction::LEFT) == CellBorder::OPEN ? CellConnection::OPEN_FIXTURE : CellConnection::NO_CONNECTOR);
-                cell->setConnection(Direction::RIGHT, cell->getBorder(Direction::RIGHT) == CellBorder::OPEN ? CellConnection::OPEN_FIXTURE : CellConnection::NO_CONNECTOR);
+                cell->setConnection(Direction::NORTH, cell->getBorder(Direction::NORTH) == CellBorder::OPEN ? CellConnection::OPEN_FIXTURE : CellConnection::NO_CONNECTOR);
+                cell->setConnection(Direction::SOUTH, cell->getBorder(Direction::SOUTH) == CellBorder::OPEN ? CellConnection::OPEN_FIXTURE : CellConnection::NO_CONNECTOR);
+                cell->setConnection(Direction::WEST, cell->getBorder(Direction::WEST) == CellBorder::OPEN ? CellConnection::OPEN_FIXTURE : CellConnection::NO_CONNECTOR);
+                cell->setConnection(Direction::EAST, cell->getBorder(Direction::EAST) == CellBorder::OPEN ? CellConnection::OPEN_FIXTURE : CellConnection::NO_CONNECTOR);
                 unsigned count = endpoints[cell->getPipeId()];
                 if (count > 1)
                     throw PuzzleException("There are more than 2 endpoints for a pipe");
@@ -387,9 +396,9 @@ void PuzzleDefinition::validatePuzzle ()
                 }
             }
         }
-        if (row[0]->getBorder(Direction::LEFT) != CellBorder::WALL)
+        if (row[0]->getBorder(Direction::WEST) != CellBorder::WALL)
             throw PuzzleException("Left border not complete");
-        if (row[row.size() - 1]->getBorder(Direction::RIGHT) != CellBorder::WALL)
+        if (row[row.size() - 1]->getBorder(Direction::EAST) != CellBorder::WALL)
             throw PuzzleException("Right border not complete");
         ++r;
     }
@@ -400,20 +409,20 @@ void PuzzleDefinition::validatePuzzle ()
     }
 
     // Check first row has top border, and last row has bottom border
-    unsigned rLast = m_puzzleRows.size() - 1;
-    for (unsigned c = 0; c < m_puzzleRows[0].size(); ++c)
+    int rLast = m_puzzleRows.size() - 1;
+    for (int c = 0; c < m_puzzleRows[0].size(); ++c)
     {
         if (isCellReachable({0, c}))
         {
-            if (m_puzzleRows[0][c]->getBorder(Direction::UP) != CellBorder::WALL)
+            if (m_puzzleRows[0][c]->getBorder(Direction::NORTH) != CellBorder::WALL)
                 throw PuzzleException("Top border not complete");
         }
         if (isCellReachable({rLast, c}))
         {
-            if (m_puzzleRows[rLast][c]->getBorder(Direction::DOWN) != CellBorder::WALL)
+            if (m_puzzleRows[rLast][c]->getBorder(Direction::SOUTH) != CellBorder::WALL)
                 throw PuzzleException("Bottom border not complete");
         }
     }
     //logger.log("Validated puzzle with %d rows", m_puzzleRows.size());
-    logger << "Validated puzzle with " << m_puzzleRows.size() << " rows";
+    logger << "Validated puzzle with " << m_puzzleRows.size() << " rows" << std::endl;
 }

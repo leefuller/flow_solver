@@ -47,7 +47,7 @@ class Puzzle
 
 	std::ostream & streamPuzzleMatrix (std::ostream & os) const noexcept;
 
-	bool isCoordinateChangeValid (Coordinate from, Adjacency a) const noexcept
+	bool isCoordinateChangeValid (Coordinate from, Direction a) const noexcept
 	{ return m_def.isCoordinateChangeValid(from, a); }
 
     static bool checkIfSolution (ConstPuzzlePtr puzzle, const std::map<PipeId, Route> & s);
@@ -72,11 +72,7 @@ class Puzzle
 	CellPtr getCellAdjacent (Coordinate c, Direction d) ;//noexcept;
 	ConstCellPtr getConstCellAdjacent (Coordinate c, Direction d) const ;//noexcept;
 
-	std::map<Direction, ConstCellPtr> getAdjacentCells (ConstCellPtr cell) const noexcept;
-
-	std::array<ConstCellPtr, 9> getAdjacentCells (Coordinate c) const ;//noexcept;
-	CellPtr getCellAdjacent (Coordinate c, Adjacency d) ;//noexcept;
-    ConstCellPtr getConstCellAdjacent (Coordinate c, Adjacency d) const ;//noexcept;
+	std::map<Direction, ConstCellPtr> getCellGroup (Coordinate c) const ;//noexcept;
 
     // Query directions ------------------------
 
@@ -130,6 +126,7 @@ class Puzzle
     { return m_def.passCoordinateRangeCheck(c); }
 
     unsigned gapToObstruction (Coordinate c, Direction d) const noexcept;
+    std::array<unsigned, 4> getGapsToObstructions (Coordinate c) const noexcept;
 
   private:
     Puzzle (const PuzzleDefinition & def);

@@ -39,7 +39,8 @@ bool adjacencyRuleBroken (ConstPuzzlePtr puzzle, const Route & route)
         // Out of a group of cells covering all directions from current, including diagonal
         // (ie. 3x3 formation, with the current cell in the center),
         // there can be up to 4 formations of 2x2
-        std::array<ConstCellPtr, 9> cellGroup = puzzle->getAdjacentCells(coord);
+        //std::array<ConstCellPtr, 9> cellGroup = puzzle->getAdjacentCells(coord);
+        std::map<Direction, ConstCellPtr> cellGroup = puzzle->getCellGroup(coord);
         /* The 4 possible 2x2 formations are as follows:
            central, up, up right, right;
              . X X
@@ -69,17 +70,17 @@ bool adjacencyRuleBroken (ConstPuzzlePtr puzzle, const Route & route)
         // The 1st cell and 3rd cell in each array below share a border with the center cell.
         // The 2nd cell in each array is the one diagonally opposite the center cell.
         std::array<ConstCellPtr, 3> quadrantUpRight = {
-            cellGroup[Adjacency::ADJACENT_NORTH], cellGroup[Adjacency::ADJACENT_NORTH_EAST],
-            cellGroup[Adjacency::ADJACENT_EAST] };
+            cellGroup[Direction::NORTH], cellGroup[Direction::NORTH_EAST],
+            cellGroup[Direction::EAST] };
         std::array<ConstCellPtr, 3> quadrantDownRight = {
-            cellGroup[Adjacency::ADJACENT_EAST], cellGroup[Adjacency::ADJACENT_SOUTH_EAST],
-            cellGroup[Adjacency::ADJACENT_SOUTH] };
+            cellGroup[Direction::EAST], cellGroup[Direction::SOUTH_EAST],
+            cellGroup[Direction::SOUTH] };
         std::array<ConstCellPtr, 3> quadrantDownLeft = {
-            cellGroup[Adjacency::ADJACENT_SOUTH], cellGroup[Adjacency::ADJACENT_SOUTH_WEST],
-            cellGroup[Adjacency::ADJACENT_WEST] };
+            cellGroup[Direction::SOUTH], cellGroup[Direction::SOUTH_WEST],
+            cellGroup[Direction::WEST] };
         std::array<ConstCellPtr, 3> quadrantUpLeft = {
-            cellGroup[Adjacency::ADJACENT_WEST], cellGroup[Adjacency::ADJACENT_NORTH_WEST],
-            cellGroup[Adjacency::ADJACENT_NORTH] };
+            cellGroup[Direction::WEST], cellGroup[Direction::NORTH_WEST],
+            cellGroup[Direction::NORTH] };
         std::array<std::array<ConstCellPtr, 3>, 4> twoByTwo = {
                 quadrantUpRight, quadrantDownRight, quadrantDownLeft, quadrantUpLeft };
 
@@ -121,31 +122,31 @@ bool adjacencyRuleBroken (ConstPuzzlePtr puzzle, const Route & route)
                 switch (pos)
                 {
                     case 0: // upper right
-                        if (pCell->getBorder(Direction::UP) != CellBorder::WALL &&
-                                pCell->getBorder(Direction::RIGHT) != CellBorder::WALL &&
-                                a[1]->getBorder(Direction::LEFT) != CellBorder::WALL &&
-                                a[1]->getBorder(Direction::DOWN) != CellBorder::WALL)
+                        if (pCell->getBorder(Direction::NORTH) != CellBorder::WALL &&
+                                pCell->getBorder(Direction::EAST) != CellBorder::WALL &&
+                                a[1]->getBorder(Direction::WEST) != CellBorder::WALL &&
+                                a[1]->getBorder(Direction::SOUTH) != CellBorder::WALL)
                             return true;
                         break;
                     case 1: // lower right
-                        if (pCell->getBorder(Direction::DOWN) != CellBorder::WALL &&
-                                pCell->getBorder(Direction::RIGHT) != CellBorder::WALL &&
-                                a[1]->getBorder(Direction::LEFT) != CellBorder::WALL &&
-                                a[1]->getBorder(Direction::UP) != CellBorder::WALL)
+                        if (pCell->getBorder(Direction::SOUTH) != CellBorder::WALL &&
+                                pCell->getBorder(Direction::EAST) != CellBorder::WALL &&
+                                a[1]->getBorder(Direction::WEST) != CellBorder::WALL &&
+                                a[1]->getBorder(Direction::NORTH) != CellBorder::WALL)
                             return true;
                         break;
                     case 2: // lower left
-                        if (pCell->getBorder(Direction::DOWN) != CellBorder::WALL &&
-                                pCell->getBorder(Direction::LEFT) != CellBorder::WALL &&
-                                a[1]->getBorder(Direction::RIGHT) != CellBorder::WALL &&
-                                a[1]->getBorder(Direction::UP) != CellBorder::WALL)
+                        if (pCell->getBorder(Direction::SOUTH) != CellBorder::WALL &&
+                                pCell->getBorder(Direction::WEST) != CellBorder::WALL &&
+                                a[1]->getBorder(Direction::EAST) != CellBorder::WALL &&
+                                a[1]->getBorder(Direction::NORTH) != CellBorder::WALL)
                             return true;
                         break;
                     case 3: // upper left
-                        if (pCell->getBorder(Direction::UP) != CellBorder::WALL &&
-                                pCell->getBorder(Direction::LEFT) != CellBorder::WALL &&
-                                a[1]->getBorder(Direction::RIGHT) != CellBorder::WALL &&
-                                a[1]->getBorder(Direction::DOWN) != CellBorder::WALL)
+                        if (pCell->getBorder(Direction::NORTH) != CellBorder::WALL &&
+                                pCell->getBorder(Direction::WEST) != CellBorder::WALL &&
+                                a[1]->getBorder(Direction::EAST) != CellBorder::WALL &&
+                                a[1]->getBorder(Direction::SOUTH) != CellBorder::WALL)
                             return true;
                         break;
                 }

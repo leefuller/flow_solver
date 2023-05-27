@@ -1,6 +1,7 @@
 #include "Puzzle.h"
 #include "PuzzleException.h"
 #include "Cell.h"
+//#include "log.h"
 #include "Logger.h"
 
 #include <memory>
@@ -10,6 +11,15 @@
 
 static Logger & logger = Logger::getDefaultLogger();
 
+/**
+ * Create new Puzzle based on given definition.
+ *
+ * As a convenience, if a cell is an start/end point,
+ * the set of possibilities for the cell is set to only contain the one in the definition.
+ * No other cells have that attribute set at creation.
+ *
+ * @param def   Definition from which to derive puzzle
+ */
 Puzzle::Puzzle (const PuzzleDefinition & def)
     : m_def(def), m_puzzleRows(def.generateRows())//, m_plumber(this)
 {}
@@ -71,7 +81,7 @@ ConstCellPtr Puzzle::getConstCellAtCoordinate (Coordinate c) const noexcept
 
 /**
  * From the given coordinate determine how many cells can be traversed before reaching
- * an obstruction. The obstruction can be a wall or any pipe.
+ * an obstruction. The obstruction can be a wall or any pipe. The pipe does not need to be a fixture.
  * @param c     Starting coordinate
  * @param d     Traversal direction
  * @return number of empty cells between c and obstruction
@@ -96,6 +106,34 @@ unsigned Puzzle::gapToObstruction (Coordinate c, Direction d) const noexcept
 }
 
 /**
+ * Convenience function return the gapToObstruction function result for each each traversal direction from a coordinate.
+ * An obstruction can be a wall or any pipe. The pipe does not need to be a fixture.
+ * @return array indexed by Direction
+ */
+std::array<unsigned, 4> Puzzle::getGapsToObstructions (Coordinate c) const noexcept
+{
+    std::array<unsigned, 4> result;
+    for (Direction d : allTraversalDirections)
+        result[d] = gapToObstruction(c, d);
+    return result;
+}
+
+/**
+ * Get gaps to obstructions in all directions, including diagonal.
+ * TODO?
+std::array<unsigned, 9> Puzzle::getGapsToObstructionsAllDirections (Coordinate c) const noexcept
+{
+    std::array<unsigned, 9> result;
+    for (Adjacency d : allCompassDirections)
+    {
+        // In a diagonal direction, the obstruction must be a corner??
+        //result[d] = gapToObstruction(c, d);
+    }
+    return result;
+
+}*/
+
+/**
  * Check whether set of routes is a puzzle solution.
  */
 bool Puzzle::checkIfSolution (ConstPuzzlePtr puzzle, const std::map<PipeId, Route> & s)
@@ -114,9 +152,9 @@ bool Puzzle::checkIfSolution (ConstPuzzlePtr puzzle, const std::map<PipeId, Rout
         }
     }
     // Check every cell is used.
-    for (unsigned r = 0; r < puzzle->getNumRows(); ++r)
+    for (int r = 0; r < puzzle->getNumRows(); ++r)
     {
-        for (unsigned c = 0; c < puzzle->getNumCols(); ++c)
+        for (int c = 0; c < puzzle->getNumCols(); ++c)
         {
             if (!puzzle->isCellReachable({r, c}))
                 continue;
@@ -125,6 +163,7 @@ bool Puzzle::checkIfSolution (ConstPuzzlePtr puzzle, const std::map<PipeId, Rout
         }
     }
     logger << "Solution found:" << std::endl;
+    Cell::setOutputConnectorRep(false);
     for (std::pair<PipeId, Route> p : s)
     {
         logger << p.first << ": " << p.second << std::endl;
@@ -145,7 +184,7 @@ bool Puzzle::checkIfSolution (ConstPuzzlePtr puzzle, const std::map<PipeId, Rout
  * @param c     Coordinate of start cell
  * @return adjacent cell, regardless of inner walls. If an outer wall is in the direction, return nullptr.
  */
-ConstCellPtr Puzzle::getConstCellAdjacent (Coordinate c, Adjacency direction) const //noexcept
+ConstCellPtr Puzzle::getConstCellAdjacent (Coordinate c, Direction direction) const //noexcept
 {
     if (!passCoordinateRangeCheck(c))
         return nullptr; // Invalid start coordinate
@@ -162,7 +201,7 @@ ConstCellPtr Puzzle::getConstCellAdjacent (Coordinate c, Adjacency direction) co
  * @param c     Coordinate of start cell
  * @return adjacent cell, regardless of inner walls. If an outer wall is in the direction, return nullptr.
  */
-CellPtr Puzzle::getCellAdjacent (Coordinate c, Adjacency direction) //noexcept
+CellPtr Puzzle::getCellAdjacent (Coordinate c, Direction direction) //noexcept
 {
     return std::const_pointer_cast<Cell>(getConstCellAdjacent(c, direction));
 }
@@ -176,11 +215,11 @@ CellPtr Puzzle::getCellAdjacent (Coordinate c, Adjacency direction) //noexcept
  * @param coord         Current coordinate
  * @param d     Direction to adjacent cell
  * @return adjacent Cell if direction is open, or nullptr if the direction is blocked by a wall.
- */
+ *
 CellPtr Puzzle::getCellAdjacent (Coordinate c, Direction d) //noexcept
 {
     return std::const_pointer_cast<Cell>(getConstCellAdjacent(c, d));
-}
+}*/
 
 /**
  * Return the cell adjacent to the given coordinate in the given direction,
@@ -189,7 +228,7 @@ CellPtr Puzzle::getCellAdjacent (Coordinate c, Direction d) //noexcept
  * @param c     Current coordinate
  * @param d     Direction to adjacent cell
  * @return adjacent Cell if direction is open, or nullptr if the direction is blocked by a wall.
- */
+ *
 ConstCellPtr Puzzle::getConstCellAdjacent (Coordinate c, Direction d) const //noexcept
 {
     if (!passCoordinateRangeCheck(c))
@@ -200,12 +239,12 @@ ConstCellPtr Puzzle::getConstCellAdjacent (Coordinate c, Direction d) const //no
     if (pCell->isBorderOpen(d) && coordinateChange(c, d))
         return getConstCellAtCoordinate(c);
     return nullptr;
-}
+}*/
 
 /**
  * Get the cells adjacent to the given one.
  * @return adjacent cells mapped by direction. The direction is from the cell towards the adjacement.
- */
+ *
 std::map<Direction, ConstCellPtr> Puzzle::getAdjacentCells (ConstCellPtr cell) const noexcept
 {
     std::map<Direction, ConstCellPtr> result;
@@ -219,32 +258,34 @@ std::map<Direction, ConstCellPtr> Puzzle::getAdjacentCells (ConstCellPtr cell) c
             result[d] = p;
     }
     return result;
-}
+}*/
 
 /**
  * Get all cells surrounding the given coordinate. Disregards inner walls.
  */
-std::array<ConstCellPtr, 9> Puzzle::getAdjacentCells (Coordinate coord) const //noexcept
+//std::array<ConstCellPtr, 9> Puzzle::getAdjacentCells (Coordinate coord) const //noexcept
+std::map<Direction, ConstCellPtr> Puzzle::getCellGroup (Coordinate coord) const //noexcept
 {
-    std::array<ConstCellPtr, 9> result;
-    result[Adjacency::ADJACENT_NORTH_WEST] = (isCoordinateChangeValid(coord, Adjacency::ADJACENT_NORTH_WEST) ?
-            getConstCellAdjacent(coord, Adjacency::ADJACENT_NORTH_WEST) : nullptr);
-    result[Adjacency::ADJACENT_NORTH] = (isCoordinateChangeValid(coord, Adjacency::ADJACENT_NORTH) ?
-            getConstCellAdjacent(coord, Adjacency::ADJACENT_NORTH) : nullptr);
-    result[Adjacency::ADJACENT_NORTH_EAST] = (isCoordinateChangeValid(coord, Adjacency::ADJACENT_NORTH_EAST) ?
-            getConstCellAdjacent(coord, Adjacency::ADJACENT_NORTH_EAST) : nullptr);
-    result[Adjacency::ADJACENT_WEST] = (isCoordinateChangeValid(coord, Adjacency::ADJACENT_WEST) ?
-            getConstCellAdjacent(coord, Adjacency::ADJACENT_WEST) : nullptr);
-    result[Adjacency::ADJACENT_CENTRAL] =
+    //std::array<ConstCellPtr, 9> result;
+    std::map<Direction, ConstCellPtr> result;
+    result[Direction::NORTH_WEST] = (isCoordinateChangeValid(coord, Direction::NORTH_WEST) ?
+            getConstCellAdjacent(coord, Direction::NORTH_WEST) : nullptr);
+    result[Direction::NORTH] = (isCoordinateChangeValid(coord, Direction::NORTH) ?
+            getConstCellAdjacent(coord, Direction::NORTH) : nullptr);
+    result[Direction::NORTH_EAST] = (isCoordinateChangeValid(coord, Direction::NORTH_EAST) ?
+            getConstCellAdjacent(coord, Direction::NORTH_EAST) : nullptr);
+    result[Direction::WEST] = (isCoordinateChangeValid(coord, Direction::WEST) ?
+            getConstCellAdjacent(coord, Direction::WEST) : nullptr);
+    result[Direction::CENTRAL] =
             getConstCellAtCoordinate(coord);
-    result[Adjacency::ADJACENT_EAST] = (isCoordinateChangeValid(coord, Adjacency::ADJACENT_EAST) ?
-            getConstCellAdjacent(coord, Adjacency::ADJACENT_EAST) : nullptr);
-    result[Adjacency::ADJACENT_SOUTH_WEST] = (isCoordinateChangeValid(coord, Adjacency::ADJACENT_SOUTH_WEST) ?
-            getConstCellAdjacent(coord, Adjacency::ADJACENT_SOUTH_WEST) : nullptr);
-    result[Adjacency::ADJACENT_SOUTH] = (isCoordinateChangeValid(coord, Adjacency::ADJACENT_SOUTH) ?
-            getConstCellAdjacent(coord, Adjacency::ADJACENT_SOUTH) : nullptr);
-    result[Adjacency::ADJACENT_SOUTH_EAST] = (isCoordinateChangeValid(coord, Adjacency::ADJACENT_SOUTH_EAST) ?
-            getConstCellAdjacent(coord, Adjacency::ADJACENT_SOUTH_EAST) : nullptr);
+    result[Direction::EAST] = (isCoordinateChangeValid(coord, Direction::EAST) ?
+            getConstCellAdjacent(coord, Direction::EAST) : nullptr);
+    result[Direction::SOUTH_WEST] = (isCoordinateChangeValid(coord, Direction::SOUTH_WEST) ?
+            getConstCellAdjacent(coord, Direction::SOUTH_WEST) : nullptr);
+    result[Direction::SOUTH] = (isCoordinateChangeValid(coord, Direction::SOUTH) ?
+            getConstCellAdjacent(coord, Direction::SOUTH) : nullptr);
+    result[Direction::SOUTH_EAST] = (isCoordinateChangeValid(coord, Direction::SOUTH_EAST) ?
+            getConstCellAdjacent(coord, Direction::SOUTH_EAST) : nullptr);
     return result;
 }
 
@@ -341,13 +382,13 @@ bool Puzzle::traceRoute (PipeId idPipe, Route & route) const
     forEachDirection(lam);
 #endif
     //std::find(std::begin(visited), std::end(visited), coordinateChange()) != visited.end;
-    if (continueDirectionForRoute(pCell, route, Direction::UP))
+    if (continueDirectionForRoute(pCell, route, Direction::NORTH))
         return traceRoute(idPipe, route);
-    else if (continueDirectionForRoute(pCell, route, Direction::DOWN))
+    else if (continueDirectionForRoute(pCell, route, Direction::SOUTH))
         return traceRoute(idPipe, route);
-    else if (continueDirectionForRoute(pCell, route, Direction::LEFT))
+    else if (continueDirectionForRoute(pCell, route, Direction::WEST))
         return traceRoute(idPipe, route);
-    else if (continueDirectionForRoute(pCell, route, Direction::RIGHT))
+    else if (continueDirectionForRoute(pCell, route, Direction::EAST))
         return traceRoute(idPipe, route);
     logger << " stopped." << std::endl;
     return false;

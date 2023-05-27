@@ -54,9 +54,9 @@ static Direction checkForChannel (ConstPuzzlePtr puzzle, Coordinate coord, const
         if (!cellNext->isEmpty())
             continue;
         //puzzle->getPlumber()->connect(c1, c2, idPipe, connection);
-        if (cellNext->isHorizontalChannel() && (d == Direction::LEFT || d == Direction::RIGHT))
+        if (cellNext->isHorizontalChannel() && (d == Direction::WEST || d == Direction::EAST))
             return d;
-        if (cellNext->isVerticalChannel() && (d == Direction::UP || d == Direction::DOWN))
+        if (cellNext->isVerticalChannel() && (d == Direction::NORTH || d == Direction::SOUTH))
             return d;
     }
     return Direction::NONE;
@@ -191,24 +191,26 @@ Direction theOnlyWay (ConstPuzzlePtr puzzle, Coordinate coord)
         return Direction::NONE;
     }
     PipeId idPipe = pCell->getPipeId();
-    std::map<Direction, ConstCellPtr> adjacentCells = puzzle->getAdjacentCells(pCell);
+    //std::map<Direction, ConstCellPtr> adjacentCells = puzzle->getAdjacentCells(pCell);
+    //std::array<ConstCellPtr, 9> cellGroup = puzzle->getCellGroup(coord);
+    std::map<Direction, ConstCellPtr> cellGroup = puzzle->getCellGroup(coord);
 
-    for (auto it = adjacentCells.begin(); it != adjacentCells.end();) {
+    for (auto it = cellGroup.begin(); it != cellGroup.end();) {
         if (it->second == nullptr)
-            it = adjacentCells.erase(it);
+            it = cellGroup.erase(it);
         else
             ++it;
     }
     // adjacentCells now only contains existing cells.
-    if (adjacentCells.size() == 1)
+    if (cellGroup.size() == 1)
     {
-        Direction d = checkOneAdjacentOnly(pCell, std::begin(adjacentCells)->first, std::begin(adjacentCells)->second);
+        Direction d = checkOneAdjacentOnly(pCell, std::begin(cellGroup)->first, std::begin(cellGroup)->second);
         if (d != Direction::NONE)
             return d;
     }
 
 #if ANNOUNCE_ONE_WAY_DETECT
-    logger << coord << " has " << adjacentCells.size() << " adjacent cells" << std::endl;
+    logger << coord << " has " << cellGroup.size() << " adjacent cells" << std::endl;
 #endif
 
     std::set<Direction> traversableDirections = Helper::getNowTraversableDirections(puzzle, coord, idPipe);

@@ -59,7 +59,7 @@ class PuzzleDefinition
 
       bool passCoordinateRangeCheck (Coordinate coord) const noexcept;
       bool isCellReachable (Coordinate coord) const noexcept;
-      bool isCoordinateChangeValid (Coordinate coord, Adjacency adj) const noexcept;
+      bool isCoordinateChangeValid (Coordinate coord, Direction adj) const noexcept;
 
       std::set<Direction> getConnectedDirections (Coordinate coord) const;
 

@@ -186,37 +186,37 @@ bool detectDeadEndFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId 
                 if (isVertical(directionAdjacent))
                 {
                     alignedLongBorder =
-                         (pCell->getBorder(Direction::LEFT) == pCellAdjacent->getBorder(Direction::LEFT) ||
-                          pCell->getBorder(Direction::RIGHT) == pCellAdjacent->getBorder(Direction::RIGHT));
-                    if (directionAdjacent == Direction::UP) // pCellAdjacent is above pCell
+                         (pCell->getBorder(Direction::WEST) == pCellAdjacent->getBorder(Direction::WEST) ||
+                          pCell->getBorder(Direction::EAST) == pCellAdjacent->getBorder(Direction::EAST));
+                    if (directionAdjacent == Direction::NORTH) // pCellAdjacent is above pCell
                     {
                         opposingShortBorders =
-                                pCellAdjacent->getBorder(Direction::UP) == CellBorder::WALL &&
-                                pCell->getBorder(Direction::DOWN) == CellBorder::WALL;
+                                pCellAdjacent->getBorder(Direction::NORTH) == CellBorder::WALL &&
+                                pCell->getBorder(Direction::SOUTH) == CellBorder::WALL;
                     }
                     else // pCellAdjacent is below pCell
                     {
                         opposingShortBorders =
-                                pCell->getBorder(Direction::UP) == CellBorder::WALL &&
-                                pCellAdjacent->getBorder(Direction::DOWN) == CellBorder::WALL;
+                                pCell->getBorder(Direction::NORTH) == CellBorder::WALL &&
+                                pCellAdjacent->getBorder(Direction::SOUTH) == CellBorder::WALL;
                     }
                 }
                 else // horizontal
                 {
                     alignedLongBorder =
-                         (pCell->getBorder(Direction::UP) == pCellAdjacent->getBorder(Direction::UP) ||
-                          pCell->getBorder(Direction::DOWN) == pCellAdjacent->getBorder(Direction::DOWN));
-                    if (directionAdjacent == Direction::LEFT) // pCellAdjacent is left of pCell
+                         (pCell->getBorder(Direction::NORTH) == pCellAdjacent->getBorder(Direction::NORTH) ||
+                          pCell->getBorder(Direction::SOUTH) == pCellAdjacent->getBorder(Direction::SOUTH));
+                    if (directionAdjacent == Direction::WEST) // pCellAdjacent is left of pCell
                     {
                         opposingShortBorders =
-                                pCellAdjacent->getBorder(Direction::LEFT) == CellBorder::WALL &&
-                                pCell->getBorder(Direction::RIGHT) == CellBorder::WALL;
+                                pCellAdjacent->getBorder(Direction::WEST) == CellBorder::WALL &&
+                                pCell->getBorder(Direction::EAST) == CellBorder::WALL;
                     }
                     else // pCellAdjacent is right of pCell
                     {
                         opposingShortBorders =
-                                pCell->getBorder(Direction::LEFT) == CellBorder::WALL &&
-                                pCellAdjacent->getBorder(Direction::RIGHT) == CellBorder::WALL;
+                                pCell->getBorder(Direction::WEST) == CellBorder::WALL &&
+                                pCellAdjacent->getBorder(Direction::EAST) == CellBorder::WALL;
                     }
                 }
                 if (alignedLongBorder && opposingShortBorders)
@@ -231,18 +231,18 @@ bool detectDeadEndFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId 
                     if (isVertical(directionAdjacent))
                     {
                         // The adjacent pair is left or right, depending upon the long border location
-                        if (pCell->getBorder(Direction::LEFT) == CellBorder::WALL)
-                            pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), Direction::RIGHT);
+                        if (pCell->getBorder(Direction::WEST) == CellBorder::WALL)
+                            pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), Direction::EAST);
                         else // The adjacent direction is LEFT
-                            pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), Direction::LEFT);
+                            pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), Direction::WEST);
                     }
                     else // horizontal
                     {
                         // The adjacent pair is above or below, depending upon the long border location
-                        if (pCell->getBorder(Direction::UP) == CellBorder::WALL)
-                            pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), Direction::DOWN);
+                        if (pCell->getBorder(Direction::NORTH) == CellBorder::WALL)
+                            pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), Direction::SOUTH);
                         else
-                            pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), Direction::UP);
+                            pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), Direction::NORTH);
                     }
                     if (pCellAdjacent->getBorder(directionAdjacent) != CellBorder::WALL)
                     {

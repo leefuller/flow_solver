@@ -10,16 +10,16 @@ std::ostream & outputConnectionRepr (std::ostream & os, Direction direction, Cel
 {
     switch (direction)
     {
-        case Direction::UP:
+        case Direction::NORTH:
             os << symbolsConnectorUp[connection];
             break;
-        case Direction::DOWN:
+        case Direction::SOUTH:
             os << symbolsConnectorDown[connection];
             break;
-        case Direction::LEFT:
+        case Direction::WEST:
             os << symbolsConnectorLeft[connection];
             break;
-        case Direction::RIGHT:
+        case Direction::EAST:
             os << symbolsConnectorRight[connection];
             break;
         case Direction::NONE:
@@ -35,15 +35,15 @@ std::ostream & outputBorderRepr (std::ostream & os, Direction direction, CellBor
 {
     switch (direction)
     {
-        case Direction::UP:
-        case Direction::DOWN:
+        case Direction::NORTH:
+        case Direction::SOUTH:
             if (Cell::isOutputConnectorRep())
                 os << (border == CellBorder::WALL ? CELL_BORDER_SYMBOL_HORIZONTAL_WALL : CELL_BORDER_SYMBOL_HORIZONTAL_OPEN);
             else
                 os << (border == CellBorder::WALL ? HORIZONTAL_WALL_DEF_CH : ' ');
             break;
-        case Direction::LEFT:
-        case Direction::RIGHT:
+        case Direction::WEST:
+        case Direction::EAST:
             os << (border == CellBorder::WALL ? VERTICAL_WALL_DEF_CH : ' ');
             break;
         case Direction::NONE:
