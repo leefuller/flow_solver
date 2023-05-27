@@ -22,7 +22,7 @@ int main ()
     }
     m.at(1, 2) = 5;
     result = result && check(m.at(1, 2) == 5);
-    result = result && check(m.at(std::array<unsigned,2>({1, 2})) == 5);
+    result = result && check(m.at(std::array<int,2>({1, 2})) == 5);
     try { m.at(5, 0); }
     catch (const std::range_error & ex) {} // expected
     catch (...) { throw "unexpected throw"; }

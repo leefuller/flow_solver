@@ -6,7 +6,7 @@
 #include <array>
 #include <vector>
 
-using Coordinate = std::array<unsigned, 2>;
+using Coordinate = std::array<int, 2>;
 using Route = std::vector<Coordinate>;
 
 /**

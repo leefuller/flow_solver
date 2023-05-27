@@ -38,7 +38,7 @@ template<typename T> class Matrix
 	 * @param col	Columnm index
 	 * @return const reference to item at position given by row and col
 	 */
-    const T & at (unsigned row, unsigned col) const noexcept(false)
+    const T & at (int row, int col) const noexcept(false)
     {
         if (row >= getRowCount())
             throw std::range_error("row index out of range");
@@ -53,7 +53,7 @@ template<typename T> class Matrix
 	 * @param col	Columnm index
 	 * @return const reference to item at position given by row and col
 	 */
-    T & at (unsigned row, unsigned col) noexcept(false)
+    T & at (int row, int col) noexcept(false)
     {
         if (row >= getRowCount())
             throw std::range_error("row index out of range");
@@ -66,7 +66,7 @@ template<typename T> class Matrix
      * Get item at given location
      * @return const reference to item at position given by row and col
      */
-    T & at (const std::array<unsigned, 2> & pos) noexcept(false)
+    T & at (const std::array<int, 2> & pos) noexcept(false)
     {
         return at(pos[0], pos[1]);
     }
