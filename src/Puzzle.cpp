@@ -21,7 +21,7 @@ static Logger & logger = Logger::getDefaultLogger();
  * @param def   Definition from which to derive puzzle
  */
 Puzzle::Puzzle (const PuzzleDefinition & def)
-    : m_def(def), m_puzzleRows(def.generateRows())//, m_plumber(this)
+    : m_def(def), m_puzzleRows(def.generateRows())
 {}
 
 /**
@@ -29,7 +29,7 @@ Puzzle::Puzzle (const PuzzleDefinition & def)
  * ie. The pointers to cells in the new puzzle do not point into cells in p
  */
 Puzzle::Puzzle (const Puzzle & p) :
-    m_def(p.m_def)//, m_plumber(p.m_plumber)
+    m_def(p.m_def)
 {
     for (std::vector<CellPtr> row : p.m_puzzleRows)
     {
@@ -41,20 +41,8 @@ Puzzle::Puzzle (const Puzzle & p) :
 }
 
 /**
- * Output to stream in matrix format.
- */
-std::ostream & Puzzle::streamPuzzleMatrix (std::ostream & os) const noexcept
-{
-    for (const PuzzleRow & row : m_puzzleRows)
-    {
-        os << row;
-        //os << std::endl;
-    }
-    return os;
-}
-
-/**
  * Get the cell at the given coordinate.
+ * If the coordinate is outside the puzzle, nullptr is returned.
  * @return pointer to cell, if existing
  */
 CellPtr Puzzle::getCellAtCoordinate(Coordinate c) noexcept
@@ -70,11 +58,7 @@ CellPtr Puzzle::getCellAtCoordinate(Coordinate c) noexcept
  */
 ConstCellPtr Puzzle::getConstCellAtCoordinate (Coordinate c) const noexcept
 {
-    //if (!passCoordinateRangeCheck(c))
-        //return nullptr;
-    if (c[0] >= m_puzzleRows.size())
-        return nullptr;
-    if (c[1] >= m_puzzleRows[c[0]].size())
+    if (!passCoordinateRangeCheck(c))
         return nullptr;
     return m_puzzleRows[c[0]][c[1]];
 }
@@ -174,7 +158,7 @@ bool Puzzle::checkIfSolution (ConstPuzzlePtr puzzle, const std::map<PipeId, Rout
     return true;
 }
 
-// Adjacent using Adjacency type ---------------------------------------------
+// Adjacent using Direction type ---------------------------------------------
 
 /**
  * Get the adjacent cell in the given direction, regardless of inner walls.
@@ -194,7 +178,7 @@ ConstCellPtr Puzzle::getConstCellAdjacent (Coordinate c, Direction direction) co
 }
 
 /**
- * Get the adjacent cell in the given direction.
+ * Get the adjacent cell in the given direction, regardless of inner walls.
  * (Inner walls are disregarded because diagonally has no direct route.
  * So keep result consistent for all adjacent.)
  * @param direction     Direction from start coordinate to lookup
@@ -206,67 +190,12 @@ CellPtr Puzzle::getCellAdjacent (Coordinate c, Direction direction) //noexcept
     return std::const_pointer_cast<Cell>(getConstCellAdjacent(c, direction));
 }
 
-// Adjacent using Direction type ---------------------------------------------
-
-/**
- * Return the cell adjacent to the given coordinate in the given direction,
- * only if it is immediately reachable in that direction. Disregards pipes.
- * ie. if not blocked by a wall
- * @param coord         Current coordinate
- * @param d     Direction to adjacent cell
- * @return adjacent Cell if direction is open, or nullptr if the direction is blocked by a wall.
- *
-CellPtr Puzzle::getCellAdjacent (Coordinate c, Direction d) //noexcept
-{
-    return std::const_pointer_cast<Cell>(getConstCellAdjacent(c, d));
-}*/
-
-/**
- * Return the cell adjacent to the given coordinate in the given direction,
- * only if it is immediately reachable in that direction. Disregards pipes.
- * ie. if not blocked by a wall
- * @param c     Current coordinate
- * @param d     Direction to adjacent cell
- * @return adjacent Cell if direction is open, or nullptr if the direction is blocked by a wall.
- *
-ConstCellPtr Puzzle::getConstCellAdjacent (Coordinate c, Direction d) const //noexcept
-{
-    if (!passCoordinateRangeCheck(c))
-        return nullptr; // Invalid start coordinate
-    const ConstCellPtr pCell = getConstCellAtCoordinate(c);
-    if (d == Direction::NONE)
-        return pCell;
-    if (pCell->isBorderOpen(d) && coordinateChange(c, d))
-        return getConstCellAtCoordinate(c);
-    return nullptr;
-}*/
-
-/**
- * Get the cells adjacent to the given one.
- * @return adjacent cells mapped by direction. The direction is from the cell towards the adjacement.
- *
-std::map<Direction, ConstCellPtr> Puzzle::getAdjacentCells (ConstCellPtr cell) const noexcept
-{
-    std::map<Direction, ConstCellPtr> result;
-    if (cell == nullptr)
-        return result;
-
-    for (Direction d : allTraversalDirections)
-    {
-        ConstCellPtr p = getConstCellAdjacent(cell->getCoordinate(), d);
-        if (p != nullptr)
-            result[d] = p;
-    }
-    return result;
-}*/
-
 /**
  * Get all cells surrounding the given coordinate. Disregards inner walls.
+ * Returned element will contain nullptr for any direction where there is no cell.
  */
-//std::array<ConstCellPtr, 9> Puzzle::getAdjacentCells (Coordinate coord) const //noexcept
-std::map<Direction, ConstCellPtr> Puzzle::getCellGroup (Coordinate coord) const //noexcept
+std::map<Direction, ConstCellPtr> Puzzle::getSurroundingCells (Coordinate coord) const //noexcept
 {
-    //std::array<ConstCellPtr, 9> result;
     std::map<Direction, ConstCellPtr> result;
     result[Direction::NORTH_WEST] = (isCoordinateChangeValid(coord, Direction::NORTH_WEST) ?
             getConstCellAdjacent(coord, Direction::NORTH_WEST) : nullptr);
@@ -276,8 +205,6 @@ std::map<Direction, ConstCellPtr> Puzzle::getCellGroup (Coordinate coord) const 
             getConstCellAdjacent(coord, Direction::NORTH_EAST) : nullptr);
     result[Direction::WEST] = (isCoordinateChangeValid(coord, Direction::WEST) ?
             getConstCellAdjacent(coord, Direction::WEST) : nullptr);
-    result[Direction::CENTRAL] =
-            getConstCellAtCoordinate(coord);
     result[Direction::EAST] = (isCoordinateChangeValid(coord, Direction::EAST) ?
             getConstCellAdjacent(coord, Direction::EAST) : nullptr);
     result[Direction::SOUTH_WEST] = (isCoordinateChangeValid(coord, Direction::SOUTH_WEST) ?
@@ -288,6 +215,38 @@ std::map<Direction, ConstCellPtr> Puzzle::getCellGroup (Coordinate coord) const 
             getConstCellAdjacent(coord, Direction::SOUTH_EAST) : nullptr);
     return result;
 }
+
+/**
+ * Get adjacent cells in traversal directions for the given coordinate.
+ * Returned element will contain nullptr for any direction where there is no cell, and,
+ * for the case where walls are blockers, if the cell is obstructed by a wall.
+ * @param coord
+ * @param wallsBlock    If true, do not include cells obstructed by a wall
+ */
+std::map<Direction, ConstCellPtr> Puzzle::getAdjacentCellsInTraversalDirections (Coordinate coord, bool wallsBlock) const //noexcept
+{
+    std::map<Direction, ConstCellPtr> result;
+    if (!wallsBlock)
+    {
+        for (Direction d : allTraversalDirections)
+        {
+            result[d] = (isCoordinateChangeValid(coord, d) ?
+                    getConstCellAdjacent(coord, d) : nullptr);
+        }
+    }
+    else
+    {
+        ConstCellPtr p = getConstCellAtCoordinate(coord);
+        for (Direction d : allTraversalDirections)
+        {
+            result[d] = ((isCoordinateChangeValid(coord, d) && p->isBorderOpen(d)) ?
+                    getConstCellAdjacent(coord, d) : nullptr);
+        }
+    }
+    return result;
+}
+
+// ----------------------------------------------------
 
 /**
  * Insert the route into the puzzle.

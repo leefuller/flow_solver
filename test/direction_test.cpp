@@ -61,6 +61,21 @@ bool testCoordinateChange ()
     result = result && check("Cannot go north from {0,0}", !coordinateChange(coord, Direction::NORTH));
     result = result && check(coord[0] == 0);
     result = result && check(coord[1] == 0);
+
+    coord = createCoordinate(4, 7);
+    result = result & check("Coordinate change distance > 1", coordinateChange(coord, Direction::NORTH, 2));
+    result = result && check(coord[0] == 2);
+    result = result && check(coord[1] == 7);
+    result = result & check("Coordinate change distance > 1", coordinateChange(coord, Direction::EAST, 2));
+    result = result && check(coord[0] == 2);
+    result = result && check(coord[1] == 9);
+    result = result & check("Coordinate change distance > 1", coordinateChange(coord, Direction::SOUTH, 2));
+    result = result && check(coord[0] == 4);
+    result = result && check(coord[1] == 9);
+    result = result & check("Coordinate change distance > 1", coordinateChange(coord, Direction::WEST, 3));
+    result = result && check(coord[0] == 4);
+    result = result && check(coord[1] == 6);
+
     return result;
 }
 

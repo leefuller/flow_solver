@@ -21,7 +21,7 @@ static Logger & logger = Logger::getDefaultLogger();
  * Add pipe identifier to set of identifiers, if the cell at coordinate has endpoint PipeEnd::PIPE_END_1. Otherwise, do nothing.
  * @param cell      Cell to assess
  */
-void Solver::addPipeIdToIdSetIfCellIsStart (CellPtr cell) noexcept
+void Solver::addPipeIdToIdSetIfCellIsStart (ConstCellPtr cell) noexcept
 {
     if (cell->getEndpoint() == PipeEnd::PIPE_END_1)
         m_pipeIds.insert(cell->getPipeId());
@@ -58,6 +58,7 @@ void Solver::generateRoutes (const std::map<PipeId, Route> & existing)
             {
                 if (direction != Direction::NONE && direction == opposite(forward))
                     continue;
+                // Follow existing fixtures from start of route
                 if (pCell->getConnection(direction) == CellConnection::FIXTURE_CONNECTION)
                 {
                     forward = direction;
@@ -122,7 +123,7 @@ class TryRoute
         Route m_route;
 };
 
-const PipeId interestingPipe = 'P';
+const PipeId interestingPipe = 'N';
 
 /**
  * Callback from route generator for discovered route.
@@ -134,10 +135,19 @@ void Solver::processRoute (PipeId idPipe, Route & route)
     ++countRoutes;
     try
     {
+#if ANNOUNCE_SOLVER_DETAIL
+        if (idPipe == interestingPipe)
+            std::cout << idPipe << ": " << route << std::endl;
+#endif
         TryRoute t(m_puzzle, idPipe, route);
 
         if (detectBadFormation(m_puzzle, route, idPipe))
+        {
             ++countRoutesDiscarded;
+#if ANNOUNCE_SOLVER_DETAIL
+            logger << "Discard route " << route << std::endl;
+#endif
+        }
         else
             addRoute(idPipe, route);
     }
@@ -292,7 +302,10 @@ static void describeConnection (ConstCellPtr cellFrom, ConstCellPtr cellAdjacent
  */
 std::set<CellPtr> Solver::reviseCell (CellPtr pCell) noexcept(false)
 {
+#if ANNOUNCE_SOLVER_DETAIL
     logger << "Revise " << pCell->getCoordinate() << std::endl;
+    pCell->describe(logger.stream()); logger << std::endl;
+#endif
     std::set<CellPtr> result;
     bool changed = false;
     for (Direction d : allTraversalDirections)
@@ -359,14 +372,40 @@ std::set<CellPtr> Solver::reviseCell (CellPtr pCell) noexcept(false)
     return result;
 }
 
+/*enum Phase
+{
+    ONE_WAY,
+    FILL_TO_OBSTRUCTION
+};*/
+
+void Solver::connectAndRevise (CellPtr cellFrom, CellPtr cellAdjacent, CellConnection con)
+{
+    m_puzzle->getPlumber()->connect(cellFrom->getCoordinate(), cellAdjacent->getCoordinate(),
+            cellFrom->getPipeId(), con);
+
+    // Check other cells to be revised after plumber action
+    std::set<CellPtr> toRevise = { cellFrom, cellAdjacent };
+    std::set<CellPtr> reviseMore;
+    do
+    {
+        for (CellPtr p : toRevise)
+        {
+            std::set<CellPtr> r = reviseCell(p);
+            for (CellPtr pr : r)
+                reviseMore.insert(pr);
+        };
+        toRevise = reviseMore;
+        reviseMore.clear();
+    } while (!toRevise.empty());
+}
+
 bool Solver::solve()
 {
     m_puzzle->streamPuzzleMatrix(std::cout);
-    unsigned phase = 0;
     try
     {
         // Visit each cell to find all pipe start points, and build the set of pipe identifiers.
-        std::function<void(CellPtr)> f =
+        std::function<void(ConstCellPtr)> f =
                 std::bind(&Solver::addPipeIdToIdSetIfCellIsStart, std::reference_wrapper<Solver>(*this),
             std::placeholders::_1); // Placeholder for CellPtr
         m_puzzle->forEveryCell(&f);
@@ -379,58 +418,89 @@ bool Solver::solve()
             if (!cell->isEndpoint())
             { cell->setPossiblePipes(allPipesSet); }
         };
-        m_puzzle->forEveryCell(&lam);
+        m_puzzle->forEveryCellMutable(&lam);
 
         std::map<PipeId, Route> prelimRoutes;
+        bool changed = true;
 
-        ++phase;
         //---------------------------------------------------------
+        unsigned phase = 1;
         // Phase 1: Run the "only one way" rule until the puzzle stops changing
-        logger << "Solving: Preliminary phase " << phase << std::endl;
-
-        for (bool changed = true; changed;)
+        logger << "Solving: Preliminary phase" << std::endl;
+        while (changed)
         {
+            while (changed) // inner loop for strict one way algorithm must run before other
+            {
+                changed = false;
+                for (int r = 0; r < m_puzzle->getNumRows(); ++r)
+                {
+                    for (int c = 0; c < m_puzzle->getNumCols(); ++c)
+                    {
+                        Direction oneWay = theOnlyWay(m_puzzle, {r,c});
+                        if (oneWay != Direction::NONE)
+                        {
+                            changed = true;
+                            CellPtr cellFrom = m_puzzle->getCellAtCoordinate({r,c});
+                            CellPtr cellAdjacent = m_puzzle->getCellAdjacent({r,c}, oneWay);
+                            connectAndRevise(cellFrom, cellAdjacent, CellConnection::FIXTURE_CONNECTION);
+
+                            // Check if a route has been formed
+                            Route route = {};
+                            if (m_puzzle->traceRoute(cellFrom->getPipeId(), route))
+                            {
+                                logger << "Found route using one way rule" << std::endl;
+                                prelimRoutes.insert_or_assign(cellFrom->getPipeId(), route);
+                            }
+
+                            m_puzzle->streamPuzzleMatrix(std::cout);
+                        }
+                    }
+                }
+            }
+
+#if 1
+            ++phase;
+            // Phase 2
+            // Run one way fill to obstruction algorithm.
+            // This algorithm cannot be run until the prior one way detections are run,
+            // otherwise it could fill a space that is one way for a different pipe.
+            // Also, if this changes the puzzle, it needs to drop back to run the
+            // prior algorithms again.
+#if ANNOUNCE_ONE_WAY_DETECT
+            logger << "Try one way to obstruction algorithm" << std::endl;
+#endif
             changed = false;
             for (int r = 0; r < m_puzzle->getNumRows(); ++r)
             {
                 for (int c = 0; c < m_puzzle->getNumCols(); ++c)
                 {
-                    Direction oneWay = theOnlyWay(m_puzzle, {r,c});
-                    if (oneWay != Direction::NONE)
+                    CellPtr pCell = m_puzzle->getCellAtCoordinate({r,c});
+                    if (pCell->getPipeId() == NO_PIPE_ID)
+                        continue;
+
+                    Direction d = checkFillToCorner(m_puzzle, pCell);
+                    if (d != Direction::NONE)
                     {
+#if ANNOUNCE_ONE_WAY_DETECT
+                        logger << "Connect from " << pCell->getCoordinate() << " towards obstruction " << asString(d) << std::endl;
+#endif
+                        // Connect cell towards obstruction
+                        // If the obstruction is actually another step away, it will be dealt with in another iteration
+                        Coordinate dest = pCell->getCoordinate();
+                        coordinateChange(dest, d);
+                        //m_puzzle->getPlumber()->connect({r,c}, dest, pCell->getPipeId(), CellConnection::FIXTURE_CONNECTION);
+                        connectAndRevise(pCell, m_puzzle->getCellAtCoordinate(dest), CellConnection::FIXTURE_CONNECTION);
                         changed = true;
-                        CellPtr cellFrom = m_puzzle->getCellAtCoordinate({r,c});
-                        CellPtr cellAdjacent = m_puzzle->getCellAdjacent({r,c}, oneWay);
-                        m_puzzle->getPlumber()->connect(cellFrom->getCoordinate(), cellAdjacent->getCoordinate(),
-                                cellFrom->getPipeId(), CellConnection::FIXTURE_CONNECTION);
-
-                        // Check other cells to be revised after plumber action
-                        std::set<CellPtr> toRevise = { cellFrom, cellAdjacent };
-                        std::set<CellPtr> reviseMore;
-                        do
-                        {
-                            for (CellPtr p : toRevise)
-                            {
-                                std::set<CellPtr> r = reviseCell(p);
-                                for (CellPtr pr : r)
-                                    reviseMore.insert(pr);
-                            };
-                            toRevise = reviseMore;
-                            reviseMore.clear();
-                        } while (!toRevise.empty());
-
-                        // Check if a route has been formed
-                        Route route = {};
-                        if (m_puzzle->traceRoute(cellFrom->getPipeId(), route))
-                        {
-                            logger << "Found route using one way rule" << std::endl;
-                            prelimRoutes.insert_or_assign(cellFrom->getPipeId(), route);
-                        }
-
-                        m_puzzle->streamPuzzleMatrix(std::cout);
                     }
+                    if (changed)
+                        break; // must return to run one way algorithm again
                 }
+                if (changed)
+                    break; // must return to run one way algorithm again
             }
+            if (changed)
+                phase = 1;
+#endif
         }
 
         std::cout << "After one way rule applied:" << std::endl;
@@ -471,7 +541,14 @@ bool Solver::solve()
             PipeId idPipe = pipeRouteList.first;
             logger << "Pipe " << pipeRouteList.first << " has " << pipeRouteList.second.size() << " routes" << std::endl;
             for (Route & route : pipeRouteList.second)
+            {
                 logger << route << std::endl;
+                // Insert route into puzzle to show in output
+                m_puzzle->insertRoute(idPipe, route);
+                Cell::setOutputConnectorRep(false);
+                m_puzzle->streamPuzzleMatrix(std::cout);
+                m_puzzle->removeRoute();
+            }
 
             if (pipeRouteList.second.size() == 1)
                 solvedRoutes.insert(idPipe);

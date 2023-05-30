@@ -9,27 +9,6 @@
 
 static Logger & logger = Logger::getDefaultLogger();
 
-static Direction checkOneAdjacentOnly (ConstCellPtr pCell, Direction d, ConstCellPtr pAdj)
-{
-    if (pAdj->isEmpty())
-        return d;
-
-    // Check if adjacent cell has same pipe id, and is a fixture,
-    // which would have an open fixture connection in the direction of the cell at coord.
-    if (pAdj->getPipeId() == pCell->getPipeId())
-    {
-        if (pAdj->getConnection(opposite(d)) == CellConnection::OPEN_FIXTURE)
-        {
-            // TODO what about checking for other fixtures to endpoint?
-            // If the cell is a fixture with 2 other fixtures already connected,
-            // then it is should have no remaining traversable directions.
-            // FIXME Should not need to check here. The connection algorithms should eliminate that possibility.
-            return d;
-        }
-    }
-    return Direction::NONE;
-}
-
 static Direction checkForChannel (ConstPuzzlePtr puzzle, Coordinate coord, const std::set<Direction> & directions)
 {
     /*
@@ -42,9 +21,6 @@ static Direction checkForChannel (ConstPuzzlePtr puzzle, Coordinate coord, const
         ---- . .
 
       Coordinates left of X and through to leaving the other end of the channel must also be X.
-      If the "-" are walls or pipe fixtures, then the cells in the channel and the first out the
-      other end are a fixture for the puzzle.
-      // TODO also if it is a channel involving any pipe fixture
      */
     for (Direction d : directions)
     {
@@ -53,7 +29,6 @@ static Direction checkForChannel (ConstPuzzlePtr puzzle, Coordinate coord, const
             continue;
         if (!cellNext->isEmpty())
             continue;
-        //puzzle->getPlumber()->connect(c1, c2, idPipe, connection);
         if (cellNext->isHorizontalChannel() && (d == Direction::WEST || d == Direction::EAST))
             return d;
         if (cellNext->isVerticalChannel() && (d == Direction::NORTH || d == Direction::SOUTH))
@@ -64,38 +39,45 @@ static Direction checkForChannel (ConstPuzzlePtr puzzle, Coordinate coord, const
 
 /*
  A formation where 1 or 2 empty cells occur between a pipe and an obstruction,
- where there are 2 fixed connections at the obstruction. ie. A corner
- that can be formed by borders and/or pipe fixtures.
+ along a line adjacent to a fixture.
+ The obstruction can only be a wall, or a fixture for the same pipe.
 
- Fill to the corner
- If up to 2 cells inside a corner are empty, along either wall, then the gap must be filled by the same pipe,
- otherwise it would be a dead end for another pipe, or the adjacency rule would be broken by another pipe.
+ Case 1: One empty cell:
+     If X is a fixture, then the adjacent cell must be X,
+     otherwise it would be a dead end for another pipe.
 
-           G .|         G . .|      Empty cells must be 'G'
-           ---          -----
- If 'G' had another border/fixture above, it can be dealt with by the case for channels.
+           X .|    or   X . X
+           ---          ---
+
+ Case 2: Two empty cells:
+
+ If 2 cells along a wall to an obstruction are empty, then the gap must be filled by the same pipe,
+ unless the adjacency law would not be broken.
+
+             . .
+           X . .|  or   X . . X
+           -----        -----
+ If 'X' had another border/fixture above, it can be dealt with by the case for channels.
  So, only need to know it is adjacent to at least one wall, and that up to 2 cells
- are empty until reaching the obstruction.
+ along the wall are empty until reaching the obstruction.
+
+ If the adjacency law cannot be broken in the corner, then it is not valid to fill to the corner.
+ For example, in this formation, the adjacency law cannot be broken in the corner,
+ so the cell right from 'X' might not be 'X'
+
+             .|.
+           X . .|
+           -----
 */
-static Direction checkFillToObstruction (ConstPuzzlePtr puzzle, ConstCellPtr pCell)
+Direction checkFillToCorner (ConstPuzzlePtr puzzle, ConstCellPtr pCell)
 {
-#if ANNOUNCE_ONE_WAY_DETECT
-    logger << "Try one way algorithm to obstruction" << std::endl;
-#endif
+    if (pCell == nullptr)
+        return Direction::NONE;
     std::set<Direction> dirAdjFixtures; // Directions from cell to immediately adjacent fixtures
-    ConstCellPtr pCellNext = pCell;
     // Get adjacent fixtures
     for (Direction dirAdj : allTraversalDirections)
     {
-        bool adjBlock = (pCellNext->getBorder(dirAdj) == CellBorder::WALL);
-        if (!adjBlock)
-        {
-            // check if blocked by pipe fixture
-            ConstCellPtr pAdj = puzzle->getConstCellAdjacent(pCellNext->getCoordinate(), dirAdj);
-            if (pAdj != nullptr)
-                adjBlock = pAdj->isFixture();
-        }
-        if (adjBlock)
+        if (pCell->getBorder(dirAdj) == CellBorder::WALL)
             dirAdjFixtures.insert(dirAdj);
     }
     if (dirAdjFixtures.empty())
@@ -105,65 +87,101 @@ static Direction checkFillToObstruction (ConstPuzzlePtr puzzle, ConstCellPtr pCe
     // The relative position of the obstruction(s) is in dirAdjFixtures
 
     // If an adjacent cell, not on the opposite side to the obstruction, is empty,
-    // then check whether there is a fixed obstruction on the side of it, that
-    // is in the same direction as the adjacent cell is to the current cell.
-    // ie. In the illustration below, if X is the current cell (having an obstruction above),
-    // then the cells to check for obstructions are left and right.
-    // The empty cell right of X is obstructed in the same direction (right) by a wall.
-    // (It could also be another fixture from any pipe.)
-    // The case for Y, where there are 2 adjacent empty cells before an obstruction is similar.
-    // If the first adjacent has an obstruction on the same side that Y has.
-    //
-    //       =====              =====
-    //   . . . X .|       . . . Y . .|
-    //
+    // then check whether there is a wall on the side of it that
+    // is in the same direction as the adjacent wall is to the current cell.
 
-    std::map<Direction, std::vector<ConstCellPtr>> cellsPerDir;
     const Coordinate start = pCell->getCoordinate();
     Coordinate c = start;
 
-    for (Direction dAdjFix : dirAdjFixtures)
+    for (Direction dAdjFix : dirAdjFixtures) // for each wall adjacent (to 'X')
     {
         for (Direction d : allTraversalDirections)
         {
             if (d == dAdjFix || d == opposite(dAdjFix))
                 continue; // Only interested in blockages adjacent to traversal direction
 
+            // Direction d is parallel to the adjacent wall.
+
             unsigned distance = puzzle->gapToObstruction(start, d);
             if (!distance || distance > 2)
                 continue; // only interested in gaps of 1 or 2
 
-            pCellNext = puzzle->getConstCellAdjacent(c, d);
-            // Cells until obstruction need an obstruction aligned with the obstruction for the prior cell
+            ConstCellPtr pCellNext = puzzle->getConstCellAdjacent(c, d); // cell first step in direction towards obstruction
             if (pCellNext->isBorderOpen(dAdjFix)) // TODO check for pipe fixture in the direction
-                continue;
+                continue; // no aligned obstruction
 
-            if (distance == 1) // pCellNext is next to the obstruction. This is the first case in comments above.
+#if ANNOUNCE_ONE_WAY_DETECT
+            //pCellObstruct->describe(logger.stream()); logger << std::endl;
+            logger << "Distance from " << start << " to obstruction " << asString(d) << " is " << distance << std::endl;
+#endif
+            ConstCellPtr pCellBeforeObstruct = nullptr;
+
+            // At this point, pCellNext (next to pCell) is the first cell towards the obstruction.
+
+            if (distance == 1)
+                pCellBeforeObstruct = pCellNext;
+            else // else distance is 2
+                pCellBeforeObstruct = puzzle->getConstCellAdjacent(pCellNext->getCoordinate(), d);
+
+            // pCellBeforeObstruct is immediately prior to the obstruction.
+            // The obstruction could be it's own wall, or the adjacent cell.
+
+            if (pCellBeforeObstruct->isBorderOpen(d))
             {
-                if (!pCellNext->isBorderOpen(d))
-                    return d;
-                // else obstruction is the next cell in the same direction, which needs to be a pipe fixture.
-                pCellNext = puzzle->getConstCellAdjacent(pCellNext->getCoordinate(), d);
-                if (pCellNext == nullptr || pCellNext->isFixture())
-                    return d;
-                continue; // try another direction
+                // The obstruction is the adjacent cell.
+                ConstCellPtr p = puzzle->getConstCellAdjacent(pCellBeforeObstruct->getCoordinate(), d);
+                // If it is a different pipe, then bail out.
+                if (p->getPipeId() != pCell->getPipeId())
+                    continue;
             }
-            // else distance is 2.
-            // We know the next cell in the traversal direction must be empty
-            // So check the one next to it in the same direction.
-            coordinateChange(c, d, 2);
-            pCellNext = puzzle->getConstCellAtCoordinate(c);
-            // The cell needs an obstruction aligned with the obstruction for the prior cell,
-            // as well as the obstruction in traversal direction
-            if (pCellNext->isBorderOpen(dAdjFix))
-                continue; // TODO check for pipe fixture in the direction
 
-            if (!pCellNext->isBorderOpen(d))
-                return d;
-            // else obstruction is the next cell in the same direction, which needs to be a pipe fixture.
-            pCellNext = puzzle->getConstCellAdjacent(pCellNext->getCoordinate(), d);
-            if (pCellNext == nullptr || pCellNext->isFixture())
-                return d;
+            // At this point, it has been determined that the obstruction is a wall or compatible pipe.
+
+            if (distance == 1)
+                return d; // The gap can be filled
+
+            // distance is 2.
+            if (pCellBeforeObstruct->isBorderOpen(dAdjFix)) // TODO check for pipe fixture in the direction
+                continue; // no aligned obstruction
+
+            // Check if the adjacency law could be broken in the corner.
+            // If so, then can fill to the corner.
+            // In the diagram below, the adjacency law could be broken by the cell marked 'o',
+            // regardless of it being empty or containing a pipe. So X can go to corner.
+            // If it contained a pipe, then X is effectively at the head of a channel.
+            // So, leaving channel logic to deal with 'o' being a pipe, if the adjacency law
+            // would otherwise be broken in the corner, then the corner should contain 'X'
+            //
+            //     -----
+            //     X . .|
+            //       o .
+            //
+            // The only thing that can change the corner from having to be X is the
+            // existence of a wall dividing the adjacent pair, as in:
+            //     -----
+            //     X . .|   Now X does not have to fill the gap, because 'o' might go there.
+            //       o|.
+
+            // Either of 2 inner walls in the corner 2x2 would cause a dead end.
+            // Another means X must go to the corner in a channel.
+            // Only 1 makes a valid formation with X not forced to the corner: the one dividing the adjacent pair.
+
+            // The adjacent pair is adjacent to those following the wall to the corner.
+            /*
+            pCell is the 'X'
+            dAdjFix is the side of 'X' for the wall that tracks to the corner.
+            pCellNext and pCellCorner are the cells between 'x' and the corner,
+            then the pair of interest is on the side opposite(dAdjFix) of pCellNext and pCellCorner
+            */
+            std::pair<ConstCellPtr, ConstCellPtr> pPair = std::make_pair<ConstCellPtr, ConstCellPtr>(
+                    puzzle->getConstCellAdjacent(pCellNext->getCoordinate(), opposite(dAdjFix)),
+                    puzzle->getConstCellAdjacent(pCellBeforeObstruct->getCoordinate(), opposite(dAdjFix)));
+            if (pPair.first != nullptr && pPair.second != nullptr)
+            {
+                // Check if pair is divided by wall
+                if (pPair.first->isBorderOpen(d))
+                    return d; // Not divided so 'X' must go towards corner
+            }
         }
     }
     return Direction::NONE;
@@ -180,33 +198,52 @@ static Direction checkFillToObstruction (ConstPuzzlePtr puzzle, ConstCellPtr pCe
 Direction theOnlyWay (ConstPuzzlePtr puzzle, Coordinate coord)
 {
 #if ANNOUNCE_ONE_WAY_DETECT
-    logger << "Check only way formations." << std::endl;
+    //logger << "Check only way formations." << std::endl;
 #endif
     ConstCellPtr pCell = puzzle->getConstCellAtCoordinate(coord);
     if (pCell->isEmpty())
     {
 #if ANNOUNCE_ONE_WAY_DETECT
-        logger << coord << " is empty" << std::endl;
+        //logger << coord << " is empty" << std::endl;
 #endif
         return Direction::NONE;
     }
     PipeId idPipe = pCell->getPipeId();
-    //std::map<Direction, ConstCellPtr> adjacentCells = puzzle->getAdjacentCells(pCell);
-    //std::array<ConstCellPtr, 9> cellGroup = puzzle->getCellGroup(coord);
-    std::map<Direction, ConstCellPtr> cellGroup = puzzle->getCellGroup(coord);
+    std::map<Direction, ConstCellPtr> cellGroup = puzzle->getSurroundingCells(coord);
 
     for (auto it = cellGroup.begin(); it != cellGroup.end();) {
         if (it->second == nullptr)
             it = cellGroup.erase(it);
+        else if (isDiagonal(it->first))
+            it = cellGroup.erase(it); // no diagonal traversal
         else
             ++it;
     }
     // adjacentCells now only contains existing cells.
-    if (cellGroup.size() == 1)
+    if (cellGroup.size() == 1) // Only 1 cell adjacent
     {
-        Direction d = checkOneAdjacentOnly(pCell, std::begin(cellGroup)->first, std::begin(cellGroup)->second);
-        if (d != Direction::NONE)
+        Direction d = std::begin(cellGroup)->first;
+        ConstCellPtr pAdj = std::begin(cellGroup)->second;
+        if (pAdj->isEmpty())
             return d;
+        if (pAdj->getPipeId() == pCell->getPipeId())
+        {
+            // Connect to adjacent cell with same pipe
+            if (pAdj->getConnection(opposite(d)) == CellConnection::OPEN_FIXTURE)
+            {
+#if ANNOUNCE_ONE_WAY_DETECT
+                logger << pCell->getCoordinate() << " " << asString(d) << " can connect to open fixture at " << pAdj->getCoordinate() << std::endl;
+#endif
+                return d;
+            }
+            else
+            {
+#if ANNOUNCE_ONE_WAY_DETECT
+                logger << pCell->getCoordinate() << " " << asString(d) << " has connector " << pAdj->getConnection(opposite(d)) << std::endl;
+#endif
+            }
+        }
+        return Direction::NONE;
     }
 
 #if ANNOUNCE_ONE_WAY_DETECT
@@ -226,14 +263,15 @@ Direction theOnlyWay (ConstPuzzlePtr puzzle, Coordinate coord)
 #endif
         return *(traversableDirections.begin());
     }
+    for (auto it = traversableDirections.begin(); it != traversableDirections.end(); ++it)
+    {
+        ConstCellPtr pCellNext = puzzle->getConstCellAdjacent(pCell->getCoordinate(), *it);
+        if (pCellNext->isEndpoint())
+            return *it;
+    }
 
     Direction dc = checkForChannel(puzzle, coord, traversableDirections);
     if (dc != Direction::NONE)
         return dc;
-
-    Direction d = checkFillToObstruction(puzzle, pCell);
-    if (d != Direction::NONE)
-        return d;
-
     return Direction::NONE;
 }

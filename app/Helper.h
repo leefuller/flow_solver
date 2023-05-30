@@ -18,7 +18,8 @@ class Helper
   public:
     static bool isCorner (ConstPuzzlePtr puzzle, Coordinate coord) noexcept;
 
-    static unsigned getObstructedDirections (ConstPuzzlePtr puzzle, ConstCellPtr pCell, std::set<Direction> & walls, std::set<Direction> & pipes) noexcept;
+    static std::set<Direction> getObstructedDirections (ConstPuzzlePtr puzzle, Coordinate coord) noexcept;
+
     static std::vector<ConstCellPtr> getCellsUntilObstruction(ConstPuzzlePtr puzzle, Coordinate, Direction) noexcept;
 
     static std::set<Direction> getNowTraversableDirections (ConstPuzzlePtr puzzle, Coordinate coord, PipeId idPipe);

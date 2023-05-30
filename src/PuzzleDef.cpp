@@ -166,34 +166,28 @@ void PuzzleDefinition::parsePuzzleDef (const char * puzzleDef)
  */
 ConstCellPtr PuzzleDefinition::getConstCellAtCoordinate (Coordinate coord, bool rangeCheck) const noexcept(false)
 {
-    unsigned row = coord[0];
-    unsigned col = coord[1];
     if (rangeCheck)
     {
-        if (row >= m_puzzleRows.size())
-            throw std::invalid_argument("row out of range");
-        if (col >= m_puzzleRows[row].size())
-            throw std::invalid_argument("column out of range");
+        if (!passCoordinateRangeCheck(coord))
+            throw std::invalid_argument("coordinate out of range");
     }
-    return ConstCellPtr(new Cell(m_puzzleRows[row][col]));
+    return ConstCellPtr(new Cell(m_puzzleRows[coord[0]][coord[1]]));
 }
 
 /**
  * Get the cell at the given coordinate.
+ * @param coord         Coordinate
+ * @param rangeCheck    true to execute a range check for coord.
  * @return pointer to cell
  */
 Cell * PuzzleDefinition::getCellAtCoordinate (Coordinate coord, bool rangeCheck) noexcept(false)
 {
-    unsigned row = coord[0];
-    unsigned col = coord[1];
     if (rangeCheck)
     {
-        if (row >= m_puzzleRows.size())
-            throw std::invalid_argument("row out of range");
-        if (col >= m_puzzleRows[row].size())
-            throw std::invalid_argument("column out of range");
+        if (!passCoordinateRangeCheck(coord))
+            throw std::invalid_argument("coordinate out of range");
     }
-    return (m_puzzleRows[row][col]).get();
+    return (m_puzzleRows[coord[0]][coord[1]]).get();
 }
 
 /**
@@ -239,18 +233,31 @@ ConstCellPtr PuzzleDefinition::getConstCellAdjacent (Coordinate coord, Direction
  */
 bool PuzzleDefinition::isCellReachable (Coordinate coord) const noexcept
 {
-    if (coord[0] >= getNumRows() || coord[1] >= getNumCols())
+    if (!passCoordinateRangeCheck(coord))
         return false;
     return getConstCellAtCoordinate(coord)->getPipeId() != UNREACHABLE_CELL_DEF_CH;
 }
 
+/**
+ * Determine whether coordinate is inside the puzzle dimensions,
+ * disregarding whether there may be a cell there, or not.
+ * @param coord     Coordinate to check
+ * @return true if coordinate is in the range within the puzzle
+ */
 bool PuzzleDefinition::passCoordinateRangeCheck (Coordinate coord) const noexcept
 {
-    unsigned r = coord[0];
-    unsigned c = coord[1];
+    int r = coord[0];
+    int c = coord[1];
     return r >= 0 && r < getNumRows() && c >= 0 && c < getNumCols();
 }
 
+/**
+ * Determine whether a coordinate change is valid, given starting coordinate and direction.
+ * Disregards walls.
+ * @param coord     Starting coordinate
+ * @param adj       Direction
+ * @return true if coordinate change would be valid
+ */
 bool PuzzleDefinition::isCoordinateChangeValid (Coordinate coord, Direction adj) const noexcept
 {
     if (!passCoordinateRangeCheck(coord))
@@ -295,6 +302,7 @@ Coordinate PuzzleDefinition::findPipeEnd (PipeId id, PipeEnd end) const noexcept
     throw PuzzleException("pipe end not found");
 }
 
+/** @return true if cell at coordinate is any endpoint */
 bool PuzzleDefinition::isEndpoint (Coordinate coord) const noexcept
 { return getConstCellAtCoordinate(coord)->isEndpoint(); }
 
@@ -353,7 +361,6 @@ void PuzzleDefinition::validatePuzzle ()
 {
     if (m_puzzleRows.size() < 1)
         throw PuzzleException("A valid puzzle definition requires at least 1 row");
-    //logger.log("Validate puzzle with %d rows", m_puzzleRows.size());
     logger << "Validate puzzle with " << m_puzzleRows.size() << " rows" << std::endl;
 
     std::map<PipeId, unsigned> endpoints; // count endpoints per pipe id
@@ -423,6 +430,5 @@ void PuzzleDefinition::validatePuzzle ()
                 throw PuzzleException("Bottom border not complete");
         }
     }
-    //logger.log("Validated puzzle with %d rows", m_puzzleRows.size());
     logger << "Validated puzzle with " << m_puzzleRows.size() << " rows" << std::endl;
 }

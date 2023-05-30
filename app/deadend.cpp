@@ -1,16 +1,18 @@
 #include "../include/Puzzle.h"
 #include "formations.h"
 #include "Helper.h"
+#include "Logger.h"
+
+static Logger & logger = Logger::getDefaultLogger();
 
 /**
  * Check whether given cell is a dead end, derived from what is immediately adjacent.
  *
  * @param puzzle    The puzzle state being assessed
  * @param coord     The coordinate being assessed
- * @param idPipe    The pipe id for a route, or NO_PIPE_ID if only considering walls.
  * @return true if dead end formation exists
  */
-static bool detectDeadEndFormation (ConstPuzzlePtr puzzle, Coordinate coord)
+bool detectDeadEndFormation (ConstPuzzlePtr puzzle, Coordinate coord)
 {
     std::set<Direction> directions = puzzle->getConnectedDirections(coord);
     if (directions.size() == 0)
@@ -19,74 +21,83 @@ static bool detectDeadEndFormation (ConstPuzzlePtr puzzle, Coordinate coord)
     if (pCell == nullptr) // should not happen
         return false;
 
-    // TODO improve logic here
-    std::set<Direction> wallsAdjacentDirections;
-    std::set<Direction> pipesAdjacentDirections;
-    if (Helper::getObstructedDirections(puzzle, pCell, wallsAdjacentDirections, pipesAdjacentDirections) < 3)
-        return false;
-
-    if (wallsAdjacentDirections.size() == 3 && !pCell->isEndpoint())
-        return true;
-
-    unsigned countWalls = wallsAdjacentDirections.size();
-    unsigned emptyAdjacent = 4 - countWalls - pipesAdjacentDirections.size();
-
     PipeId idPipe = pCell->getPipeId();
+    unsigned matchAdjacent = 0;
 
-    // Create list of adjacent pipes, and set of the adjacent pipe ids
-    std::vector<ConstCellPtr> adjacentPipes;
-    std::set<PipeId> adjacentIds;
-    for (Direction d : allTraversalDirections)
+    //std::set<Direction> traversableDirections = Helper::getNowTraversableDirections(puzzle, coord, idPipe);
+    std::map<Direction, ConstCellPtr> adjacent = puzzle->getAdjacentCellsInTraversalDirections(coord, true);
+
+    unsigned emptyAdjacent = std::count_if(adjacent.begin(), adjacent.end(),
+            [](auto it){ return it.second != nullptr && it.second->getPipeId() == NO_PIPE_ID; });
+    if (emptyAdjacent > 1)
     {
-        auto matchDirection = [d](auto it){ return d == it; };
-        if (std::find_if(pipesAdjacentDirections.begin(), pipesAdjacentDirections.end(), matchDirection)
-                != pipesAdjacentDirections.end()) // direction d has an adjacent pipe
-        {
-            ConstCellPtr pCellAdjacent = puzzle->getConstCellAdjacent(coord, d);
-            adjacentIds.insert(pCellAdjacent->getPipeId());
-            adjacentPipes.push_back(pCellAdjacent);
-        }
+        // Can be no dead end with more than 1 empty, unobstructed neighbour
+        return false;
     }
-
-    /* OK: If center is empty:
-             Any empty adjacent reachable, or no more than 2 adjacent cells as blockers, unless 2 are the same
-           If center is not empty:
-             2 empty adjacent, or 1 empty adjacent and 1 matching center adjacent
-
-            A       A        A       A       A       A        N
-          B . .   B . C    B X .   B X X   .|.|.    |. .    P . N
-            C       C        .       .       A       B        P
-
-       BAD:
-            A       A        A       A       A
-          B . D   B A D    B X .   B X .   .|.|.
-            C       C        C       B       B
-     */
 
     if (idPipe == NO_PIPE_ID)
     {
-        if (emptyAdjacent && (countWalls < 2))
+        /* OK if there is an empty cell adjacent
+
+            A          A
+          B . .       |. .
+            C          B
+         */
+        if (emptyAdjacent > 0)
             return false;
-#if ANNOUNCE_DEAD_END_DETECT
-        if (countWalls + adjacentIds.size() > 3)
+
+        /* OK if 2 adjacent cells have the same pipe
+
+             A        A
+           B . C     |.|
+             C        A
+         */
+        for (Direction d : allTraversalDirections)
         {
-            logger << "Dead end at " << coord;//<< std::endl;
-            logger << ": " << countWalls << " walls; Adjacent pipes: " << adjacentPipes.size() << std::endl;
+            if (adjacent[d] == nullptr)
+                continue;
+            PipeId id = adjacent[d]->getPipeId();
+            // Check for adjacent matches
+            unsigned count = 0;
+            for (Direction d2 : allTraversalDirections)
+            {
+                if (d == d2)
+                    continue;
+                if (adjacent[d2] == nullptr)
+                    continue;
+                if (adjacent[d]->getPipeId() == id)
+                    ++count;
+            }
+            if (count > 1)
+                return false;
         }
-#endif
-        return (countWalls + adjacentIds.size()) > 3;
+        /* Dead end:
+
+             A        A
+           B . D     |.|
+             C        B
+        */
     }
-    // Cell contains a pipe
-    // Count number of cells adjacent matching the pipe.
-    unsigned matchAdjacent = std::count_if(adjacentPipes.begin(), adjacentPipes.end(), [idPipe](ConstCellPtr p){ return p->getPipeId() == idPipe; });
-    //unsigned matchAdjacent = matchAdjacentPipes.size();
-    if ((emptyAdjacent + matchAdjacent) > 1)
-        return false;
-    // Ok for only 1 match or 1 empty adjacent, if an endpoint
-    if ((matchAdjacent == 1 || emptyAdjacent == 1) && pCell->isEndpoint())
-        return false;
+    else // cell not empty
+    {
+        /* OK if center matches an adjacent pipe, and is either an endpoint,
+          or has an adjacent empty cell. Endpoint represented by "(X)"
+
+             A         A        A
+           B X X     B(X).    B(X)X
+             .         C        C
+         */
+        // Count number of cells adjacent matching the pipe.
+        matchAdjacent = std::count_if(adjacent.begin(), adjacent.end(),
+                [idPipe](auto it){ return it.second != nullptr && it.second->getPipeId() == idPipe; });
+        if ((emptyAdjacent + matchAdjacent) > 1)
+            return false;
+        // Ok for only 1 match or 1 empty adjacent, if an endpoint
+        if ((matchAdjacent == 1 || emptyAdjacent == 1) && pCell->isEndpoint())
+            return false;
+    }
 #if ANNOUNCE_DEAD_END_DETECT
-    logger << "Dead end at " << coord << " for pipe " << idPipe ;//<< std::endl;
+    logger << "Dead end at " << coord << " for " << (idPipe == NO_PIPE_ID ? "empty cell" : std::to_string(idPipe));
     logger << ": Adjacent empty: " << emptyAdjacent << ", match " << matchAdjacent << std::endl;
 #endif
     return true;
@@ -132,133 +143,7 @@ bool detectDeadEndFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId 
     }
 
     /*
-     Case 2: 2 adjacent cells with 3 walls/pipes, without a wall to separate the adjacent pair
-
-    Dead end            Valid, unless 1 corner has an endpoint, which would form a deadend case 1
-      . .                 .|.
-     |. .|               |. .|
-      ---                 ---
-
-      For the dead end case, another wall for either cell doesn't matter, because it would form a
-      single cell dead end, detected in case 1.
-
-      The content of either cell does not matter, even if there is an endpoint, because:
-      - If the 2 cells are occupied by the same pipe, the adjacency rule will be broken.
-      - If there are 2 separate pipes, or 1 + empty, then there is a single cell dead end for both.
-
-      The formation can be detected if the number of obstructions for each adjacent cell is 2,
-      and 2 borders align, and 2 borders oppose.
-     */
-    for (Coordinate coord : route)
-    {
-        // Get 2 adjacent cells that are not part of the route
-        std::set<Direction> directions = puzzle->getConnectedDirections(coord);
-        for (Direction direction : directions)
-        {
-            Coordinate coordCheck = coord;
-            if (!coordinateChange(coordCheck, direction))
-                continue;
-            if (coordinateInRoute(coordCheck, route))
-                continue;
-
-            ConstCellPtr pCell = puzzle->getConstCellAtCoordinate(coordCheck);
-            for (Direction directionAdjacent : puzzle->getConnectedDirections(coordCheck))
-            {
-                ConstCellPtr pCellAdjacent = puzzle->getConstCellAdjacent(coordCheck, directionAdjacent);
-                if (pCellAdjacent == nullptr)
-                    continue;
-                if (coordinateInRoute(pCellAdjacent->getCoordinate(), route))
-                    continue;
-                // Now have 2 adjacent cells that are not in the route
-
-                std::set<Direction> wallsAdjacentDirections1;
-                std::set<Direction> pipesAdjacentDirections1;
-                if (Helper::getObstructedDirections(puzzle, pCell, wallsAdjacentDirections1, pipesAdjacentDirections1) != 2)
-                    continue;
-                std::set<Direction> wallsAdjacentDirections2;
-                std::set<Direction> pipesAdjacentDirections2;
-                if (Helper::getObstructedDirections(puzzle, pCellAdjacent, wallsAdjacentDirections2, pipesAdjacentDirections2) != 2)
-                    continue;
-                // The 2 adjacent cells each have 2 obstructions
-
-                bool alignedLongBorder = false;
-                bool opposingShortBorders = false;
-                if (isVertical(directionAdjacent))
-                {
-                    alignedLongBorder =
-                         (pCell->getBorder(Direction::WEST) == pCellAdjacent->getBorder(Direction::WEST) ||
-                          pCell->getBorder(Direction::EAST) == pCellAdjacent->getBorder(Direction::EAST));
-                    if (directionAdjacent == Direction::NORTH) // pCellAdjacent is above pCell
-                    {
-                        opposingShortBorders =
-                                pCellAdjacent->getBorder(Direction::NORTH) == CellBorder::WALL &&
-                                pCell->getBorder(Direction::SOUTH) == CellBorder::WALL;
-                    }
-                    else // pCellAdjacent is below pCell
-                    {
-                        opposingShortBorders =
-                                pCell->getBorder(Direction::NORTH) == CellBorder::WALL &&
-                                pCellAdjacent->getBorder(Direction::SOUTH) == CellBorder::WALL;
-                    }
-                }
-                else // horizontal
-                {
-                    alignedLongBorder =
-                         (pCell->getBorder(Direction::NORTH) == pCellAdjacent->getBorder(Direction::NORTH) ||
-                          pCell->getBorder(Direction::SOUTH) == pCellAdjacent->getBorder(Direction::SOUTH));
-                    if (directionAdjacent == Direction::WEST) // pCellAdjacent is left of pCell
-                    {
-                        opposingShortBorders =
-                                pCellAdjacent->getBorder(Direction::WEST) == CellBorder::WALL &&
-                                pCell->getBorder(Direction::EAST) == CellBorder::WALL;
-                    }
-                    else // pCellAdjacent is right of pCell
-                    {
-                        opposingShortBorders =
-                                pCell->getBorder(Direction::WEST) == CellBorder::WALL &&
-                                pCellAdjacent->getBorder(Direction::EAST) == CellBorder::WALL;
-                    }
-                }
-                if (alignedLongBorder && opposingShortBorders)
-                {
-                    /* The pair is a dead end if the adjacent reachable pair is not divided by a wall
-
-                    Valid:      .|.
-                               |. .|
-                                ---
-                     */
-                    // Get one of the adjacent pair, which is on the opposite side of the long border.
-                    if (isVertical(directionAdjacent))
-                    {
-                        // The adjacent pair is left or right, depending upon the long border location
-                        if (pCell->getBorder(Direction::WEST) == CellBorder::WALL)
-                            pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), Direction::EAST);
-                        else // The adjacent direction is LEFT
-                            pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), Direction::WEST);
-                    }
-                    else // horizontal
-                    {
-                        // The adjacent pair is above or below, depending upon the long border location
-                        if (pCell->getBorder(Direction::NORTH) == CellBorder::WALL)
-                            pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), Direction::SOUTH);
-                        else
-                            pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), Direction::NORTH);
-                    }
-                    if (pCellAdjacent->getBorder(directionAdjacent) != CellBorder::WALL)
-                    {
-#if ANNOUNCE_DEAD_END_DETECT
-                        logger << "Dead end assessing adjacent pair at " << coordCheck << " for route " << route << std::endl;
-#endif
-                        return true;
-                    }
-                }
-            }
-        } // for direction
-    } // for coordinate in route
-
-
-    /*
-    Case 3: TODO?
+    Case 2: TODO?
      Invalid formation that would otherwise be detected via another dead end rule,
      or the adjacency rule, if not handled here.
      With X as a start/end point, these are invalid:

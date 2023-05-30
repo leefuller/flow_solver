@@ -66,9 +66,20 @@ bool detectEntrapment (ConstPuzzlePtr puzzle, const Route & route, PipeId idPipe
     // An area entrapped could be a lot of the puzzle.
     // An endpoint is trapped if it cannot reach the corresponding endpoint, where the route acts as a wall.
 
-    // TODO
+    bool trapped = false;
 
-    return false;
+    // The simplest case is where a single empty cell is trapped.
+    // (ie. on each side is a border or other pipe.)
+    std::function<void(ConstCellPtr)> lam = [&puzzle, &trapped, idPipe](ConstCellPtr cell){
+        if (!puzzle->isCellReachable(cell->getCoordinate()))
+            return;
+        // Dead end formation can indicate a cell is trapped
+        if (detectDeadEndFormation(puzzle, cell->getCoordinate()))
+            trapped = true;
+        // TODO what about more complex entrapment?
+    };
+    puzzle->forEveryCell(&lam);
+    return trapped;
 }
 
 bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPipe)
@@ -76,7 +87,16 @@ bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPi
     try
     {
         if (adjacencyRuleBroken(puzzle, route))
+        {
+#if ANNOUNCE_ADJACENCY_LAW_BREAK
+            logger << "Adjacency rule broken for " << idPipe << " route " << route << std::endl;
+            //logger.stream() << route;
+            //logger << std::endl;
+            //Cell::setOutputConnectorRep(false);
+            //puzzle->streamPuzzleMatrix(logger.stream());
+#endif
             return true;
+        }
     }
     catch (const PuzzleException & ex)
     {
@@ -87,7 +107,14 @@ bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPi
     try
     {
         if (detectDeadEndFormation(puzzle, route, idPipe))
+        {
+#if ANNOUNCE_DEAD_END_DETECT
+            logger << "Dead end formation for " << idPipe << " in route " << route << std::endl;
+            Cell::setOutputConnectorRep(false);
+            puzzle->streamPuzzleMatrix(logger.stream());
+#endif
             return true;
+        }
     }
     catch (const PuzzleException & ex)
     {
@@ -98,7 +125,12 @@ bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPi
     try
     {
         if (detectInvalidDeviation(puzzle, route, idPipe))
+        {
+#if ANNOUNCE_INVALID_DEVIATION
+            logger << "Invalid deviation for " << idPipe << " in route " << route << std::endl;
+#endif
             return true;
+        }
     }
     catch (const PuzzleException & ex)
     {
@@ -107,7 +139,12 @@ bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPi
         throw;
     }
     if (detectEntrapment(puzzle, route, idPipe))
+    {
+#if ANNOUNCE_ENTRAPMENT
+        logger << "Entrapment due to " << idPipe << " route " << route << std::endl;
+#endif
         return true;
+    }
 
     return false;
 }

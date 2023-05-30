@@ -45,8 +45,21 @@ class Puzzle
     Puzzle & operator= (const Puzzle &) = delete; // prevent copy assignment
     Puzzle & operator= (const Puzzle &&) = delete; // prevent move assignment
 
-	std::ostream & streamPuzzleMatrix (std::ostream & os) const noexcept;
+	/** Output to stream in matrix format. */
+	std::ostream & streamPuzzleMatrix (std::ostream & os) const noexcept
+	{
+	    for (const PuzzleRow & row : m_puzzleRows)
+	        os << row;
+	    return os;
+	}
 
+	/**
+	 * Determine whether a coordinate change is valid, given starting coordinate and direction.
+	 * Disregards walls.
+	 * @param coord     Starting coordinate
+	 * @param adj       Direction
+	 * @return true if coordinate change would be valid
+	 */
 	bool isCoordinateChangeValid (Coordinate from, Direction a) const noexcept
 	{ return m_def.isCoordinateChangeValid(from, a); }
 
@@ -72,7 +85,9 @@ class Puzzle
 	CellPtr getCellAdjacent (Coordinate c, Direction d) ;//noexcept;
 	ConstCellPtr getConstCellAdjacent (Coordinate c, Direction d) const ;//noexcept;
 
-	std::map<Direction, ConstCellPtr> getCellGroup (Coordinate c) const ;//noexcept;
+	std::map<Direction, ConstCellPtr> getSurroundingCells (Coordinate c) const ;//noexcept;
+
+	std::map<Direction, ConstCellPtr> getAdjacentCellsInTraversalDirections (Coordinate coord, bool wallsBlock = false) const ;//noexcept
 
     // Query directions ------------------------
 
@@ -96,17 +111,33 @@ class Puzzle
     // ------------------------------
 	// Helpers
 
-    void forEveryCell (std::function<void(CellPtr)> * f)
+    void forEveryCellMutable (std::function<void(CellPtr)> * f)
 	{
-	    for (std::vector<CellPtr> & row : m_puzzleRows)
+	    for (PuzzleRow & row : m_puzzleRows)
 	    {
 	        for (CellPtr cell : row)
 	            (*f)(cell);
 	    }
 	}
 
+    void forEveryCell (std::function<void(ConstCellPtr)> * f) const
+    {
+        for (const PuzzleRow & row : m_puzzleRows)
+        {
+            for (CellPtr cell : row)
+                (*f)(cell);
+        }
+    }
+
     void forEachTraversalDirection (std::function<void(Direction d)> * f);
 
+    /**
+     * Find a particular endpoint
+     * @param id    Pipe identifier
+     * @param end   End identifier. (ie. find which end)
+     * @return coordinate where end of pipe is found
+     * @throw exception if not found
+     */
     Coordinate findPipeEnd (PipeId id, PipeEnd end) const noexcept(false)
     { return m_def.findPipeEnd(id, end); }
 
@@ -119,6 +150,7 @@ class Puzzle
     unsigned getNumCols () const noexcept
     { return m_def.getNumCols(); }
 
+    /** @return true if cell at coordinate is any endpoint */
     bool isEndpoint (Coordinate c) const noexcept
     { return m_def.isEndpoint(c); }
 

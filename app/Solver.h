@@ -31,7 +31,9 @@ class Solver : public RouteReceiver
 
 	void addRoute (PipeId idPipe, const Route & route);
 
-	void addPipeIdToIdSetIfCellIsStart (CellPtr cell) noexcept;
+	void addPipeIdToIdSetIfCellIsStart (ConstCellPtr cell) noexcept;
+
+	void connectAndRevise (CellPtr cellFrom, CellPtr cellAdjacent, CellConnection con);
 
 	std::set<CellPtr> reviseCell (CellPtr pCell) noexcept(false);
 

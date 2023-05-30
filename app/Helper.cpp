@@ -19,39 +19,32 @@ bool Helper::isCorner (ConstPuzzlePtr puzzle, Coordinate coord) noexcept
 }
 
 /**
- * Determine obstructions at the given cell. Add obstructed directions to the given walls and pipes.
+ * Determine obstructions at the given coordinate. An obstruction can be a wall, or any pipe.
  * @param puzzle    Puzzle to assess
- * @param pCell     Cell to check for obstructions
- * @param walls     To return directions to adjacent walls.
- * @param pipes     To return directions to adjacent pipes.
- * @return number of obstructions
+ * @param coord     Coordinate to assess
+ * @return direction of obstructions
  */
-unsigned Helper::getObstructedDirections (ConstPuzzlePtr puzzle, ConstCellPtr pCell, std::set<Direction> & walls, std::set<Direction> & pipes) noexcept
+std::set<Direction> Helper::getObstructedDirections (ConstPuzzlePtr puzzle, Coordinate coord) noexcept
 {
-    unsigned count = 0;
+    std::set<Direction> result;
+    ConstCellPtr pCell = puzzle->getConstCellAtCoordinate(coord);
     for (Direction d : allTraversalDirections)
     {
         if (pCell->getBorder(d) == CellBorder::WALL)
-        {
-            walls.insert(d);
-            ++count;
-        }
+            result.insert(d);
         else // check if obstructed by pipe
         {
-            for (Direction d : allTraversalDirections)
+            ConstCellPtr pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), d);
+            if (pCellAdjacent == nullptr) // no cell adjacent
             {
-                ConstCellPtr pCellAdjacent = puzzle->getConstCellAdjacent(pCell->getCoordinate(), d);
-                if (pCellAdjacent == nullptr) // no cell adjacent
-                    continue; // No addition to count, because there should be a wall that was counted above
-                if (pCellAdjacent->getPipeId() != NO_PIPE_ID)
-                {
-                    pipes.insert(d);
-                    ++count;
-                }
+                result.insert(d);
+                continue;
             }
+            if (pCellAdjacent->getPipeId() != NO_PIPE_ID)
+                result.insert(d);
         }
     }
-    return count;
+    return result;
 }
 
 /**

@@ -21,7 +21,7 @@ enum CellBorder
 
 const std::array<const char *, 2> borderStr = {"open", "wall"};
 
-// Cell types labeled according to borders up, down, left, right
+// Cell types labeled according to borders north/up, south/down, west/left, east/right
 const std::array<CellBorder, 4> openBorders = {OPEN, OPEN, OPEN, OPEN};
 const std::array<CellBorder, 4> horizontalChannel = {WALL, WALL, OPEN, OPEN};
 const std::array<CellBorder, 4> verticalChannel = {OPEN, OPEN, WALL, WALL};

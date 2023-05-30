@@ -63,17 +63,18 @@ RouteGenViaGraph::RouteGenViaGraph (ConstPuzzlePtr puzzle)
 }
 
 /**
- * 
+ * Generate all routes between start and end points for pipe.
  */
-//void RouteGenViaGraph::generateRoutes (PipeId id, ConstPuzzlePtr puzzle, const Route & existing)
 void RouteGenViaGraph::generateRoutes (PipeId id, ConstPuzzlePtr puzzle)
 {
-    createGraph(*puzzle, id); // No need to use existing routes parameter, because puzzle should now reflect those.
+    createGraph(*puzzle, id);
+
+    GraphOutputter<ConstCellPtr> out(std::cout);
+    m_graph.accept(out);
 
     Coordinate start = puzzle->findPipeEnd(id, PipeEnd::PIPE_END_1);
     Coordinate end = puzzle->findPipeEnd(id, PipeEnd::PIPE_END_2);
 
-    Route route;
     ConstCellPtr startCell = puzzle->getConstCellAtCoordinate(start);
     ConstCellPtr destCell = puzzle->getConstCellAtCoordinate(end);
     m_graph.genAllPaths(startCell, destCell);
@@ -95,10 +96,14 @@ void RouteGenViaGraph::handleStartEndPoint (const Puzzle & puzzle, ConstCellPtr 
                 continue;
             //if (pCellAdjacent->getPipeId() != pCell->getPipeId())
                 //continue;
+#if SUPPORT_ROUTE_DIRECTION
             if (pCell->getEndpoint() == PipeEnd::PIPE_END_1)
                 m_graph.addDirectedEdge(pCell, pCellAdjacent); // out from start point
             else
                 m_graph.addDirectedEdge(pCellAdjacent, pCell); // into endpoint
+#else
+            m_graph.addEdge(pCell, pCellAdjacent);
+#endif
             return; // There can be only one fixture edge on start/end point
         }
     }
@@ -113,10 +118,14 @@ void RouteGenViaGraph::handleStartEndPoint (const Puzzle & puzzle, ConstCellPtr 
             continue;
         //if (pCellAdjacent->getPipeId() != pCell->getPipeId())
             //continue;
+#if SUPPORT_ROUTE_DIRECTION
         if (pCell->getEndpoint() == PipeEnd::PIPE_END_1)
             m_graph.addDirectedEdge(pCell, pCellAdjacent); // out from start point
         else
             m_graph.addDirectedEdge(pCellAdjacent, pCell); // into endpoint
+#else
+            m_graph.addEdge(pCell, pCellAdjacent);
+#endif
     }
 }
 
@@ -137,14 +146,8 @@ void RouteGenViaGraph::traverseToCreateGraph (const Puzzle & puzzle, PipeId idPi
     {
         handleStartEndPoint(puzzle, pCell, visited);
     }
-    else // else "normal" cell can have 2 fixtures
+    else
     {
-        if (pCell->countFixtureConnections() == 2)
-        {
-            // Only add edges and traverse for fixed connectors.
-            // If other logic has worked properly, then the cell should have no other connectors.
-            // So do nothing here. Loop below should iterate over only the 2 fixed connections.
-        }
         for (Direction direction : puzzle.getConnectedDirections(pCell->getCoordinate()))
         {
             if (pCell->getConnection(direction) == CellConnection::NO_CONNECTOR)

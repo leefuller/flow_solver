@@ -45,7 +45,12 @@ bool Plumber::removeConnector (CellPtr pCell, Direction d)
     if (pCell->isEndpoint() && countConnectors == 1)
         throw PlumberException("cannot remove last connection from endpoint");
     if (!pCell->isEndpoint() && countConnectors == 2)
+    {
+        logger << "Plumber to remove connection from cell ";// << std::endl;
+        pCell->describe(logger.stream());
+        logger << std::endl;
         throw PlumberException("cannot have less than 2 connections for cell");
+    }
 
     pCell->setConnection(d, CellConnection::NO_CONNECTOR);
     return true;
