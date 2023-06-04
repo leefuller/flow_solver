@@ -8,6 +8,9 @@ project(flow
   VERSION 1.0
   LANGUAGES CXX)
 
+set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Release)
+
 # Use -std=c++xx instead of -std=g++xx
 set(CMAKE_CXX_EXTENSIONS OFF)
 

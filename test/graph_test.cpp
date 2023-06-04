@@ -33,7 +33,7 @@ class GraphOutputter : public Graph<int>::Visitor
 
 static std::vector<std::vector<int>> paths;
 
-void receivePath (std::vector<int> & path)
+void receivePath (const std::vector<int> & path)
 {
     std::cout << "Received path: ";
     for (auto it = std::begin(path); it != std::end(path); ++it)
@@ -192,11 +192,255 @@ bool test2 ()
     return result;
 }
 
+static std::vector<std::vector<int>> validatorPaths;
+
+#if 0
+bool validator (const std::vector<int>& path)
+{ return true; }
+#else
+bool validator (const std::vector<int>& path)
+{
+    std::cout << "Validate path: ";
+    for (const int & val : path)
+        std::cout << val << ' ';
+    std::cout << std::endl;
+
+    for (const int & val : path)
+    {
+        if (val > 9)
+        {
+            std::cout << "Invalid at " << val << std::endl;
+            return false;
+        }
+        //std::cout << "Validated " << val << std::endl;
+        validatorPaths.push_back(path); // This will do partial paths
+        //std::cout << val << ' ';
+    }
+    std::cout << std::endl;
+    return true;
+}
+#endif
+
+bool testValidation ()
+{
+    std::cout << "Test validation" << std::endl;
+    bool result = true;
+    Graph<int> graph;
+    std::function<bool(const std::vector<int>&)> fval = std::bind(&validator, std::placeholders::_1);
+    graph.setValidatePathCallback(&fval);
+    std::function<void(std::vector<int> & path)> fn = receivePath;
+    graph.setEmitPathCallback(&fn);
+
+    graph.addEdge(3, 8);
+    graph.addEdge(8, 1);
+    graph.addEdge(8, 13);
+    graph.addEdge(8, 24);
+    graph.addEdge(24, 19);
+    graph.addEdge(19, 1);
+    graph.addEdge(19, 6);
+    graph.addEdge(9, 13);
+    graph.addEdge(5, 1);
+    graph.addEdge(3, 9);
+    graph.addEdge(9, 5);
+    /*
+             5 -- 1 --- 19
+            /      \    | \
+           |   3 -- 8   |  6
+            \ /    /  \ |
+             9 -- 13    24
+
+       There are 2 valid routes from 1 to 3:
+           1, 8, 3
+           1, 5, 9, 3
+     */
+
+    GraphOutputter outputter(std::cout);
+    graph.accept(outputter);
+
+    paths.clear();
+    std::cout << "Generate all paths" << std::endl;
+    graph.genAllPaths(1, 3);
+    std::cout << std::endl;
+
+    std::cout << validatorPaths.size() << " paths processed by validator" << std::endl;
+    for (auto path : validatorPaths)
+    {
+        for (int val : path)
+            std::cout << val << ' ';
+        std::cout << std::endl;
+    }
+
+    //result = result && check("Number of paths", validatorPaths.size() == 1);
+    std::cout << paths.size() << " paths" << std::endl;
+    for (auto path : paths)
+    {
+        for (int val : path)
+            std::cout << val << ' ';
+        std::cout << std::endl;
+    }
+
+    result = result && check("Number of paths accepted ", paths.size() == 2);
+
+    std::cout << "-------------------------------" << std::endl;
+    paths.clear();
+    validatorPaths.clear();
+    graph.genAllPaths(1, 5);
+    std::cout << std::endl;
+    /*
+       There are 2 valid routes from 1 to 5:
+           1, 5
+           1, 8, 3, 9, 5
+     */
+    result = result && check("Number of paths accepted ", paths.size() == 2);
+
+    /*std::cout << validatorPaths.size() << " paths processed by validator" << std::endl;
+    for (auto path : validatorPaths)
+    {
+        for (int val : path)
+            std::cout << val << ' ';
+        std::cout << std::endl;
+    }*/
+
+    return result;
+}
+
+// C++ program to print all paths
+// from a source to destination.
+#include <iostream>
+#include <list>
+using namespace std;
+
+// A directed graph using
+// adjacency list representation
+class SomebodyElsesGraph {
+    int V; // No. of vertices in graph
+    list<int>* adj; // Pointer to an array containing
+                    // adjacency lists
+
+    // A recursive function used by printAllPaths()
+    void printAllPathsUtil(int, int, bool[], int[], int&);
+
+public:
+    SomebodyElsesGraph(int V); // Constructor
+    void addEdge(int u, int v);
+    void printAllPaths(int s, int d);
+};
+
+SomebodyElsesGraph::SomebodyElsesGraph(int V)
+{
+    this->V = V;
+    adj = new list<int>[V];
+}
+
+void SomebodyElsesGraph::addEdge(int u, int v)
+{
+    adj[u].push_back(v); // Add v to u’s list.
+}
+
+// Prints all paths from 's' to 'd'
+void SomebodyElsesGraph::printAllPaths(int s, int d)
+{
+    // Mark all the vertices as not visited
+    bool* visited = new bool[V];
+
+    // Create an array to store paths
+    int* path = new int[V];
+    int path_index = 0; // Initialize path[] as empty
+
+    // Initialize all vertices as not visited
+    for (int i = 0; i < V; i++)
+        visited[i] = false;
+
+    // Call the recursive helper function to print all paths
+    printAllPathsUtil(s, d, visited, path, path_index);
+}
+
+// A recursive function to print all paths from 'u' to 'd'.
+// visited[] keeps track of vertices in current path.
+// path[] stores actual vertices and path_index is current
+// index in path[]
+void SomebodyElsesGraph::printAllPathsUtil(int u, int d, bool visited[],
+                            int path[], int& path_index)
+{
+    // Mark the current node and store it in path[]
+    visited[u] = true;
+    path[path_index] = u;
+    path_index++;
+
+    // If current vertex is same as destination, then print
+    // current path[]
+    if (u == d) {
+        for (int i = 0; i < path_index; i++)
+            cout << path[i] << " ";
+        cout << endl;
+    }
+    else // If current vertex is not destination
+    {
+        // Recur for all the vertices adjacent to current
+        // vertex
+        list<int>::iterator i;
+        for (i = adj[u].begin(); i != adj[u].end(); ++i)
+            if (!visited[*i])
+                printAllPathsUtil(*i, d, visited, path,
+                                path_index);
+    }
+
+    // Remove current vertex from path[] and mark it as
+    // unvisited
+    path_index--;
+    visited[u] = false;
+}
+
+// Driver program
+int somebodyElses()
+{
+    std::cout << "With an implementation by somebody else" << std::endl;
+    // Create a graph given in the above diagram
+#if 0//THEIR_EXAMPLE
+    SomebodyElsesGraph g(4);
+    g.addEdge(0, 1);
+    g.addEdge(0, 2);
+    g.addEdge(0, 3);
+    g.addEdge(2, 0);
+    g.addEdge(2, 1);
+    g.addEdge(1, 3);
+
+    int s = 2, d = 3;
+    cout << "Following are all different paths from " << s
+        << " to " << d << endl;
+    g.printAllPaths(s, d);
+#else
+    // Note their example above is a directed graph.
+    // So to duplicate my test graph, create edges both directions here.
+    SomebodyElsesGraph g(100); // Value must be enough to store all paths
+    g.addEdge(3, 8);    g.addEdge(8, 3);
+    g.addEdge(8, 1);    g.addEdge(1, 8);
+    g.addEdge(8, 13);   g.addEdge(13, 8);
+    g.addEdge(8, 24);   g.addEdge(24, 8);
+    g.addEdge(24, 19);  g.addEdge(19, 24);
+    g.addEdge(19, 1);   g.addEdge(1, 19);
+    g.addEdge(19, 6);   g.addEdge(6, 19);
+    g.addEdge(9, 13);   g.addEdge(13, 9);
+    g.addEdge(5, 1);    g.addEdge(1, 5);
+    g.addEdge(3, 9);    g.addEdge(9, 3);
+    g.addEdge(9, 5);    g.addEdge(5, 9);
+    int s = 1, d = 5;
+    cout << "Following are all different paths from " << s
+        << " to " << d << endl;
+    g.printAllPaths(s, d);
+#endif
+
+    return 0;
+}
+
 int main ()
 {
     std::cout << "Test graph" << std::endl;
     bool result = true;
     result = result && testGraph();
     result = result && test2();
+    result = result && testValidation();
+
+    //somebodyElses();
     return result ? 0 : 1;
 }

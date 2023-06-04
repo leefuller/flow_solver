@@ -20,8 +20,12 @@ bool detectDeadEndFormation (ConstPuzzlePtr puzzle, Coordinate coord)
     ConstCellPtr pCell = puzzle->getConstCellAtCoordinate(coord);
     if (pCell == nullptr) // should not happen
         return false;
+    if (pCell->isEndpoint()) // An endpoint is never a dead end
+        return false;
 
     PipeId idPipe = pCell->getPipeId();
+    if (pCell->countWalls() > 2)
+        return true;
     unsigned matchAdjacent = 0;
 
     //std::set<Direction> traversableDirections = Helper::getNowTraversableDirections(puzzle, coord, idPipe);
@@ -31,7 +35,7 @@ bool detectDeadEndFormation (ConstPuzzlePtr puzzle, Coordinate coord)
             [](auto it){ return it.second != nullptr && it.second->getPipeId() == NO_PIPE_ID; });
     if (emptyAdjacent > 1)
     {
-        // Can be no dead end with more than 1 empty, unobstructed neighbour
+        // Can be no immediate dead end with more than 1 empty, unobstructed neighbour
         return false;
     }
 
@@ -51,6 +55,12 @@ bool detectDeadEndFormation (ConstPuzzlePtr puzzle, Coordinate coord)
              A        A
            B . C     |.|
              C        A
+
+          But not more than 2, because there would be 3 connections, which is invalid,
+          or dead end for another pipe:
+             A
+           C . C
+             C
          */
         for (Direction d : allTraversalDirections)
         {
@@ -68,7 +78,7 @@ bool detectDeadEndFormation (ConstPuzzlePtr puzzle, Coordinate coord)
                 if (adjacent[d]->getPipeId() == id)
                     ++count;
             }
-            if (count > 1)
+            if (count == 2)
                 return false;
         }
         /* Dead end:

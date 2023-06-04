@@ -75,7 +75,8 @@ const char * courtyard1 = \
  " = = = = = = ="   \
 };
 
-const char * pockets34 = \
+const char * pockets34 =
+ //0 1 2 3 4 5 6 7 8
 {" = = = = = = = = = ,"  \
  "|. . P N . . . . .|,"  \
  "|                 |,"  \
@@ -148,7 +149,8 @@ const char * puzzleDef3 = \
  " =================== "   \
 };
 
-const char * worm31 = \
+const char * worm31 =
+ //0 1 2 3 4 5 6 7 8 9 10
 {" ===================== ,"  \
  "|N .|     |O . . . . .|,"  \
  "|   |  =   =          |,"  \
@@ -175,17 +177,17 @@ const char * worm31 = \
 };
 
 /*
-Repetatively applying         Applying the dead end
-the "only one way" rule       detection can eliminate
-gets to this point.           'O' from the allowed
- =====================        to be at mark '*'
+Repetatively applying
+the "only one way" rule
+gets to this point.
+ =====================      Using other rules can also discover:
 |N N|     |O O O . . .|
 |   |  =   =          |
 |G N| |B|   |P . . . .|
 |   | |  ===          |
-|G N| |B . * . . . . .|
+|G N| |B . . . . . . .|
 |   | |               |
-|G N| |B . O . b . . .|
+|G N| |B . O . b . . .|     'O' can only go east, otherwise a dead end would exist for any other route
 |   |  =              |
 |G N|   |. W . . . P .|
 |    ===              |
@@ -195,9 +197,9 @@ gets to this point.           'O' from the allowed
 |                     |
 |G . . p . . . . . . .|
 |                     |
-|. . . . . . . . . R .|
+|. . . . . . . . . R .|     Gap in route 'G' can be filled, otherwise adjacency law would be broken by any other route.
 |                     |
-|. . R . . . . . . . .|
+|. . R . . . . . . . .|     If the gap in 'G' is filled, then from {9,2} 'R' can only go north or east
 |                     |
 |G . . . . . . . . . .|
  =====================
@@ -229,11 +231,11 @@ const char * inkblot1 = \
  */
 const char * getPuzzleDef ()
 {
-	//return simplePuzzleDef1;
-    return simplePuzzleDef2;
+    //return simplePuzzleDef1;
+    //return simplePuzzleDef2;
     //return courtyard1;
-	//return puzzleDef3;
+    //return puzzleDef3;
     //return inkblot1;
     //return pockets34;
-	//return worm31;
+    return worm31;
 }

@@ -37,6 +37,15 @@ class Solver : public RouteReceiver
 
 	std::set<CellPtr> reviseCell (CellPtr pCell) noexcept(false);
 
+	void checkCornerFormations (CellPtr p, bool & changed);
+	void checkCornerFormation (CellPtr pCell, Direction dCorner);
+	void checkFillToObstruction (CellPtr pCell, bool & changed);
+	void checkOneWay (CellPtr pCellFrom, bool & changed);
+
+	bool checkObstructionAfter1 (ConstCellPtr pCell, Direction d);
+
+	void connectIfOnlyOnePossibility (CellPtr p, bool & changed);
+
 	/**
 	 * Check whether a cell is a vertical channel, defined by the walls.
 	 * Disregards pipes.
@@ -57,6 +66,8 @@ class Solver : public RouteReceiver
 
     bool isAdjacentToChannelOpening (Coordinate coord) const noexcept;
 
+    bool validatePath (const std::vector<ConstCellPtr> & path);
+
     /** Definition for puzzle to be solved */
     PuzzleDefinition m_puzzleDef;
 
@@ -67,6 +78,8 @@ class Solver : public RouteReceiver
     std::set<PipeId> m_pipeIds;
 
     RouteGenViaGraph m_routeGen;
+
+    std::map<PipeId, Route> m_prelimRoutes;
 
 	/** Each pipe has a list of possible routes. */
 	std::map<PipeId, std::vector<Route>> m_routesDict;

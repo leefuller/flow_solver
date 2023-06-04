@@ -97,6 +97,12 @@ Direction areAdjacent (Coordinate start, Coordinate end) noexcept
     return Direction::NONE; // Diagonal is not adjacent
 }
 
+/**
+ * Add 2 directions together.
+ * If they are opposite, the result is Direction::NONE.
+ * Example: addDirections(NORTH, EAST) will return NORTH_EAST
+ * @throw exception if the result would not be one of the 9 valid directions.
+ */
 Direction addDirections (Direction d1, Direction d2)
 {
     if (d1 == opposite(d2))
@@ -144,6 +150,59 @@ Direction addDirections (Direction d1, Direction d2)
             break;
     }
     throw InvalidOperation("Cannot define direction from addition");
+}
+
+/**
+ * Given gaps to obstructions in the 4 traversal directions,
+ * determine which direction is the corner, if any.
+ * A corner exists where gaps are zero in 2 traversal directions that are 90 degrees separated.
+ * The direction of a corner is a diagonal one.
+ * @return the direction to the corner, or Direction::NONE if there is not a corner
+ */
+Direction cornerDirection (std::array<unsigned, 4> gaps)
+{
+    unsigned countZero = std::count_if(std::begin(gaps), std::end(gaps), [](unsigned gap){ return gap == 0; });
+    if (countZero != 2)
+        return Direction::NONE;
+    Direction result = Direction::NONE;
+    for (Direction d : allTraversalDirections)
+    {
+        if (gaps[d] == 0)
+            result = addDirections(result, d);
+    }
+    return result;
+}
+
+Direction rotateLeft (Direction start)
+{
+    switch (start)
+    {
+        case NORTH:     return NORTH_WEST;
+        case NORTH_WEST:return WEST;
+        case WEST:      return SOUTH_WEST;
+        case SOUTH_WEST:return SOUTH;
+        case SOUTH:     return SOUTH_EAST;
+        case SOUTH_EAST:return EAST;
+        case EAST:      return NORTH_EAST;
+        case NORTH_EAST:return NORTH;
+    }
+    return start;
+}
+
+Direction rotateRight (Direction start)
+{
+    switch (start)
+    {
+        case NORTH:     return NORTH_EAST;
+        case NORTH_EAST:return EAST;
+        case EAST:      return SOUTH_EAST;
+        case SOUTH_EAST:return SOUTH;
+        case SOUTH:     return SOUTH_WEST;
+        case SOUTH_WEST:return WEST;
+        case WEST:      return NORTH_WEST;
+        case NORTH_WEST:return NORTH;
+    }
+    return start;
 }
 
 std::ostream & operator<< (std::ostream & os, const Route & route) noexcept

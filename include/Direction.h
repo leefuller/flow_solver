@@ -108,4 +108,10 @@ Direction addDirections (Direction d1, Direction d2);
 
 bool coordinateChange (Coordinate & start, Direction direction, unsigned distance = 1) noexcept;
 
+Direction cornerDirection (std::array<unsigned, 4> gaps);
+
+Direction rotateLeft (Direction start);
+
+Direction rotateRight (Direction start);
+
 #endif

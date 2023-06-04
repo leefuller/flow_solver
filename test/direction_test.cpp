@@ -138,6 +138,33 @@ bool testDirection ()
     return result;
 }
 
+bool testRotation ()
+{
+    bool result = true;
+    result = result && check("Rotate left from north", rotateLeft(Direction::NORTH) == Direction::NORTH_WEST);
+    result = result && check("Rotate left from north-west", rotateLeft(Direction::NORTH_WEST) == Direction::WEST);
+    result = result && check("Rotate left from west", rotateLeft(Direction::WEST) == Direction::SOUTH_WEST);
+    result = result && check("Rotate left from south-west", rotateLeft(Direction::SOUTH_WEST) == Direction::SOUTH);
+    result = result && check("Rotate left from south", rotateLeft(Direction::SOUTH) == Direction::SOUTH_EAST);
+    result = result && check("Rotate left from south-east", rotateLeft(Direction::SOUTH_EAST) == Direction::EAST);
+    result = result && check("Rotate left from east", rotateLeft(Direction::EAST) == Direction::NORTH_EAST);
+    result = result && check("Rotate left from north-east", rotateLeft(Direction::NORTH_EAST) == Direction::NORTH);
+    result = result && check("Rotate left from none", rotateLeft(Direction::NONE) == Direction::NONE);
+    result = result && check("Rotate left from central", rotateLeft(Direction::CENTRAL) == Direction::CENTRAL);
+
+    result = result && check(rotateRight(Direction::NORTH) == Direction::NORTH_EAST);
+    result = result && check(rotateRight(Direction::NORTH_WEST) == Direction::NORTH);
+    result = result && check(rotateRight(Direction::WEST) == Direction::NORTH_WEST);
+    result = result && check(rotateRight(Direction::SOUTH_WEST) == Direction::WEST);
+    result = result && check(rotateRight(Direction::SOUTH) == Direction::SOUTH_WEST);
+    result = result && check(rotateRight(Direction::SOUTH_EAST) == Direction::SOUTH);
+    result = result && check(rotateRight(Direction::EAST) == Direction::SOUTH_EAST);
+    result = result && check(rotateRight(Direction::NORTH_EAST) == Direction::EAST);
+    result = result && check(rotateRight(Direction::NONE) == Direction::NONE);
+    result = result && check(rotateRight(Direction::CENTRAL) == Direction::CENTRAL);
+return result;
+}
+
 bool testAreAdjacent ()
 {
     bool result = true;
@@ -197,6 +224,26 @@ bool testDirectionAddition ()
     return result;
 }
 
+bool testCorner1 ()
+{
+    bool result = true;
+    std::array<unsigned, 4> gaps = { 0, 0, 0, 0 }; // north, south, west, east
+    result = result && check("No gaps", cornerDirection(gaps) == Direction::NONE);
+    gaps = { 0, 0, 3, 4 };
+    result = result && check("No gaps north and south", cornerDirection(gaps) == Direction::NONE);
+    gaps = { 1, 2, 0, 0 };
+    result = result && check("No gaps east and west", cornerDirection(gaps) == Direction::NONE);
+    gaps = { 1, 0, 1, 0 };
+    result = result && check("No gaps south and west", cornerDirection(gaps) == Direction::SOUTH_EAST);
+    gaps = { 1, 0, 0, 1 };
+    result = result && check("No gaps south and east", cornerDirection(gaps) == Direction::SOUTH_WEST);
+    gaps = { 0, 1, 1, 0 };
+    result = result && check("No gaps north and west", cornerDirection(gaps) == Direction::NORTH_EAST);
+    gaps = { 0, 1, 0, 1 };
+    result = result && check("No gaps north and east", cornerDirection(gaps) == Direction::NORTH_WEST);
+    return result;
+}
+
 int main ()
 {
     bool result = true;
@@ -204,7 +251,9 @@ int main ()
     result = result && testCoordinateChange();
     result = result && testDirectionAsString();
     result = result && testDirection();
+    result = result && testRotation();
     result = result && testAreAdjacent();
     result = result && testDirectionAddition();
+    result = result && testCorner1();
     return result ? 0 : 1;
 }

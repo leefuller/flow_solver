@@ -18,6 +18,9 @@ class RouteGenViaGraph : public RouteGenerator
 
     virtual void generateRoutes (PipeId id, ConstPuzzlePtr puzzle) override;
 
+    void setPathValidator (std::function<bool(const std::vector<ConstCellPtr>&)> * callback) noexcept
+    { m_graph.setValidatePathCallback(callback); }
+
   private:
     void createGraph (const Puzzle & puzzle, PipeId idPipe);
 
@@ -26,6 +29,8 @@ class RouteGenViaGraph : public RouteGenerator
     void handleStartEndPoint (const Puzzle & puzzle, ConstCellPtr pCell, Matrix<bool> & visited);
 
     void receivePath (Graph<ConstCellPtr>::Path & path);
+
+    void validatePath (const Graph<ConstCellPtr>::Path & path);
 
     Graph<ConstCellPtr> m_graph;
 

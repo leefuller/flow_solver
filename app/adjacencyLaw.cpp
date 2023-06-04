@@ -124,6 +124,17 @@ bool adjacencyRuleBroken (ConstPuzzlePtr puzzle, const Route & route)
     {
         ConstCellPtr pCell = puzzle->getConstCellAtCoordinate(coord);
 
+        // Firstly, a cell can have no more than 2 connections
+        std::map<Direction, ConstCellPtr> adjacent = puzzle->getAdjacentCellsInTraversalDirections(coord, true);
+        unsigned count = std::count_if(adjacent.begin(), adjacent.end(),
+                [pCell](auto p){
+                    if (p.second == nullptr)
+                        return false;
+                    return p.second->getPipeId() == pCell->getPipeId();
+                });
+        if (count > 2)
+            return true;
+
         // Out of a group of cells covering all directions from current, including diagonal
         // (ie. 3x3 formation, with the current cell in the center),
         // there can be up to 4 formations of 2x2

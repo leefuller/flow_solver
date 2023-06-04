@@ -7,9 +7,12 @@
 
 #define ANNOUNCE_DEAD_END_DETECT        1
 #define ANNOUNCE_ONE_WAY_DETECT         1
-#define ANNOUNCE_ADJACENCY_LAW_BREAK    0
+#define ANNOUNCE_ADJACENCY_LAW_BREAK    1
 #define ANNOUNCE_ENTRAPMENT             1
 #define ANNOUNCE_SOLVER_DETAIL          0
+
+Direction checkCornerAtCoordinate (ConstPuzzlePtr puzzle, Coordinate c);
+Direction checkOneStepToCorner (ConstPuzzlePtr puzzle, Coordinate c, Direction d);
 
 bool detectBadFormation (ConstPuzzlePtr, const Route & route, PipeId id);
 bool detectDeadEndFormation (ConstPuzzlePtr puzzle, Coordinate c);

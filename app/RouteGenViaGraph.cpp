@@ -69,8 +69,8 @@ void RouteGenViaGraph::generateRoutes (PipeId id, ConstPuzzlePtr puzzle)
 {
     createGraph(*puzzle, id);
 
-    GraphOutputter<ConstCellPtr> out(std::cout);
-    m_graph.accept(out);
+    //GraphOutputter<ConstCellPtr> out(std::cout);
+    //m_graph.accept(out);
 
     Coordinate start = puzzle->findPipeEnd(id, PipeEnd::PIPE_END_1);
     Coordinate end = puzzle->findPipeEnd(id, PipeEnd::PIPE_END_2);
@@ -174,7 +174,7 @@ void RouteGenViaGraph::traverseToCreateGraph (const Puzzle & puzzle, PipeId idPi
             }
             else if (pCellAdjacent->getPipeId() == NO_PIPE_ID)
             {
-                if (pCellAdjacent->hasPossible(idPipe))
+                //if (pCellAdjacent->hasPossible(idPipe))
                     m_graph.addEdge(pCell, pCellAdjacent);
             }
         }

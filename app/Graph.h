@@ -9,6 +9,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+//#include <iostream>
 
 /*
  Graph Terminology:
@@ -134,6 +135,7 @@ class Graph
 
         std::set<NodeT> visited;
         std::vector<NodeT> path; // FIXME: This could get fairly big
+        m_invalid.clear();
         genAllPathsHelper(node, dest, visited, path);
     }
 
@@ -241,6 +243,9 @@ class Graph
     void setEmitPathCallback (std::function<void(Path&)> * callback) noexcept
     { emitPathCallback = callback; }
 
+    void setValidatePathCallback (std::function<bool(const Path&)> * callback) noexcept
+    { validatePathCallback = callback; }
+
   private:
 
     std::set<NodeT> & getAdjacentNodes (NodeT node) noexcept(false)
@@ -300,27 +305,68 @@ class Graph
     {
         visited.insert(pos);
         path.push_back(pos);
+        //std::cout << "Push node " << pos << std::endl;
         if (pos == dest)
         {
+            //std::cout << "emit path" << std::endl;
             emitPath(path);
         }
         else
         {
+            if (validatePathCallback != nullptr)
+            {
+                if (!(*validatePathCallback)(path))
+                {
+                    // No need to change path here. Rolling back the recursion does that.
+                    //std::cout << "Add node " << pos << " to invalid set" << std::endl;
+                    m_invalid.insert(pos);
+                    //std::cout << "Pop node " << path.back() << std::endl;
+                    path.pop_back();
+                    //visited.erase(pos);
+                    return;
+                }
+            }
             // Not at destination yet. Recur for adjacent nodes not visited yet.
             const std::set<NodeT> & adjacent = getAdjacentNodes(pos);
             for (const NodeT & node : adjacent)
             {
+                if (m_invalid.find(node) != m_invalid.end()) // node is in the invalid group
+                {
+                    //std::cout << "skip invalid node " << node << std::endl;
+                    continue;
+                }
                 if (visited.find(node) == visited.end())
                     genAllPathsHelper(node, dest, visited, path);
             }
+            // will now go back in the recursion stack,
+            // so adjacent nodes in invalid group are no longer invalid
+            // because they could be valid in another path.
+            for (const NodeT & node : adjacent)
+            {
+                if (m_invalid.find(node) != m_invalid.end())
+                {
+                    //std::cout << "Remove node " << node << " from invalid set" << std::endl;
+                    m_invalid.erase(node);
+                }
+            }
         }
         // Remove current node from path and mark it not visited
+        //std::cout << "Pop node " << path.back() << std::endl;
         path.pop_back();
         visited.erase(pos);
     }
 
     /** Adjacency list */
     std::map<NodeT, std::set<NodeT>> m_adjList;
+
+    std::set<NodeT> m_invalid;
+
+    /**
+     * Callback from genAllPaths to validate path whenever a node is added.
+     * Provides a means to prevent generating paths that would be invalid
+     * due to something else.
+     */
+    std::function<bool(const Path&)> * validatePathCallback{nullptr};
 
     /**
      * Callback from genAllPaths when a path is found.

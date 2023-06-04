@@ -59,6 +59,8 @@ class Cell;
 using CellPtr = std::shared_ptr<Cell>;
 using ConstCellPtr = std::shared_ptr<const Cell>;
 
+#define USE_PIPE_POSSIBILITY 1
+
 /**
  * Represent a single cell in a puzzle.
  * Intended as a data holder. Should contain little to no logic.
@@ -86,8 +88,10 @@ class Cell
     void setPipeId (PipeId idPipe, bool permanent = false) noexcept
     {
         m_idPipe = idPipe;
+#if USE_PIPE_POSSIBILITY
         if (permanent)
             setPossiblePipes(idPipe);
+#endif
     }
 
     /**
@@ -195,6 +199,14 @@ class Cell
     bool isVerticalChannel () const noexcept
     { return getBorders() == verticalChannel; }
 
+    /**
+     * Considering only borders (not pipes), determine if the cell is only traversable
+     * as a corner.
+     * @return true if the cell borders mean the traversable directions are at 90 degrees to each other.
+     */
+    bool isCorner () const noexcept
+    { return countWalls() == 2 && !isVerticalChannel() && !isHorizontalChannel(); }
+
     bool operator== (const Cell &) const noexcept;
 
     std::string toString () const noexcept;
@@ -206,31 +218,33 @@ class Cell
     static bool isOutputConnectorRep () noexcept
     { return outputConnectorRep; }
 
+#if USE_PIPE_POSSIBILITY
     /** Add the given pipe identifier to list of possibilities for this cell. */
     void addPossibility (PipeId id) noexcept
-    { m_possibilePipes.insert(id); }
+    { m_possiblePipes.insert(id); }
 
     /** Remove the given pipe identifier to list of possibilities for this cell. */
     void removePossibility (PipeId id) noexcept
-    { m_possibilePipes.erase(id); }
+    { m_possiblePipes.erase(id); }
 
     /** Set list of possible pipes. */
     void setPossiblePipes (const std::set<PipeId> & s) noexcept
-    { m_possibilePipes = s; }
+    { m_possiblePipes = s; }
 
     /** Set list of possible pipes. */
     void setPossiblePipes (PipeId id) noexcept
     {
-        m_possibilePipes.clear();
+        m_possiblePipes.clear();
         addPossibility(id);
     }
 
     /** Get possible pipes. */
     const std::set<PipeId> & getPossiblePipes () const noexcept
-    { return m_possibilePipes; }
+    { return m_possiblePipes; }
 
-    bool hasPossible (PipeId id) const noexcept
-    { return std::find(std::begin(m_possibilePipes), std::end(m_possibilePipes), id) != m_possibilePipes.end(); }
+    /*bool hasPossible (PipeId id) const noexcept
+    { return std::find(std::begin(m_possiblePipes), std::end(m_possiblePipes), id) != m_possibilePipes.end(); }*/
+#endif
 
   private:
 
@@ -272,8 +286,10 @@ class Cell
     /** Coordinate of cell */
     Coordinate m_coordinate;
 
+#if USE_PIPE_POSSIBILITY
     /** For potential external logic to keep a set of possible pipe identifiers */
-    std::set<PipeId> m_possibilePipes;
+    std::set<PipeId> m_possiblePipes;
+#endif
 
     PipeId m_idPipe{NO_PIPE_ID};
 

@@ -247,19 +247,19 @@ Direction theOnlyWay (ConstPuzzlePtr puzzle, Coordinate coord)
     }
 
 #if ANNOUNCE_ONE_WAY_DETECT
-    logger << coord << " has " << cellGroup.size() << " adjacent cells" << std::endl;
+    //logger << coord << " has " << cellGroup.size() << " adjacent cells" << std::endl;
 #endif
 
     std::set<Direction> traversableDirections = Helper::getNowTraversableDirections(puzzle, coord, idPipe);
 #if ANNOUNCE_ONE_WAY_DETECT
-    logger << coord << " has " << traversableDirections.size() << " traversable direction(s)" << std::endl;
+    //logger << coord << " has " << traversableDirections.size() << " traversable direction(s)" << std::endl;
 #endif
     if (traversableDirections.size() == 0)
         return Direction::NONE;
     if (traversableDirections.size() == 1)
     {
 #if ANNOUNCE_ONE_WAY_DETECT
-        logger << "traversable " << asString(*(traversableDirections.begin())) << std::endl;
+        //logger << "traversable " << asString(*(traversableDirections.begin())) << std::endl;
 #endif
         return *(traversableDirections.begin());
     }

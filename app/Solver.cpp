@@ -356,6 +356,10 @@ std::set<CellPtr> Solver::reviseCell (CellPtr pCell) noexcept(false)
                                 // Adjacent cell can connect
                                 m_puzzle->getPlumber()->connect(pCell->getCoordinate(), pAdj->getCoordinate(),
                                         pCell->getPipeId(), CellConnection::FIXTURE_CONNECTION);
+#if USE_PIPE_POSSIBILITY
+                                pCell->setPossiblePipes(pAdj->getPipeId());
+                                // TODO if pipe is complete, update possibilities for all other puzzle cells
+#endif
                                 changed = true;
                                 // need to revise both connected
                                 result.insert(pCell);
@@ -382,6 +386,10 @@ void Solver::connectAndRevise (CellPtr cellFrom, CellPtr cellAdjacent, CellConne
 {
     m_puzzle->getPlumber()->connect(cellFrom->getCoordinate(), cellAdjacent->getCoordinate(),
             cellFrom->getPipeId(), con);
+#if USE_PIPE_POSSIBILITY
+    if (con == CellConnection::FIXTURE_CONNECTION)
+        cellAdjacent->setPossiblePipes(cellFrom->getPipeId());
+#endif
 
     // Check other cells to be revised after plumber action
     std::set<CellPtr> toRevise = { cellFrom, cellAdjacent };
@@ -399,11 +407,285 @@ void Solver::connectAndRevise (CellPtr cellFrom, CellPtr cellAdjacent, CellConne
     } while (!toRevise.empty());
 }
 
+/**
+ * Called during route generation to check validity of path being generated.
+ */
+bool Solver::validatePath (const std::vector<ConstCellPtr> & path)
+{
+    if (path.empty())
+        return true;
+    PipeId idPipe = path[0]->getPipeId();
+    Route route;
+    for (auto p : path)
+        route.push_back(p->getCoordinate());
+    try
+    {
+        TryRoute t(m_puzzle, idPipe, route);
+
+        // TODO would be good if the route generator could use the algorithms used in preliminary solution process,
+        // so that less routes are generated.
+
+        if (detectBadFormation(m_puzzle, route, idPipe))
+        // Don't use adjacency law, because it could invalidate a cell in assessing a bad route,
+        // where that cell can be in the solution
+        //if (detectDeadEndFormation(m_puzzle, route, idPipe))
+        {
+            // No need to do anything to the puzzle here. The route will be removed when leaving this function.
+            // The route generator deals with the removal of the cell (which was last added) from the route.
+            return false;
+        }
+    }
+    catch (const PuzzleException & ex)
+    {
+        if (idPipe == interestingPipe)
+        {
+            logger << "Caught exception in processing route " << route << std::endl;
+            logger << "Exception processing route: " << ex << std::endl;
+        }
+        throw;
+    }
+    return true;
+}
+
+void Solver::connectIfOnlyOnePossibility (CellPtr p, bool & changed)
+{
+    if (p == nullptr)
+        return;
+    if (p->isFixture())
+    {
+        std::set<Direction> sameIdsAdjacent;
+        for (Direction d : allTraversalDirections)
+        {
+            CellPtr pAdj = m_puzzle->getCellAdjacent(p->getCoordinate(), d);
+            if (pAdj == nullptr)
+                continue;
+            if (pAdj->getPipeId() == UNREACHABLE_CELL_DEF_CH)
+                continue;
+            const std::set<PipeId> & ids = pAdj->getPossiblePipes();
+            logger << p->getCoordinate() << " " << asString(d) << " has " << ids.size() << " possibilities";
+            for (PipeId id : ids)
+                logger << "'" << id << "' ";
+            logger << std::endl;
+            if (ids.size() == 1)
+            {
+                PipeId id = *std::begin(ids);
+                if (id != p->getPipeId())
+                    continue;
+                if (p->getConnection(d) == CellConnection::FIXTURE_CONNECTION)
+                    continue;
+                logger << "Connect with only 1 possibility at " << pAdj->getCoordinate() << std::endl;
+                connectAndRevise(p, pAdj, CellConnection::FIXTURE_CONNECTION);
+                changed = true;
+            }
+            else if (ids.find(p->getPipeId()) != ids.end())
+            {
+                sameIdsAdjacent.insert(d);
+            }
+        }
+        if (sameIdsAdjacent.size() == 1)
+        {
+            Direction d = *std::begin(sameIdsAdjacent);
+            if (p->getConnection(d) == CellConnection::FIXTURE_CONNECTION || p->getConnection(d) == CellConnection::NO_CONNECTOR)
+                return;
+            CellPtr pAdj = m_puzzle->getCellAdjacent(p->getCoordinate(), d);
+            logger << "Connect with only 1 possibile direction at " << pAdj->getCoordinate() << std::endl;
+            connectAndRevise(p, pAdj, CellConnection::FIXTURE_CONNECTION);
+            changed = true;
+        }
+    }
+}
+
+/**
+ * Check if there is an obstruction after 1 cell in direction from given cell,
+ * and if the obstruction is a pipe, that it is not the same pipe as in the given cell.
+ */
+bool Solver::checkObstructionAfter1 (ConstCellPtr pCell, Direction d)
+{
+    if (pCell == nullptr)
+        return false;
+    logger << "check obstruction " << asString(d) << " after 1" << std::endl;
+    if (!pCell->isBorderOpen(d)) // obstructed by a wall
+        return false;
+
+    Coordinate c = pCell->getCoordinate();
+    if (bool obstruct = true; m_puzzle->gapToObstruction(c, d) == 1)
+    {
+        CellPtr pAdj = m_puzzle->getCellAdjacent(c, d);
+        if (pAdj != nullptr)
+        {
+            if (pAdj->isBorderOpen(d)) // Obstruction is a pipe
+            {
+                CellPtr pObstruct = nullptr;
+                if (Coordinate coordObstruction = c; coordinateChange(coordObstruction, d, 2))
+                {
+                    pObstruct = m_puzzle->getCellAtCoordinate(coordObstruction);
+                    if (pObstruct->getPipeId() == pCell->getPipeId())
+                        obstruct = false; // Matching pipe is not a terminating obstruction
+                }
+            }
+            // else obstruction is a border
+        }
+        return obstruct;
+    }
+    return false;
+}
+
+/**
+ * Check corner formation for given direction of corner
+ * @param pCell
+ * @param dCorner   Direction from cell to corner
+ * @return
+ */
+void Solver::checkCornerFormation (CellPtr pCell, Direction dCorner)
+{
+    if (pCell == nullptr)
+        return;
+    if (pCell->isEmpty())
+        return;
+
+    /* Illustration of meaning, using NORTH_EAST corner example:
+
+       (1)
+        ==
+         .|     Cell in the corner cannot be 'X'.
+       X
+
+      If there is an obstruction 1 step north or east of 'X', then the cell between
+      (marked 'o') cannot be 'X'. Obstruction can be border or pipe.
+
+        (2a)   (2b)            (3a)     (3b)
+        ===    A B              ==       A
+        o .|   o . C             .|      o B
+        X      X               X o|    X   C
+
+     */
+    PipeId idPipe = pCell->getPipeId();
+    Coordinate c = pCell->getCoordinate();
+
+    if (checkOneStepToCorner(m_puzzle, c, dCorner) == dCorner)
+    {
+#if USE_PIPE_POSSIBILITY
+        // Case (1) Given cell is diagonal from corner
+        CellPtr pCorner = m_puzzle->getCellAdjacent(c, dCorner);
+        logger << asString(dCorner) << " corner from " << c << " removes possibility of " << idPipe << " at " << pCorner->getCoordinate() << std::endl;
+        pCorner->removePossibility(idPipe);
+
+        // Check corner for obstruction on 1 axis
+        Direction dAxis = rotateLeft(dCorner);
+        CellPtr pAxis = m_puzzle->getCellAdjacent(c, dAxis);
+        if (checkObstructionAfter1(pCell, dAxis))
+        {
+            logger << asString(dCorner) << " from " << c << " corner with " << asString(dAxis) <<
+                    " obstruction removes possibility of " << idPipe << " at " << pAxis->getCoordinate() << std::endl;
+            pAxis->removePossibility(idPipe);
+        }
+
+        // Check corner for obstruction on other axis
+        dAxis = rotateRight(dCorner);
+        pAxis = m_puzzle->getCellAdjacent(c, dAxis);
+        if (checkObstructionAfter1(pCell, dAxis))
+        {
+            logger << asString(dCorner) << " from " << c << " corner with " << asString(dAxis)
+                    << " obstruction removes possibility of " << idPipe << " at " << pAxis->getCoordinate() << std::endl;
+            pAxis->removePossibility(idPipe);
+        }
+#endif
+    }
+}
+
+void Solver::checkCornerFormations (CellPtr pCell, bool & changed)
+{
+    if (pCell == nullptr)
+        return;
+    checkCornerFormation(pCell, Direction::NORTH_EAST);
+    checkCornerFormation(pCell, Direction::NORTH_WEST);
+    checkCornerFormation(pCell, Direction::SOUTH_EAST);
+    checkCornerFormation(pCell, Direction::SOUTH_WEST);
+}
+
+void Solver::checkFillToObstruction (CellPtr pCell, bool & changed)
+{
+    if (pCell == nullptr)
+        return;
+    if (pCell->getPipeId() == NO_PIPE_ID)
+        return;
+
+    Direction d = checkFillToCorner(m_puzzle, pCell);
+    if (d != Direction::NONE)
+    {
+#if ANNOUNCE_ONE_WAY_DETECT
+        logger << "Connect from " << pCell->getCoordinate() << " towards obstruction " << asString(d) << std::endl;
+#endif
+        // Connect cell towards obstruction
+        // If the obstruction is actually another step away, it will be dealt with in another iteration
+        Coordinate dest = pCell->getCoordinate();
+        coordinateChange(dest, d);
+        //m_puzzle->getPlumber()->connect({r,c}, dest, pCell->getPipeId(), CellConnection::FIXTURE_CONNECTION);
+        connectAndRevise(pCell, m_puzzle->getCellAtCoordinate(dest), CellConnection::FIXTURE_CONNECTION);
+        changed = true;
+    }
+}
+
+void Solver::checkOneWay (CellPtr pCellFrom, bool & changed)
+{
+    if (pCellFrom == nullptr)
+        return;
+    Direction oneWay = theOnlyWay(m_puzzle, pCellFrom->getCoordinate());
+    if (oneWay != Direction::NONE)
+    {
+        changed = true;
+        CellPtr pCellAdjacent = m_puzzle->getCellAdjacent(pCellFrom->getCoordinate(), oneWay);
+        connectAndRevise(pCellFrom, pCellAdjacent, CellConnection::FIXTURE_CONNECTION);
+
+        // Check if a route has been formed
+        Route route = {};
+        if (m_puzzle->traceRoute(pCellFrom->getPipeId(), route))
+        {
+            logger << "Found route using one way rule" << std::endl;
+            m_prelimRoutes.insert_or_assign(pCellFrom->getPipeId(), route);
+#if USE_PIPE_POSSIBILITY
+            // for other cells, remove this pipe as a possibility
+            std::function<void(CellPtr)> lam = [pCellFrom](CellPtr p){
+                if (p == nullptr)
+                    return;
+                if (p->getPipeId() != pCellFrom->getPipeId())
+                    p->removePossibility(pCellFrom->getPipeId());
+            };
+            m_puzzle->forEveryCellMutable(&lam);
+            // TODO check puzzle for potential new fixtures?
+#endif
+        }
+
+        m_puzzle->streamPuzzleMatrix(std::cout);
+    }
+}
+
+#if USE_PIPE_POSSIBILITY
+void listCellPossibilities (const PuzzlePtr p)
+{
+    std::function<void(ConstCellPtr)> lam = [p](ConstCellPtr pCell) {
+    //auto lam = [](ConstCellPtr pCell) {
+        if (!p->isCellReachable(pCell->getCoordinate()))
+            return;
+        if (pCell->isFixture())
+            return;
+        logger << pCell->getCoordinate() << ": ";
+        for (auto pp : pCell->getPossiblePipes())
+            logger << pp << ' ';
+        logger << std::endl;
+    };
+    p->forEveryCell(&lam);
+}
+#endif
+
 bool Solver::solve()
 {
     m_puzzle->streamPuzzleMatrix(std::cout);
     try
     {
+        std::function<bool(const std::vector<ConstCellPtr>&)> fval =
+                std::bind(&Solver::validatePath, std::reference_wrapper<Solver>(*this), std::placeholders::_1);
+        m_routeGen.setPathValidator(&fval);
         // Visit each cell to find all pipe start points, and build the set of pipe identifiers.
         std::function<void(ConstCellPtr)> f =
                 std::bind(&Solver::addPipeIdToIdSetIfCellIsStart, std::reference_wrapper<Solver>(*this),
@@ -411,16 +693,24 @@ bool Solver::solve()
         m_puzzle->forEveryCell(&f);
         logger << "Pipes expected: " << m_pipeIds.size() << std::endl;
 
+#if USE_PIPE_POSSIBILITY
         // Initialize possibilities for every cell that is not an endpoint
         std::set<PipeId> & allPipesSet = m_pipeIds;
         // Set pipe possibilities
-        std::function<void(CellPtr)> lam = [allPipesSet](CellPtr cell){
-            if (!cell->isEndpoint())
+        std::function<void(CellPtr)> lam = [this, allPipesSet](CellPtr cell){
+            if (cell == nullptr)
+                return;
+            if (!m_puzzle->isCellReachable(cell->getCoordinate()))
+                return;
+            if (cell->isEndpoint())
+            { cell->setPossiblePipes(cell->getPipeId()); }
+            else
             { cell->setPossiblePipes(allPipesSet); }
         };
         m_puzzle->forEveryCellMutable(&lam);
+#endif
 
-        std::map<PipeId, Route> prelimRoutes;
+        m_prelimRoutes.clear();
         bool changed = true;
 
         //---------------------------------------------------------
@@ -432,44 +722,27 @@ bool Solver::solve()
             while (changed) // inner loop for strict one way algorithm must run before other
             {
                 changed = false;
-                for (int r = 0; r < m_puzzle->getNumRows(); ++r)
-                {
-                    for (int c = 0; c < m_puzzle->getNumCols(); ++c)
-                    {
-                        Direction oneWay = theOnlyWay(m_puzzle, {r,c});
-                        if (oneWay != Direction::NONE)
-                        {
-                            changed = true;
-                            CellPtr cellFrom = m_puzzle->getCellAtCoordinate({r,c});
-                            CellPtr cellAdjacent = m_puzzle->getCellAdjacent({r,c}, oneWay);
-                            connectAndRevise(cellFrom, cellAdjacent, CellConnection::FIXTURE_CONNECTION);
-
-                            // Check if a route has been formed
-                            Route route = {};
-                            if (m_puzzle->traceRoute(cellFrom->getPipeId(), route))
-                            {
-                                logger << "Found route using one way rule" << std::endl;
-                                prelimRoutes.insert_or_assign(cellFrom->getPipeId(), route);
-                            }
-
-                            m_puzzle->streamPuzzleMatrix(std::cout);
-                        }
-                    }
-                }
+                std::function<void(CellPtr)> f1 = std::bind(&Solver::checkOneWay, std::reference_wrapper<Solver>(*this),
+                        std::placeholders::_1, changed); // Placeholder for CellPtr
+                m_puzzle->forEveryCellMutable(&f1);
             }
 
 #if 1
             ++phase;
-            // Phase 2
             // Run one way fill to obstruction algorithm.
             // This algorithm cannot be run until the prior one way detections are run,
             // otherwise it could fill a space that is one way for a different pipe.
-            // Also, if this changes the puzzle, it needs to drop back to run the
-            // prior algorithms again.
+            // Also, if this changes the puzzle, then need to run the prior algorithms again.
 #if ANNOUNCE_ONE_WAY_DETECT
             logger << "Try one way to obstruction algorithm" << std::endl;
 #endif
             changed = false;
+#if 0
+            std::function<void(CellPtr)> f1 = std::bind(&Solver::checkFillToObstruction, std::reference_wrapper<Solver>(*this),
+                    std::placeholders::_1, changed); // Placeholder for CellPtr
+            m_puzzle->forEveryCellMutable(&f1);
+#else
+            // Cannot run the Puzzle::forEveryCell, because we want to bail out on the first change
             for (int r = 0; r < m_puzzle->getNumRows(); ++r)
             {
                 for (int c = 0; c < m_puzzle->getNumCols(); ++c)
@@ -478,26 +751,30 @@ bool Solver::solve()
                     if (pCell->getPipeId() == NO_PIPE_ID)
                         continue;
 
-                    Direction d = checkFillToCorner(m_puzzle, pCell);
-                    if (d != Direction::NONE)
-                    {
-#if ANNOUNCE_ONE_WAY_DETECT
-                        logger << "Connect from " << pCell->getCoordinate() << " towards obstruction " << asString(d) << std::endl;
-#endif
-                        // Connect cell towards obstruction
-                        // If the obstruction is actually another step away, it will be dealt with in another iteration
-                        Coordinate dest = pCell->getCoordinate();
-                        coordinateChange(dest, d);
-                        //m_puzzle->getPlumber()->connect({r,c}, dest, pCell->getPipeId(), CellConnection::FIXTURE_CONNECTION);
-                        connectAndRevise(pCell, m_puzzle->getCellAtCoordinate(dest), CellConnection::FIXTURE_CONNECTION);
-                        changed = true;
-                    }
+                    checkFillToObstruction(pCell, changed);
                     if (changed)
                         break; // must return to run one way algorithm again
                 }
                 if (changed)
                     break; // must return to run one way algorithm again
             }
+            if (changed)
+                continue;
+#endif
+#endif
+            ++phase;
+            // Check corner formations
+            std::function<void(CellPtr)> f2 = std::bind(&Solver::checkCornerFormations, std::reference_wrapper<Solver>(*this),
+                    std::placeholders::_1, changed); // Placeholder for CellPtr
+            m_puzzle->forEveryCellMutable(&f2);
+
+#if USE_PIPE_POSSIBILITY
+            ++phase;
+            // Check to see if any cell now has only one possibility
+            std::function<void(CellPtr)> f3 = std::bind(&Solver::connectIfOnlyOnePossibility, std::reference_wrapper<Solver>(*this),
+                    std::placeholders::_1, changed); // Placeholder for CellPtr
+            m_puzzle->forEveryCellMutable(&f3);
+
             if (changed)
                 phase = 1;
 #endif
@@ -507,24 +784,20 @@ bool Solver::solve()
         Cell::setOutputConnectorRep(true);
         m_puzzle->streamPuzzleMatrix(std::cout);
 
-        // TODO
-        // Run "one from corner" algorithm to reduce possibilities there
-        //forEveryCell(checkOneFromCorner())
-
-        // TODO
-        // Run bad formation detectors
+        logger << "Possible cell contents:" << std::endl;
+        listCellPossibilities(m_puzzle);
 
         //---------------------------------------------------------
 
         logger << "Check solution after preliminary phase" << std::endl;
-        if (Puzzle::checkIfSolution(m_puzzle, prelimRoutes))
+        if (Puzzle::checkIfSolution(m_puzzle, m_prelimRoutes))
             return true;
 
         //---------------------------------------------------------
 
         // For each pipe, find routes between endpoints.
         logger << "Generating routes..." << std::endl;
-        generateRoutes(prelimRoutes);
+        generateRoutes(m_prelimRoutes);
 
         if (m_routesDict.size() != m_pipeIds.size())
         {

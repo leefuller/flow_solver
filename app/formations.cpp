@@ -11,6 +11,130 @@
 static Logger & logger = Logger::getDefaultLogger();
 
 /**
+ * Check whether a cell at a coordinate is on the inside of a corner.
+ * The corner can be created by either or both walls or pipes.
+ * A corner exists where a cell is immediately obstructed in 2 traversal directions that are 90 degrees separated.
+ * Whether or not the cell contains a pipe is disregarded.
+ * Here are the 4 formations:
+ *
+ *    =      =      |.     .|
+ *   |.      .|      =     =
+ *
+ * The direction of a corner is always a diagonal one.
+ * @return the direction to the corner, or Direction::NONE if there is not a corner
+ */
+Direction checkCornerAtCoordinate (ConstPuzzlePtr puzzle, Coordinate c)
+{
+    return cornerDirection(puzzle->getGapsToObstructions(c));
+}
+
+/**
+ * Check whether a cell at a coordinate is 1 cell separated from a corner,
+ * without a wall between. A pipe can be between.
+ * (Think of it as though you cannot see through a wall, but you can see past a pipe.)
+ * The corner can be created by either or both walls or pipes.
+ * For example:
+ *
+ *   . X    The cell 'X' is at a south-west corner, south-west of 'X'
+ *  |. .    So this function will return SOUTH_WEST if the direction parameter is SOUTH_WEST,
+ *   ==     and there is no inner wall
+ *
+ *          The cell 'X' is at a south-west corner
+ *  |. X    So this function will return SOUTH_WEST if the direction parameter is WEST,
+ *   ==     and there is no inner wall
+ *
+ * @param c     Cell coordinate
+ * @param d     Direction to "look" from the coordinate
+ * @return direction of corner, or Direction::NONE if there is not a corner in the given direction
+ */
+Direction checkOneStepToCorner (ConstPuzzlePtr puzzle, Coordinate c, Direction d)
+{
+    ConstCellPtr p = puzzle->getConstCellAtCoordinate(c);
+    if (p == nullptr)
+        return Direction::NONE;
+    // Need to check adjacent cell for a corner-1 formation
+    ConstCellPtr pAdj = puzzle->getConstCellAdjacent(c, d); // disregards walls
+    if (pAdj == nullptr)
+        return Direction::NONE;
+
+    Direction dc = checkCornerAtCoordinate(puzzle, pAdj->getCoordinate());
+    if (dc != Direction::NONE)
+    {
+        switch (dc)
+        {
+            case Direction::NORTH_EAST:
+                /* North-east corner visible for 3 cases
+                      (1)      (2)      (3)
+                      ==        ==       ==
+                       .|      X .|       .|
+                     X                    X
+
+                    The direction to "look" must see the inside of the corner
+                 */
+                if (d == Direction::NORTH_EAST) // case 1
+                    return (p->isBorderOpen(Direction::NORTH) && p->isBorderOpen(Direction::EAST)) ? dc : Direction::NONE;
+                if (d == Direction::EAST) // case 2
+                    return p->isBorderOpen(Direction::EAST) ? dc : Direction::NONE;
+                if (d == Direction::NORTH) // case 3
+                    return p->isBorderOpen(Direction::NORTH) ? dc : Direction::NONE;
+                return Direction::NONE;
+
+            case Direction::NORTH_WEST:
+                /* North-west corner visible for 3 cases
+                      (1)        (2)        (3)
+                     ==          ==         ==
+                    |.          |. X       |.
+                       X                    X
+
+                    The direction to "look" must see the inside of the corner
+                 */
+                if (d == Direction::NORTH_WEST) // case 1
+                    return (p->isBorderOpen(Direction::NORTH) && p->isBorderOpen(Direction::WEST)) ? dc : Direction::NONE;
+                if (d == Direction::WEST) // case 2
+                    return p->isBorderOpen(Direction::WEST) ? dc : Direction::NONE;
+                if (d == Direction::NORTH) // case 3
+                    return p->isBorderOpen(Direction::NORTH) ? dc : Direction::NONE;
+                return Direction::NONE;
+
+            case Direction::SOUTH_EAST:
+                /* South-east corner visible for 3 cases
+                      (1)      (2)      (3)
+                     X                    X
+                       .|      X .|       .|
+                      ==        ==       ==
+
+                    The direction to "look" must see the inside of the corner
+                 */
+                if (d == Direction::SOUTH_EAST) // case 1
+                    return (p->isBorderOpen(Direction::SOUTH) && p->isBorderOpen(Direction::EAST)) ? dc : Direction::NONE;
+                if (d == Direction::EAST) // case 2
+                    return p->isBorderOpen(Direction::EAST) ? dc : Direction::NONE;
+                if (d == Direction::SOUTH) // case 3
+                    return p->isBorderOpen(Direction::SOUTH) ? dc : Direction::NONE;
+                return Direction::NONE;
+
+            case Direction::SOUTH_WEST:
+                /* South-west corner visible for 3 cases
+                      (1)      (2)      (3)
+                        X               X
+                     |.        |. X    |.
+                      ==        ==      ==
+
+                    The direction to "look" must see the inside of the corner
+                 */
+                if (d == Direction::SOUTH_WEST) // case 1
+                    return (p->isBorderOpen(Direction::SOUTH) && p->isBorderOpen(Direction::WEST)) ? dc : Direction::NONE;
+                if (d == Direction::WEST) // case 2
+                    return p->isBorderOpen(Direction::WEST) ? dc : Direction::NONE;
+                if (d == Direction::SOUTH) // case 3
+                    return p->isBorderOpen(Direction::SOUTH) ? dc : Direction::NONE;
+                return Direction::NONE;
+        }
+    }
+    return Direction::NONE;
+}
+
+/**
  * @param puzzle    The puzzle state
  * @param coord     Coordinate for cell
  * @param idPipe    Pipe identifier
@@ -92,8 +216,8 @@ bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPi
             logger << "Adjacency rule broken for " << idPipe << " route " << route << std::endl;
             //logger.stream() << route;
             //logger << std::endl;
-            //Cell::setOutputConnectorRep(false);
-            //puzzle->streamPuzzleMatrix(logger.stream());
+            Cell::setOutputConnectorRep(false);
+            puzzle->streamPuzzleMatrix(logger.stream());
 #endif
             return true;
         }
@@ -128,6 +252,8 @@ bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPi
         {
 #if ANNOUNCE_INVALID_DEVIATION
             logger << "Invalid deviation for " << idPipe << " in route " << route << std::endl;
+            Cell::setOutputConnectorRep(false);
+            puzzle->streamPuzzleMatrix(logger.stream());
 #endif
             return true;
         }
@@ -142,6 +268,8 @@ bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPi
     {
 #if ANNOUNCE_ENTRAPMENT
         logger << "Entrapment due to " << idPipe << " route " << route << std::endl;
+        Cell::setOutputConnectorRep(false);
+        puzzle->streamPuzzleMatrix(logger.stream());
 #endif
         return true;
     }

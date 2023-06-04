@@ -38,7 +38,7 @@ bool Cell::operator== (const Cell & c) const noexcept
         return false;
     if (getConnection(Direction::EAST) != c.getConnection(Direction::EAST))
         return false;
-    // TODO diagonal
+    // TODO possiblePipes
     if (getEndpoint() != c.getEndpoint())
         return false;
     return true;
