@@ -1,6 +1,9 @@
 #include "Puzzle.h"
 #include "RouteGenViaGraph.h"
 #include "Cell.h"
+#include "Logger.h"
+
+static Logger & logger = Logger::getDefaultLogger();
 
 /*
  * Using graph terminology:
@@ -50,6 +53,35 @@ void RouteGenViaGraph::receivePath (Graph<ConstCellPtr>::Path & path)
     Route route;
     for (ConstCellPtr pCell : path)
         route.push_back(pCell->getCoordinate());
+    // If path end is intermediary to route endpoint, append the cells to the endpoint
+    // to complete the route
+    if (!path.back()->isEndpoint())
+    {
+        auto it = std::end(route);
+        auto pv = std::prev(it); // point at coordinate before last
+        // Determine direction of fixture connection into last cell in the path,
+        // so that direction is not used as path to follow
+        Direction incomingDir = getDirectionBetweenCoordinates(*pv, route.back());
+
+        // Follow connections to endpoint
+        ConstCellPtr pCell = path.back();
+        // There should be a fixture connection at the intermediary point.
+        while (!pCell->isEndpoint())
+        {
+            for (Direction d : allTraversalDirections)
+            {
+                if (d == opposite(incomingDir))
+                    continue;
+                if (pCell->getConnection(d) == CellConnection::FIXTURE_CONNECTION)
+                {
+                    pCell = m_puzzle->getConstCellAdjacent(pCell->getCoordinate(), d);
+                    route.push_back(pCell->getCoordinate());
+                    incomingDir = opposite(d);
+                    break;
+                }
+            }
+        }
+    }
     RouteGenerator::emitRoute(idPipe, route);
 
 }
@@ -67,16 +99,42 @@ RouteGenViaGraph::RouteGenViaGraph (ConstPuzzlePtr puzzle)
  */
 void RouteGenViaGraph::generateRoutes (PipeId id, ConstPuzzlePtr puzzle)
 {
+    m_puzzle = puzzle;
+
     createGraph(*puzzle, id);
 
-    //GraphOutputter<ConstCellPtr> out(std::cout);
-    //m_graph.accept(out);
+    GraphOutputter<ConstCellPtr> out(std::cout);
+    m_graph.accept(out);
 
     Coordinate start = puzzle->findPipeEnd(id, PipeEnd::PIPE_END_1);
+    // If preliminary logic has derived some fixtures attached to the PIPE_END_2,
+    // then the path generator needs to connect to the start of that, rather than PIPE_END_2.
+    // Similar is not necessary for start, because the route generation
+    // implicitly follows connections from the start.
     Coordinate end = puzzle->findPipeEnd(id, PipeEnd::PIPE_END_2);
+    Direction incoming = Direction::NONE;
+    ConstCellPtr destCell = puzzle->getConstCellAtCoordinate(end);
+    do
+    {
+        for (Direction d : allTraversalDirections)
+        {
+            if (incoming == d)
+                continue;
+            destCell = puzzle->getConstCellAtCoordinate(end);
+            if (destCell->getConnection(d) == CellConnection::FIXTURE_CONNECTION)
+            {
+                destCell = puzzle->getConstCellAdjacent(destCell->getCoordinate(), d);
+                end = destCell->getCoordinate();
+                incoming = opposite(d);
+                break;
+            }
+        }
+    }
+    while (destCell->countFixtureConnections() > 1);
 
     ConstCellPtr startCell = puzzle->getConstCellAtCoordinate(start);
-    ConstCellPtr destCell = puzzle->getConstCellAtCoordinate(end);
+    //ConstCellPtr destCell = puzzle->getConstCellAtCoordinate(end);
+    logger << "Generate paths from " << start << " to " << end << std::endl;
     m_graph.genAllPaths(startCell, destCell);
 }
 

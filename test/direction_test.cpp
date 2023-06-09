@@ -1,259 +1,249 @@
 #include "../include/Direction.h"
-#include "test_helper.h"
+#include "../include/exceptions.h"
+#include <gtest/gtest.h>
 
-#include <iostream>
-
-bool testCoordinateChange ()
+TEST(direction_test, coordinate_change)
 {
-    bool result = true;
-    //std::shared_ptr<LogScope> sl = logger.getScopedLogger("Test coordinate change");
     Coordinate coord = createCoordinate(2, 6);
-    result = result && check(coord[0] == 2);
-    result = result && check(coord[1] == 6);
-    result = result && check("Coordinate change north", coordinateChange(coord, Direction::NORTH));
-    result = result && check("North reduces row index", coord[0] == 1);
-    result = result && check(coord[1] == 6);
-    result = result && check("Coordinate change south", coordinateChange(coord, Direction::SOUTH));
-    result = result && check("South increases row index", coord[0] == 2);
-    result = result && check(coord[1] == 6);
-    result = result && check("Coordinate change west", coordinateChange(coord, Direction::WEST));
-    result = result && check(coord[0] == 2);
-    result = result && check("West reduces column index", coord[1] == 5);
-    result = result && check("Coordinate change east", coordinateChange(coord, Direction::EAST));
-    result = result && check(coord[0] == 2);
-    result = result && check("East increases column index", coord[1] == 6);
+    EXPECT_TRUE(coordinateChange(coord, Direction::NORTH));
+    EXPECT_EQ(coord[0], 1);
+    EXPECT_TRUE(coordinateChange(coord, Direction::SOUTH));
+    EXPECT_EQ(coord[0], 2);
+    EXPECT_EQ(coord[1], 6);
+    EXPECT_TRUE(coordinateChange(coord, Direction::WEST));
+    EXPECT_EQ(coord[0], 2);
+    EXPECT_EQ(coord[1], 5);
+    EXPECT_TRUE(coordinateChange(coord, Direction::EAST));
+    EXPECT_EQ(coord[0], 2);
+    EXPECT_EQ(coord[1], 6);
 
-    result = result && check("Coordinate change north", coordinateChange(coord, Direction::NORTH));
-    result = result && check(coord[0] == 1);
-    result = result && check(coord[1] == 6);
-    result = result && check("Coordinate change west", coordinateChange(coord, Direction::WEST));
-    result = result && check(coord[0] == 1);
-    result = result && check(coord[1] == 5);
-    result = result && check("Coordinate change south", coordinateChange(coord, Direction::SOUTH));
-    result = result && check(coord[0] == 2);
-    result = result && check(coord[1] == 5);
-    result = result && check("Coordinate change north east", coordinateChange(coord, Direction::NORTH_EAST));
-    result = result && check(coord[0] == 1);
-    result = result && check(coord[1] == 6);
-    result = result && check("Coordinate change north west", coordinateChange(coord, Direction::NORTH_WEST));
-    result = result && check(coord[0] == 0);
-    result = result && check(coord[1] == 5);
-    result = result && check("Coordinate change east", coordinateChange(coord, Direction::EAST));
-    result = result && check(coord[0] == 0);
-    result = result && check(coord[1] == 6);
-    result = result && check("Coordinate change south east", coordinateChange(coord, Direction::SOUTH_EAST));
-    result = result && check(coord[0] == 1);
-    result = result && check(coord[1] == 7);
-    result = result && check("Coordinate change south west", coordinateChange(coord, Direction::SOUTH_WEST));
-    result = result && check(coord[0] == 2);
-    result = result && check(coord[1] == 6);
+    EXPECT_TRUE(coordinateChange(coord, Direction::NORTH));
+    EXPECT_EQ(coord[0], 1);
+    EXPECT_EQ(coord[1], 6);
+    EXPECT_TRUE(coordinateChange(coord, Direction::WEST));
+    EXPECT_EQ(coord[0], 1);
+    EXPECT_EQ(coord[1], 5);
+    EXPECT_TRUE(coordinateChange(coord, Direction::SOUTH));
+    EXPECT_EQ(coord[0], 2);
+    EXPECT_EQ(coord[1], 5);
+    EXPECT_TRUE(coordinateChange(coord, Direction::NORTH_EAST));
+    EXPECT_EQ(coord[0], 1);
+    EXPECT_EQ(coord[1], 6);
+    EXPECT_TRUE(coordinateChange(coord, Direction::NORTH_WEST));
+    EXPECT_EQ(coord[0], 0);
+    EXPECT_EQ(coord[1], 5);
+    EXPECT_TRUE(coordinateChange(coord, Direction::EAST));
+    EXPECT_EQ(coord[0], 0);
+    EXPECT_EQ(coord[1], 6);
+    EXPECT_TRUE(coordinateChange(coord, Direction::SOUTH_EAST));
+    EXPECT_EQ(coord[0], 1);
+    EXPECT_EQ(coord[1], 7);
+    EXPECT_TRUE(coordinateChange(coord, Direction::SOUTH_WEST));
+    EXPECT_EQ(coord[0], 2);
+    EXPECT_EQ(coord[1], 6);
 
     coord = createCoordinate(1, 1);
-    result = result && check("Can go west from {1,1}", coordinateChange(coord, Direction::WEST));
-    result = result && check(coord[0] == 1);
-    result = result && check(coord[1] == 0);
-    result = result && check("Cannot go west from {1,0}", !coordinateChange(coord, Direction::WEST));
-    result = result && check(coord[0] == 1);
-    result = result && check(coord[1] == 0);
-    result = result && check("Can go north from {1,0}", coordinateChange(coord, Direction::NORTH));
-    result = result && check(coord[0] == 0);
-    result = result && check(coord[1] == 0);
-    result = result && check("Cannot go north from {0,0}", !coordinateChange(coord, Direction::NORTH));
-    result = result && check(coord[0] == 0);
-    result = result && check(coord[1] == 0);
+    EXPECT_TRUE(coordinateChange(coord, Direction::WEST));
+    EXPECT_TRUE(coord[0] == 1);
+    EXPECT_TRUE(coord[1] == 0);
+    EXPECT_TRUE(!coordinateChange(coord, Direction::WEST));
+    EXPECT_TRUE(coord[0] == 1);
+    EXPECT_TRUE(coord[1] == 0);
+    EXPECT_TRUE(coordinateChange(coord, Direction::NORTH));
+    EXPECT_TRUE(coord[0] == 0);
+    EXPECT_TRUE(coord[1] == 0);
+    EXPECT_TRUE(!coordinateChange(coord, Direction::NORTH));
+    EXPECT_TRUE(coord[0] == 0);
+    EXPECT_TRUE(coord[1] == 0);
 
     coord = createCoordinate(4, 7);
-    result = result & check("Coordinate change distance > 1", coordinateChange(coord, Direction::NORTH, 2));
-    result = result && check(coord[0] == 2);
-    result = result && check(coord[1] == 7);
-    result = result & check("Coordinate change distance > 1", coordinateChange(coord, Direction::EAST, 2));
-    result = result && check(coord[0] == 2);
-    result = result && check(coord[1] == 9);
-    result = result & check("Coordinate change distance > 1", coordinateChange(coord, Direction::SOUTH, 2));
-    result = result && check(coord[0] == 4);
-    result = result && check(coord[1] == 9);
-    result = result & check("Coordinate change distance > 1", coordinateChange(coord, Direction::WEST, 3));
-    result = result && check(coord[0] == 4);
-    result = result && check(coord[1] == 6);
-
-    return result;
+    EXPECT_TRUE(coordinateChange(coord, Direction::NORTH, 2));
+    EXPECT_TRUE(coord[0] == 2);
+    EXPECT_TRUE(coord[1] == 7);
+    EXPECT_TRUE(coordinateChange(coord, Direction::EAST, 2));
+    EXPECT_TRUE(coord[0] == 2);
+    EXPECT_TRUE(coord[1] == 9);
+    EXPECT_TRUE(coordinateChange(coord, Direction::SOUTH, 2));
+    EXPECT_TRUE(coord[0] == 4);
+    EXPECT_TRUE(coord[1] == 9);
+    EXPECT_TRUE(coordinateChange(coord, Direction::WEST, 3));
+    EXPECT_TRUE(coord[0] == 4);
+    EXPECT_TRUE(coord[1] == 6);
 }
 
-bool testDirectionAsString ()
+TEST(direction_test, DirectionAsString)
 {
-    //std::shared_ptr<LogScope> sl = logger.getScopedLogger("Test direction");
-    bool result = true;
-
-    result = result && check("NORTH as string", std::string(asString(Direction::NORTH)) == "north");
-    result = result && check("SOUTH as string", std::string(asString(Direction::SOUTH)) == "south");
-    result = result && check("WEST as string", std::string(asString(Direction::WEST)) == "west");
-    result = result && check("EAST as string", std::string(asString(Direction::EAST)) == "east");
-    result = result && check("NONE as string", std::string(asString(Direction::NONE)) == "none");
-    return result;
+    EXPECT_STREQ(asString(Direction::NORTH), "north");
+    EXPECT_STREQ(asString(Direction::SOUTH), "south");
+    EXPECT_STREQ(asString(Direction::WEST), "west");
+    EXPECT_STREQ(asString(Direction::EAST), "east");
+    EXPECT_STREQ(asString(Direction::NONE), "none");
 }
 
-bool testDirection ()
+TEST(direction_test, Direction)
 {
-    bool result = true;
+    EXPECT_TRUE(opposite(Direction::NORTH) == Direction::SOUTH);
+    EXPECT_TRUE(opposite(Direction::SOUTH) == Direction::NORTH);
+    EXPECT_TRUE(opposite(Direction::WEST) == Direction::EAST);
+    EXPECT_TRUE(opposite(Direction::EAST) == Direction::WEST);
 
-    result = result && check(opposite(Direction::NORTH) == Direction::SOUTH);
-    result = result && check(opposite(Direction::SOUTH) == Direction::NORTH);
-    result = result && check(opposite(Direction::WEST) == Direction::EAST);
-    result = result && check(opposite(Direction::EAST) == Direction::WEST);
+    EXPECT_TRUE(opposite(Direction::NORTH_WEST) == Direction::SOUTH_EAST);
+    EXPECT_TRUE(opposite(Direction::NORTH) == Direction::SOUTH);
+    EXPECT_TRUE(opposite(Direction::NORTH_EAST) == Direction::SOUTH_WEST);
+    EXPECT_TRUE(opposite(Direction::WEST) == Direction::EAST);
+    EXPECT_TRUE(opposite(Direction::CENTRAL) == Direction::CENTRAL);
+    EXPECT_TRUE(opposite(Direction::EAST) == Direction::WEST);
+    EXPECT_TRUE(opposite(Direction::SOUTH_WEST) == Direction::NORTH_EAST);
+    EXPECT_TRUE(opposite(Direction::SOUTH) == Direction::NORTH);
+    EXPECT_TRUE(opposite(Direction::SOUTH_EAST) == Direction::NORTH_WEST);
+    EXPECT_TRUE(opposite(Direction::NONE) == Direction::NONE);
 
-    result = result && check(opposite(Direction::NORTH_WEST) == Direction::SOUTH_EAST);
-    result = result && check(opposite(Direction::NORTH) == Direction::SOUTH);
-    result = result && check(opposite(Direction::NORTH_EAST) == Direction::SOUTH_WEST);
-    result = result && check(opposite(Direction::WEST) == Direction::EAST);
-    result = result && check(opposite(Direction::CENTRAL) == Direction::CENTRAL);
-    result = result && check(opposite(Direction::EAST) == Direction::WEST);
-    result = result && check(opposite(Direction::SOUTH_WEST) == Direction::NORTH_EAST);
-    result = result && check(opposite(Direction::SOUTH) == Direction::NORTH);
-    result = result && check(opposite(Direction::SOUTH_EAST) == Direction::NORTH_WEST);
-    result = result && check(opposite(Direction::NONE) == Direction::NONE);
+    EXPECT_TRUE(isVertical(Direction::NORTH));
+    EXPECT_TRUE(isVertical(Direction::SOUTH));
+    EXPECT_TRUE(!isVertical(Direction::WEST));
+    EXPECT_TRUE(!isVertical(Direction::EAST));
+    EXPECT_TRUE(!isVertical(Direction::NORTH_EAST));
+    EXPECT_TRUE(!isVertical(Direction::NORTH_WEST));
+    EXPECT_TRUE(!isVertical(Direction::SOUTH_EAST));
+    EXPECT_TRUE(!isVertical(Direction::SOUTH_WEST));
+    EXPECT_TRUE(!isVertical(Direction::CENTRAL));
+    EXPECT_TRUE(!isVertical(Direction::NONE));
 
-    result = result && check(isVertical(Direction::NORTH));
-    result = result && check(isVertical(Direction::SOUTH));
-    result = result && check(!isVertical(Direction::WEST));
-    result = result && check(!isVertical(Direction::EAST));
-    result = result && check(!isVertical(Direction::NORTH_EAST));
-    result = result && check(!isVertical(Direction::NORTH_WEST));
-    result = result && check(!isVertical(Direction::SOUTH_EAST));
-    result = result && check(!isVertical(Direction::SOUTH_WEST));
-    result = result && check(!isVertical(Direction::CENTRAL));
-    result = result && check(!isVertical(Direction::NONE));
+    EXPECT_TRUE(allTraversalDirectionsSet.find(Direction::NORTH) != allTraversalDirectionsSet.end());
+    EXPECT_TRUE(allTraversalDirectionsSet.find(Direction::SOUTH) != allTraversalDirectionsSet.end());
+    EXPECT_TRUE(allTraversalDirectionsSet.find(Direction::WEST) != allTraversalDirectionsSet.end());
+    EXPECT_TRUE(allTraversalDirectionsSet.find(Direction::EAST) != allTraversalDirectionsSet.end());
 
-    result = result && check(allTraversalDirectionsSet.find(Direction::NORTH) != allTraversalDirectionsSet.end());
-    result = result && check(allTraversalDirectionsSet.find(Direction::SOUTH) != allTraversalDirectionsSet.end());
-    result = result && check(allTraversalDirectionsSet.find(Direction::WEST) != allTraversalDirectionsSet.end());
-    result = result && check(allTraversalDirectionsSet.find(Direction::EAST) != allTraversalDirectionsSet.end());
-
-    result = result && check(std::find(allTraversalDirections.begin(), allTraversalDirections.end(), Direction::NORTH) != allTraversalDirections.end());
-    result = result && check(std::find(allTraversalDirections.begin(), allTraversalDirections.end(), Direction::SOUTH) != allTraversalDirections.end());
-    result = result && check(std::find(allTraversalDirections.begin(), allTraversalDirections.end(), Direction::WEST) != allTraversalDirections.end());
-    result = result && check(std::find(allTraversalDirections.begin(), allTraversalDirections.end(), Direction::EAST) != allTraversalDirections.end());
-
-    // TODO
-    //forEachTraversalDirection([](){  });
-    return result;
+    EXPECT_TRUE(std::find(allTraversalDirections.begin(), allTraversalDirections.end(), Direction::NORTH) != allTraversalDirections.end());
+    EXPECT_TRUE(std::find(allTraversalDirections.begin(), allTraversalDirections.end(), Direction::SOUTH) != allTraversalDirections.end());
+    EXPECT_TRUE(std::find(allTraversalDirections.begin(), allTraversalDirections.end(), Direction::WEST) != allTraversalDirections.end());
+    EXPECT_TRUE(std::find(allTraversalDirections.begin(), allTraversalDirections.end(), Direction::EAST) != allTraversalDirections.end());
 }
 
-bool testRotation ()
+TEST(direction_test, rotation)
 {
-    bool result = true;
-    result = result && check("Rotate left from north", rotateLeft(Direction::NORTH) == Direction::NORTH_WEST);
-    result = result && check("Rotate left from north-west", rotateLeft(Direction::NORTH_WEST) == Direction::WEST);
-    result = result && check("Rotate left from west", rotateLeft(Direction::WEST) == Direction::SOUTH_WEST);
-    result = result && check("Rotate left from south-west", rotateLeft(Direction::SOUTH_WEST) == Direction::SOUTH);
-    result = result && check("Rotate left from south", rotateLeft(Direction::SOUTH) == Direction::SOUTH_EAST);
-    result = result && check("Rotate left from south-east", rotateLeft(Direction::SOUTH_EAST) == Direction::EAST);
-    result = result && check("Rotate left from east", rotateLeft(Direction::EAST) == Direction::NORTH_EAST);
-    result = result && check("Rotate left from north-east", rotateLeft(Direction::NORTH_EAST) == Direction::NORTH);
-    result = result && check("Rotate left from none", rotateLeft(Direction::NONE) == Direction::NONE);
-    result = result && check("Rotate left from central", rotateLeft(Direction::CENTRAL) == Direction::CENTRAL);
+    EXPECT_TRUE(rotateLeft(Direction::NORTH) == Direction::NORTH_WEST);
+    EXPECT_TRUE(rotateLeft(Direction::NORTH_WEST) == Direction::WEST);
+    EXPECT_TRUE(rotateLeft(Direction::WEST) == Direction::SOUTH_WEST);
+    EXPECT_TRUE(rotateLeft(Direction::SOUTH_WEST) == Direction::SOUTH);
+    EXPECT_TRUE(rotateLeft(Direction::SOUTH) == Direction::SOUTH_EAST);
+    EXPECT_TRUE(rotateLeft(Direction::SOUTH_EAST) == Direction::EAST);
+    EXPECT_TRUE(rotateLeft(Direction::EAST) == Direction::NORTH_EAST);
+    EXPECT_TRUE(rotateLeft(Direction::NORTH_EAST) == Direction::NORTH);
+    EXPECT_TRUE(rotateLeft(Direction::NONE) == Direction::NONE);
+    EXPECT_TRUE(rotateLeft(Direction::CENTRAL) == Direction::CENTRAL);
 
-    result = result && check(rotateRight(Direction::NORTH) == Direction::NORTH_EAST);
-    result = result && check(rotateRight(Direction::NORTH_WEST) == Direction::NORTH);
-    result = result && check(rotateRight(Direction::WEST) == Direction::NORTH_WEST);
-    result = result && check(rotateRight(Direction::SOUTH_WEST) == Direction::WEST);
-    result = result && check(rotateRight(Direction::SOUTH) == Direction::SOUTH_WEST);
-    result = result && check(rotateRight(Direction::SOUTH_EAST) == Direction::SOUTH);
-    result = result && check(rotateRight(Direction::EAST) == Direction::SOUTH_EAST);
-    result = result && check(rotateRight(Direction::NORTH_EAST) == Direction::EAST);
-    result = result && check(rotateRight(Direction::NONE) == Direction::NONE);
-    result = result && check(rotateRight(Direction::CENTRAL) == Direction::CENTRAL);
-return result;
+    EXPECT_TRUE(rotateRight(Direction::NORTH) == Direction::NORTH_EAST);
+    EXPECT_TRUE(rotateRight(Direction::NORTH_WEST) == Direction::NORTH);
+    EXPECT_TRUE(rotateRight(Direction::WEST) == Direction::NORTH_WEST);
+    EXPECT_TRUE(rotateRight(Direction::SOUTH_WEST) == Direction::WEST);
+    EXPECT_TRUE(rotateRight(Direction::SOUTH) == Direction::SOUTH_WEST);
+    EXPECT_TRUE(rotateRight(Direction::SOUTH_EAST) == Direction::SOUTH);
+    EXPECT_TRUE(rotateRight(Direction::EAST) == Direction::SOUTH_EAST);
+    EXPECT_TRUE(rotateRight(Direction::NORTH_EAST) == Direction::EAST);
+    EXPECT_TRUE(rotateRight(Direction::NONE) == Direction::NONE);
+    EXPECT_TRUE(rotateRight(Direction::CENTRAL) == Direction::CENTRAL);
 }
 
-bool testAreAdjacent ()
+TEST(direction_test, adjacency)
 {
-    bool result = true;
     // Check at 0,0 where only DOWN and RIGHT are possible
-    result = result && check(areAdjacent({0,0}, {0,0}) == Direction::NONE);
-    result = result && check(areAdjacent({0,0}, {1,0}) == Direction::SOUTH);
-    result = result && check(areAdjacent({0,0}, {0,1}) == Direction::EAST);
-    result = result && check(areAdjacent({0,0}, {2,0}) == Direction::NONE);
-    result = result && check(areAdjacent({0,0}, {0,2}) == Direction::NONE);
-    result = result && check(areAdjacent({0,0}, {1,1}) == Direction::NONE); // diagonal is not adjacent
+    EXPECT_TRUE(areAdjacent({0,0}, {0,0}) == Direction::NONE);
+    EXPECT_TRUE(areAdjacent({0,0}, {1,0}) == Direction::SOUTH);
+    EXPECT_TRUE(areAdjacent({0,0}, {0,1}) == Direction::EAST);
+    EXPECT_TRUE(areAdjacent({0,0}, {2,0}) == Direction::NONE);
+    EXPECT_TRUE(areAdjacent({0,0}, {0,2}) == Direction::NONE);
+    EXPECT_TRUE(areAdjacent({0,0}, {1,1}) == Direction::NONE); // diagonal is not adjacent
 
     // check from 1,1
-    result = result && check(areAdjacent({1,1}, {1,1}) == Direction::NONE);
-    result = result && check(areAdjacent({1,1}, {2,1}) == Direction::SOUTH);
-    result = result && check(areAdjacent({1,1}, {1,2}) == Direction::EAST);
-    result = result && check(areAdjacent({1,1}, {1,0}) == Direction::WEST);
-    result = result && check(areAdjacent({1,1}, {0,1}) == Direction::NORTH);
-    result = result && check(areAdjacent({1,1}, {3,1}) == Direction::NONE);
-    result = result && check(areAdjacent({1,1}, {1,3}) == Direction::NONE);
-    result = result && check(areAdjacent({1,2}, {1,0}) == Direction::NONE);
-    result = result && check(areAdjacent({2,1}, {0,1}) == Direction::NONE);
-    result = result && check(areAdjacent({1,1}, {0,0}) == Direction::NONE); // diagonal is not adjacent
-    result = result && check(areAdjacent({1,1}, {2,2}) == Direction::NONE); // diagonal is not adjacent
-    return result;
+    EXPECT_TRUE(areAdjacent({1,1}, {1,1}) == Direction::NONE);
+    EXPECT_TRUE(areAdjacent({1,1}, {2,1}) == Direction::SOUTH);
+    EXPECT_TRUE(areAdjacent({1,1}, {1,2}) == Direction::EAST);
+    EXPECT_TRUE(areAdjacent({1,1}, {1,0}) == Direction::WEST);
+    EXPECT_TRUE(areAdjacent({1,1}, {0,1}) == Direction::NORTH);
+    EXPECT_TRUE(areAdjacent({1,1}, {3,1}) == Direction::NONE);
+    EXPECT_TRUE(areAdjacent({1,1}, {1,3}) == Direction::NONE);
+    EXPECT_TRUE(areAdjacent({1,2}, {1,0}) == Direction::NONE);
+    EXPECT_TRUE(areAdjacent({2,1}, {0,1}) == Direction::NONE);
+    EXPECT_TRUE(areAdjacent({1,1}, {0,0}) == Direction::NONE); // diagonal is not adjacent
+    EXPECT_TRUE(areAdjacent({1,1}, {2,2}) == Direction::NONE); // diagonal is not adjacent
 }
 
-bool testDirectionAddition ()
+TEST(direction_test, addition)
 {
-    bool result = true;
+    EXPECT_TRUE(addDirections(Direction::NONE, Direction::NONE) == Direction::NONE);
 
-    //result = result && check(addDirections(Direction::NONE, Direction::NONE) == Direction::CENTRAL);
-    result = result && check(addDirections(Direction::NONE, Direction::NONE) == Direction::NONE);
+    EXPECT_TRUE(addDirections(Direction::NORTH, Direction::NONE) == Direction::NORTH);
+    EXPECT_TRUE(addDirections(Direction::NONE, Direction::NORTH) == Direction::NORTH);
+    EXPECT_TRUE(addDirections(Direction::SOUTH, Direction::NONE) == Direction::SOUTH);
+    EXPECT_TRUE(addDirections(Direction::NONE, Direction::SOUTH) == Direction::SOUTH);
+    EXPECT_TRUE(addDirections(Direction::WEST, Direction::NONE) == Direction::WEST);
+    EXPECT_TRUE(addDirections(Direction::NONE, Direction::WEST) == Direction::WEST);
+    EXPECT_TRUE(addDirections(Direction::EAST, Direction::NONE) == Direction::EAST);
+    EXPECT_TRUE(addDirections(Direction::NONE, Direction::EAST) == Direction::EAST);
 
-    result = result && check(addDirections(Direction::NORTH, Direction::NONE) == Direction::NORTH);
-    result = result && check(addDirections(Direction::NONE, Direction::NORTH) == Direction::NORTH);
-    result = result && check(addDirections(Direction::SOUTH, Direction::NONE) == Direction::SOUTH);
-    result = result && check(addDirections(Direction::NONE, Direction::SOUTH) == Direction::SOUTH);
-    result = result && check(addDirections(Direction::WEST, Direction::NONE) == Direction::WEST);
-    result = result && check(addDirections(Direction::NONE, Direction::WEST) == Direction::WEST);
-    result = result && check(addDirections(Direction::EAST, Direction::NONE) == Direction::EAST);
-    result = result && check(addDirections(Direction::NONE, Direction::EAST) == Direction::EAST);
+    EXPECT_TRUE(addDirections(Direction::NORTH, Direction::NORTH) == Direction::NORTH);
+    EXPECT_TRUE(addDirections(Direction::SOUTH, Direction::SOUTH) == Direction::SOUTH);
+    EXPECT_TRUE(addDirections(Direction::WEST, Direction::WEST) == Direction::WEST);
+    EXPECT_TRUE(addDirections(Direction::EAST, Direction::EAST) == Direction::EAST);
 
-    result = result && check(addDirections(Direction::NORTH, Direction::NORTH) == Direction::NORTH);
-    result = result && check(addDirections(Direction::SOUTH, Direction::SOUTH) == Direction::SOUTH);
-    result = result && check(addDirections(Direction::WEST, Direction::WEST) == Direction::WEST);
-    result = result && check(addDirections(Direction::EAST, Direction::EAST) == Direction::EAST);
-
-    result = result && check(addDirections(Direction::NORTH, Direction::WEST) == Direction::NORTH_WEST);
-    result = result && check(addDirections(Direction::WEST, Direction::NORTH) == Direction::NORTH_WEST);
-    result = result && check(addDirections(Direction::SOUTH, Direction::WEST) == Direction::SOUTH_WEST);
-    result = result && check(addDirections(Direction::WEST, Direction::SOUTH) == Direction::SOUTH_WEST);
-    result = result && check(addDirections(Direction::NORTH, Direction::EAST) == Direction::NORTH_EAST);
-    result = result && check(addDirections(Direction::EAST, Direction::NORTH) == Direction::NORTH_EAST);
-    result = result && check(addDirections(Direction::SOUTH, Direction::EAST) == Direction::SOUTH_EAST);
-    result = result && check(addDirections(Direction::EAST, Direction::SOUTH) == Direction::SOUTH_EAST);
-
-    return result;
+    EXPECT_TRUE(addDirections(Direction::NORTH, Direction::WEST) == Direction::NORTH_WEST);
+    EXPECT_TRUE(addDirections(Direction::WEST, Direction::NORTH) == Direction::NORTH_WEST);
+    EXPECT_TRUE(addDirections(Direction::SOUTH, Direction::WEST) == Direction::SOUTH_WEST);
+    EXPECT_TRUE(addDirections(Direction::WEST, Direction::SOUTH) == Direction::SOUTH_WEST);
+    EXPECT_TRUE(addDirections(Direction::NORTH, Direction::EAST) == Direction::NORTH_EAST);
+    EXPECT_TRUE(addDirections(Direction::EAST, Direction::NORTH) == Direction::NORTH_EAST);
+    EXPECT_TRUE(addDirections(Direction::SOUTH, Direction::EAST) == Direction::SOUTH_EAST);
+    EXPECT_TRUE(addDirections(Direction::EAST, Direction::SOUTH) == Direction::SOUTH_EAST);
 }
 
-bool testCorner1 ()
+TEST(direction_test, corner1)
 {
-    bool result = true;
     std::array<unsigned, 4> gaps = { 0, 0, 0, 0 }; // north, south, west, east
-    result = result && check("No gaps", cornerDirection(gaps) == Direction::NONE);
+    EXPECT_TRUE(cornerDirection(gaps) == Direction::NONE);
     gaps = { 0, 0, 3, 4 };
-    result = result && check("No gaps north and south", cornerDirection(gaps) == Direction::NONE);
+    EXPECT_TRUE(cornerDirection(gaps) == Direction::NONE);
     gaps = { 1, 2, 0, 0 };
-    result = result && check("No gaps east and west", cornerDirection(gaps) == Direction::NONE);
+    EXPECT_TRUE(cornerDirection(gaps) == Direction::NONE);
     gaps = { 1, 0, 1, 0 };
-    result = result && check("No gaps south and west", cornerDirection(gaps) == Direction::SOUTH_EAST);
+    EXPECT_TRUE(cornerDirection(gaps) == Direction::SOUTH_EAST);
     gaps = { 1, 0, 0, 1 };
-    result = result && check("No gaps south and east", cornerDirection(gaps) == Direction::SOUTH_WEST);
+    EXPECT_TRUE(cornerDirection(gaps) == Direction::SOUTH_WEST);
     gaps = { 0, 1, 1, 0 };
-    result = result && check("No gaps north and west", cornerDirection(gaps) == Direction::NORTH_EAST);
+    EXPECT_TRUE(cornerDirection(gaps) == Direction::NORTH_EAST);
     gaps = { 0, 1, 0, 1 };
-    result = result && check("No gaps north and east", cornerDirection(gaps) == Direction::NORTH_WEST);
-    return result;
+    EXPECT_TRUE(cornerDirection(gaps) == Direction::NORTH_WEST);
 }
 
-int main ()
+TEST(direction_test, directionBetweenCoordinates)
 {
-    bool result = true;
-    std::cout << "Test direction" << std::endl;
-    result = result && testCoordinateChange();
-    result = result && testDirectionAsString();
-    result = result && testDirection();
-    result = result && testRotation();
-    result = result && testAreAdjacent();
-    result = result && testDirectionAddition();
-    result = result && testCorner1();
-    return result ? 0 : 1;
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,0}) == Direction::NONE);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({1,1}, {1,1}) == Direction::NONE);
+
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,1}) == Direction::NORTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,50}) == Direction::NORTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({10,20}, {10,50}) == Direction::NORTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({10,-20}, {10,-5}) == Direction::NORTH);
+
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,-1}) == Direction::SOUTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,-50}) == Direction::SOUTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({10,20}, {10,5}) == Direction::SOUTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({10,-20}, {10,-23}) == Direction::SOUTH);
+
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {1,0}) == Direction::EAST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {50,0}) == Direction::EAST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({10,20}, {50,20}) == Direction::EAST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({-10,20}, {-5,20}) == Direction::EAST);
+
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {-1,0}) == Direction::WEST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {-50,0}) == Direction::WEST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({10,20}, {-50,20}) == Direction::WEST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({-10,20}, {-50,20}) == Direction::WEST);
+
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {1,1}) == Direction::NORTH_EAST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {-1,1}) == Direction::NORTH_WEST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {-1,-1}) == Direction::SOUTH_WEST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {1,-1}) == Direction::SOUTH_EAST);
+
+    EXPECT_THROW(getDirectionBetweenCoordinates({0,0}, {1,2}), InvalidOperation);
 }

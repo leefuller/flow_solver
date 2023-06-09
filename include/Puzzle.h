@@ -141,6 +141,9 @@ class Puzzle
     Coordinate findPipeEnd (PipeId id, PipeEnd end) const noexcept(false)
     { return m_def.findPipeEnd(id, end); }
 
+    const std::set<PipeId> & getPipeIds () const noexcept
+    { return m_def.getPipeIds(); }
+
     unsigned getNumPipes () const noexcept
     { return m_def.getPipeIds().size(); }
 
@@ -161,6 +164,8 @@ class Puzzle
     std::array<unsigned, 4> getGapsToObstructions (Coordinate c) const noexcept;
 
   private:
+    bool continueDirectionForRoute (ConstCellPtr pCell, Route & route, Direction direction) const noexcept;
+
     Puzzle (const PuzzleDefinition & def);
 
     /** The puzzle definition that generated this puzzle. */
@@ -169,6 +174,10 @@ class Puzzle
 	std::vector<PuzzleRow> m_puzzleRows;
 
     std::set<Coordinate> m_injectedRoute;
+
+    /** Hold visited coordinates during execution of some algorithms. */
+    mutable std::set<Coordinate> m_visited; // TODO perhaps this should be elsewhere?
+
 
   //friend class Plumber; // To tinker with the pipes that are private
   friend class PuzzleDefinition; // To be able to create puzzle via private constructor

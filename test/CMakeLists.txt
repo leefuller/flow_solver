@@ -1,49 +1,86 @@
-
 enable_testing()
+
+find_package(GTest REQUIRED)
+include_directories(
+${GTEST_INCLUDE_DIRS}
+../include
+)
+
+#target_include_directories(flow PUBLIC ../include)
 
 # Tests for CTest need to be added as executables
 # To see cout/stdout when running ctest, use ctest --verbose
 
-add_executable(directiontest direction_test.cpp)
-target_link_libraries(directiontest PRIVATE flow)
+add_executable(direction_test direction_test.cpp)
+target_link_libraries(direction_test 
+	PRIVATE flow
+	GTest::gtest_main
+)
 
-add_executable(celltest cell_test.cpp)
-target_link_libraries(celltest PRIVATE flow)
+add_executable(cell_test cell_test.cpp)
+target_link_libraries(cell_test 
+	PRIVATE flow
+	GTest::gtest_main
+)
 
-add_executable(puzzletest puzzle_test.cpp)
-target_link_libraries(puzzletest PRIVATE flow)
+add_executable(puzzle_test puzzle_test.cpp)
+target_link_libraries(puzzle_test 
+	PRIVATE flow
+	GTest::gtest_main
+)
 
-add_executable(plumbertest plumber_test.cpp)
-target_link_libraries(plumbertest PRIVATE flow)
+add_executable(plumber_test plumber_test.cpp)
+target_link_libraries(plumber_test
+	PRIVATE flow
+	GTest::gtest_main
+)
 
-add_executable(formationstest formations_test.cpp)
-target_sources(formationstest PRIVATE formations_test.cpp ../app/oneway.cpp ../app/Helper.cpp)
-target_link_libraries(formationstest PRIVATE flow)
+add_executable(formations_test formations_test.cpp)
+target_sources(formations_test PRIVATE formations_test.cpp ../app/oneway.cpp ../app/Helper.cpp)
+target_link_libraries(formations_test
+	PRIVATE flow
+	GTest::gtest_main
+)
 
-add_executable(onewaytest oneway_test.cpp)
-target_sources(onewaytest PRIVATE oneway_test.cpp ../app/oneway.cpp ../app/adjacencyLaw.cpp ../app/Helper.cpp)
-target_link_libraries(onewaytest PRIVATE flow)
+add_executable(oneway_test oneway_test.cpp)
+target_sources(oneway_test PRIVATE oneway_test.cpp ../app/oneway.cpp ../app/adjacencyLaw.cpp ../app/Helper.cpp)
+target_link_libraries(oneway_test
+	PRIVATE flow
+	GTest::gtest_main
+)
 
-add_executable(deadendtest deadend_test.cpp)
-target_sources(deadendtest PRIVATE deadend_test.cpp ../app/deadend.cpp ../app/Helper.cpp)
-target_link_libraries(deadendtest PRIVATE flow)
+add_executable(deadend_test deadend_test.cpp)
+target_sources(deadend_test PRIVATE deadend_test.cpp ../app/deadend.cpp ../app/Helper.cpp)
+target_link_libraries(deadend_test
+	PRIVATE flow
+	GTest::gtest_main
+)
 
-add_executable(adjacencytest adjacency_test.cpp)
-target_sources(adjacencytest PRIVATE adjacency_test.cpp ../app/adjacencyLaw.cpp ../app/Helper.cpp)
-target_link_libraries(adjacencytest PRIVATE flow)
+add_executable(adjacency_test adjacency_test.cpp)
+target_sources(adjacency_test PRIVATE adjacency_test.cpp ../app/adjacencyLaw.cpp ../app/Helper.cpp ../src/Logger.cpp)
+target_link_libraries(adjacency_test 
+	PRIVATE flow
+	GTest::gtest_main
+)
 
-add_executable(graphtest graph_test.cpp)
+add_executable(graph_test graph_test.cpp)
+target_link_libraries(graph_test 
+	GTest::gtest_main
+)
 
-add_executable(matrixtest matrix_test.cpp)
+add_executable(matrix_test matrix_test.cpp)
+target_link_libraries(matrix_test 
+	GTest::gtest_main
+)
 
-# Register tests
-add_test(NAME directiontest COMMAND directiontest)
-add_test(NAME celltest COMMAND celltest)
-add_test(NAME puzzletest COMMAND puzzletest)
-add_test(NAME plumbertest COMMAND plumbertest)
-add_test(NAME graphtest COMMAND graphtest)
-add_test(NAME matrixtest COMMAND matrixtest)
-add_test(NAME formationstest COMMAND formationstest)
-add_test(NAME onewaytest COMMAND onewaytest)
-add_test(NAME deadendtest COMMAND deadendtest)
-add_test(NAME adjacencytest COMMAND adjacencytest)
+include(GoogleTest)
+gtest_discover_tests(direction_test)
+gtest_discover_tests(cell_test)
+gtest_discover_tests(puzzle_test)
+gtest_discover_tests(plumber_test)
+gtest_discover_tests(formations_test)
+gtest_discover_tests(oneway_test)
+gtest_discover_tests(deadend_test)
+gtest_discover_tests(adjacency_test)
+gtest_discover_tests(graph_test)
+gtest_discover_tests(matrix_test)

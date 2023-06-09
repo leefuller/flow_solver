@@ -114,4 +114,6 @@ Direction rotateLeft (Direction start);
 
 Direction rotateRight (Direction start);
 
+Direction getDirectionBetweenCoordinates (Coordinate from, Coordinate to);
+
 #endif

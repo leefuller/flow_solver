@@ -1,7 +1,6 @@
 #include "Puzzle.h"
 #include "PuzzleException.h"
 #include "Cell.h"
-//#include "log.h"
 #include "Logger.h"
 
 #include <memory>
@@ -101,21 +100,6 @@ std::array<unsigned, 4> Puzzle::getGapsToObstructions (Coordinate c) const noexc
         result[d] = gapToObstruction(c, d);
     return result;
 }
-
-/**
- * Get gaps to obstructions in all directions, including diagonal.
- * TODO?
-std::array<unsigned, 9> Puzzle::getGapsToObstructionsAllDirections (Coordinate c) const noexcept
-{
-    std::array<unsigned, 9> result;
-    for (Adjacency d : allCompassDirections)
-    {
-        // In a diagonal direction, the obstruction must be a corner??
-        //result[d] = gapToObstruction(c, d);
-    }
-    return result;
-
-}*/
 
 /**
  * Check whether set of routes is a puzzle solution.
@@ -288,22 +272,19 @@ void Puzzle::removeRoute ()
     m_injectedRoute.clear();
 }
 
-// TODO make this part of Puzzle?? Would need some local static functions moved into class too.
-static std::set<Coordinate> visited;
-
 /**
  * If the route can continue from the given cell in the given direction,
  * then add the next coordinate in that direction to the route.
+ * @param direction Direction from pCell
  * @return true if the route can go in direction from cell
  */
-static bool continueDirectionForRoute (ConstCellPtr pCell, Route & route, Direction direction)
+bool Puzzle::continueDirectionForRoute (ConstCellPtr pCell, Route & route, Direction direction) const noexcept
 {
     Coordinate coord = pCell->getCoordinate();
     if (!coordinateChange(coord, direction))
         return false;
-    if (pCell->isConnected(direction) && visited.find(coord) == visited.end())
+    if (pCell->isConnected(direction) && m_visited.find(coord) == m_visited.end())
     {
-        logger << " to " << coord;
         route.push_back(coord);
         return true;
     }
@@ -320,16 +301,16 @@ bool Puzzle::traceRoute (PipeId idPipe, Route & route) const
     {
         // start
         Coordinate coordStart = findPipeEnd(idPipe, PipeEnd::PIPE_END_1);
-        logger << "Trace " << idPipe << " from " << coordStart;
-        visited.clear();
+        //logger << "Trace " << idPipe << " from " << coordStart;
+        m_visited.clear();
         route.push_back(coordStart);
     }
     Coordinate coord = route.back();
-    visited.insert(coord);
+    m_visited.insert(coord);
     ConstCellPtr pCell = getConstCellAtCoordinate(coord);
     if (pCell->getEndpoint() == PipeEnd::PIPE_END_2)
     {
-        logger << " endpoint." << std::endl;
+        //logger << " endpoint." << std::endl;
         return true;
     }
     //std::bind();
@@ -340,7 +321,7 @@ bool Puzzle::traceRoute (PipeId idPipe, Route & route) const
     };
     forEachDirection(lam);
 #endif
-    //std::find(std::begin(visited), std::end(visited), coordinateChange()) != visited.end;
+    //std::find(std::begin(m_visited), std::end(m_visited), coordinateChange()) != m_visited.end;
     if (continueDirectionForRoute(pCell, route, Direction::NORTH))
         return traceRoute(idPipe, route);
     else if (continueDirectionForRoute(pCell, route, Direction::SOUTH))
@@ -349,7 +330,7 @@ bool Puzzle::traceRoute (PipeId idPipe, Route & route) const
         return traceRoute(idPipe, route);
     else if (continueDirectionForRoute(pCell, route, Direction::EAST))
         return traceRoute(idPipe, route);
-    logger << " stopped." << std::endl;
+    //logger << " stopped." << std::endl;
     return false;
 }
 

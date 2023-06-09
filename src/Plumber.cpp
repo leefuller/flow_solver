@@ -137,7 +137,7 @@ void Plumber::connect (Coordinate c1, Coordinate c2, PipeId idPipe, CellConnecti
     }
     else if (con == CellConnection::TEMPORARY_CONNECTION)
     {
-        // TODO? not required for current solution process
+        // TODO? temporary connection not required for current solution process
     }
     // else CellConnection::OPEN_FIXTURE is a result of other work. It is not a logical request.
 

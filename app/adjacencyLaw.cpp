@@ -1,7 +1,7 @@
 #include "formations.h"
 #include "../include/Puzzle.h"
 #include "../include/PuzzleException.h"
-#include "Logger.h"
+#include "../include/Logger.h"
 
 static Logger & logger = Logger::getDefaultLogger();
 

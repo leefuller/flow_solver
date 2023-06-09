@@ -175,10 +175,43 @@ bool detectInvalidDeviation (ConstPuzzlePtr puzzle, const Route & route, PipeId 
 }
 
 /**
+ * Find a pipe endpoint that may be reachable via empty cells only.
+ * @param puzzle
+ * @param pCell
+ * @param idPipe    Identifier of pipe
+ * @param visited   Coordinates visited so far
+ * @return true if the endpoint is found.
+ */
+static bool recurseReachable (ConstPuzzlePtr puzzle, Coordinate c, PipeId idPipe, std::set<Coordinate> & visited)
+{
+    for (Direction d : allTraversalDirections)
+    {
+        if (!puzzle->isCoordinateChangeValid (c, d))
+            continue;
+
+        ConstCellPtr pAdj = puzzle->getConstCellAdjacent(c, d);
+        if (pAdj == nullptr)
+            continue;
+        if (std::find(std::begin(visited), std::end(visited), pAdj->getCoordinate()) != visited.end()) // already visited
+            continue;
+        if (!pAdj->isEmpty())
+        {
+            if (pAdj->getPipeId() == idPipe && pAdj->getEndpoint() == PipeEnd::PIPE_END_2)
+            {
+                // found
+                return true;
+            }
+        }
+        visited.insert(pAdj->getCoordinate());
+        return recurseReachable(puzzle, pAdj->getCoordinate(), idPipe, visited);
+    }
+    return false;
+}
+
+/**
  * Entrapment exists where a route traps empty cells,
  * or cells that have one endpoint for a particular pipe, but not both,
  * within an area that prevents any other pipe from reaching.
- * It is only worthwhile calling this function once the route is complete.
  * @param puzzle    The puzzle state being assessed
  * @param route     The route being considered
  * @param idPipe    The pipe id for the route
@@ -186,8 +219,8 @@ bool detectInvalidDeviation (ConstPuzzlePtr puzzle, const Route & route, PipeId 
  */
 bool detectEntrapment (ConstPuzzlePtr puzzle, const Route & route, PipeId idPipe)
 {
-    // Note, there can be more than 1 entrapped area. Return true on detection of first.
-    // An area entrapped could be a lot of the puzzle.
+    // Note, there can be more than 1 trapped area. Return true on detection of first.
+    // An area trapped could be a lot of the puzzle.
     // An endpoint is trapped if it cannot reach the corresponding endpoint, where the route acts as a wall.
 
     bool trapped = false;
@@ -203,6 +236,40 @@ bool detectEntrapment (ConstPuzzlePtr puzzle, const Route & route, PipeId idPipe
         // TODO what about more complex entrapment?
     };
     puzzle->forEveryCell(&lam);
+
+    if (!trapped)
+    {
+        /*
+          From the start point of every pipe:
+          If the route for that pipe is not complete,
+          "flood" all empty cells reachable from it.
+          If the other endpoint is not reached, then it is trapped.
+          For example, from either side "A" is trapped
+
+              =======================
+             | .  X  X  .     A  A (A)
+             |
+             | . (X)|X  .  .  A (X) .
+             |
+             | .  .  X  X  .  A  A  .
+              ==
+             |(A) A  .  X  .  .  .  .
+              =======================
+         */
+        const std::set<PipeId> & ids = puzzle->getPipeIds();
+        for (PipeId id : ids)
+        {
+            std::set<Coordinate> reachable;
+            Coordinate start = puzzle->findPipeEnd(id, PipeEnd::PIPE_END_1);
+            reachable.insert(start);
+            // Add reachable empty cells to reachable set.
+            if (recurseReachable(puzzle, start, id, reachable))
+            {
+                trapped = false;
+                break;
+            }
+        }
+    }
     return trapped;
 }
 

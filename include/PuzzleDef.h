@@ -42,7 +42,7 @@ class PuzzleDefinition
       PuzzleDefinition & operator= (PuzzleDefinition &&) = delete; // prevent move assignment
 
       /** @return identifiers for all pipes in the puzzle */
-      const std::set<PipeId> getPipeIds () const noexcept
+      const std::set<PipeId> & getPipeIds () const noexcept
       { return m_pipeIds; }
 
       PuzzlePtr generatePuzzle () const;

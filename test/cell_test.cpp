@@ -1,40 +1,44 @@
 #include <iostream>
 
 #include "../include/Cell.h"
-#include "test_helper.h"
+#include <gtest/gtest.h>
 
-int main ()
+TEST(cell_test, test_border_ops)
 {
-    bool result = true;
-    //std::shared_ptr<LogScope> sl = logger.getScopedLogger("Test cell");
-
     CellBorder edge = CellBorder::OPEN;
-    check(toggleBorder(edge) == CellBorder::WALL);
-    check(edge == CellBorder::OPEN);
+    EXPECT_EQ(toggleBorder(edge), CellBorder::WALL);
+    EXPECT_EQ(edge, CellBorder::OPEN);
     edge = CellBorder::WALL;
-    result = result && check(toggleBorder(edge) == CellBorder::OPEN);
-    result = result && check(edge == CellBorder::WALL);
+    EXPECT_EQ(toggleBorder(edge), CellBorder::OPEN);
+    EXPECT_EQ(edge, CellBorder::WALL);
 
-    //std::array<CellBorder, 4> border = { CellBorder::OPEN, CellBorder::OPEN, CellBorder::OPEN, CellBorder::OPEN};
-
-    result = result && check(getOppositeBorder(
+    bool eq;
+    eq = (getOppositeBorder(
             std::array<CellBorder, 4>({CellBorder::OPEN, CellBorder::OPEN, CellBorder::OPEN, CellBorder::OPEN})) ==
             std::array<CellBorder, 4>({CellBorder::WALL, CellBorder::WALL, CellBorder::WALL, CellBorder::WALL}));
-    result = result && check(getOppositeBorder(
+    EXPECT_TRUE(eq);
+    eq = (getOppositeBorder(
             std::array<CellBorder, 4>({CellBorder::WALL, CellBorder::OPEN, CellBorder::OPEN, CellBorder::OPEN})) ==
             std::array<CellBorder, 4>({CellBorder::OPEN, CellBorder::WALL, CellBorder::WALL, CellBorder::WALL}));
-    result = result && check(getOppositeBorder(
+    EXPECT_TRUE(eq);
+    eq = (getOppositeBorder(
             std::array<CellBorder, 4>({CellBorder::OPEN, CellBorder::WALL, CellBorder::OPEN, CellBorder::OPEN})) ==
             std::array<CellBorder, 4>({CellBorder::WALL, CellBorder::OPEN, CellBorder::WALL, CellBorder::WALL}));
-    result = result && check(getOppositeBorder(
+    EXPECT_TRUE(eq);
+    eq = (getOppositeBorder(
             std::array<CellBorder, 4>({CellBorder::OPEN, CellBorder::OPEN, CellBorder::WALL, CellBorder::OPEN})) ==
             std::array<CellBorder, 4>({CellBorder::WALL, CellBorder::WALL, CellBorder::OPEN, CellBorder::WALL}));
-    result = result && check(getOppositeBorder(
+    EXPECT_TRUE(eq);
+    eq = (getOppositeBorder(
             std::array<CellBorder, 4>({CellBorder::OPEN, CellBorder::OPEN, CellBorder::OPEN, CellBorder::WALL})) ==
             std::array<CellBorder, 4>({CellBorder::WALL, CellBorder::WALL, CellBorder::WALL, CellBorder::OPEN}));
+    EXPECT_TRUE(eq);
+}
 
+void todo ()
+{
     //Cell cell; // private
-    // TODO
+    // TODO more cell tests
     /*
     result = result && check(cell.getPipeId() == NO_PIPE_ID);
     result = result && check(cell.getBorder(Direction::UP) == CellBorder::OPEN);
@@ -70,5 +74,4 @@ int main ()
     //isVerticalChannel
     //operator==
     //removePipePossibility
-    return result ? 0 : 1;
 }

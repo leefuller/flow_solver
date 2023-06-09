@@ -153,7 +153,7 @@ bool detectDeadEndFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId 
     }
 
     /*
-    Case 2: TODO?
+    Case 2: TODO handle dead in 3 cell 'U' turn?
      Invalid formation that would otherwise be detected via another dead end rule,
      or the adjacency rule, if not handled here.
      With X as a start/end point, these are invalid:

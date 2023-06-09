@@ -9,6 +9,7 @@
 #define ANNOUNCE_ONE_WAY_DETECT         1
 #define ANNOUNCE_ADJACENCY_LAW_BREAK    1
 #define ANNOUNCE_ENTRAPMENT             1
+#define ANNOUNCE_ROUTE_FOUND            1
 #define ANNOUNCE_SOLVER_DETAIL          0
 
 Direction checkCornerAtCoordinate (ConstPuzzlePtr puzzle, Coordinate c);

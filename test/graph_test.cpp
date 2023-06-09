@@ -1,11 +1,10 @@
-//#include "GraphTest.h"
 #include "../app/Graph.h"
-#include "test_helper.h"
 
 #include <iostream>
 #include <memory>
 #include <functional>
 #include <algorithm>
+#include <gtest/gtest.h>
 
 class GraphOutputter : public Graph<int>::Visitor
 {
@@ -76,9 +75,8 @@ static bool testDFS (Graph<int> & graph, int lookup)
     return false;
 }
 
-static bool testPathGen ()
+TEST(graph_test, graph_path_gen)
 {
-    bool result = true;
     Graph<int> graph;
 
     graph.addEdge(3, 1);
@@ -95,58 +93,42 @@ static bool testPathGen ()
     std::cout << std::endl;
     std::vector<int> expect1 = {1, 2, 6};
     std::vector<int> expect2 = {1, 3, 6};
-    result = result && check(paths.size() == 2);
+    EXPECT_EQ(paths.size(), 2);
     // TODO check
-    //result = result && check(std::find(paths, expect1) != paths.end());
-    //result = result && check(std::find(paths, expect2) != paths.end());
+    //(std::find(paths, expect1) != paths.end());
+    //(std::find(paths, expect2) != paths.end());
 
     std::cout << "All paths from 6 to 3:" << std::endl;
     expect1 = {6, 2, 1, 3};
     paths.clear();
     graph.genAllPaths(6, 3);
-    result = result && check(paths.size() == 1);
-    result = result && check(*paths.begin() == expect1);
+    EXPECT_EQ(paths.size(), 1);
+    EXPECT_TRUE(*paths.begin() == expect1);
     std::cout << std::endl;
-
-    return result;
 }
 
-bool testGraph ()
+TEST(graph_test, search)
 {
-    std::cout << "Graph test" << std::endl;
-    bool result = true;
-    try
-    {
-        Graph<int> graph;
+    Graph<int> graph;
 
-        graph.addEdge(3, 1);
-        graph.addDirectedEdge(3, 6);
-        graph.addEdge(2, 6);
-        graph.addEdge(1, 2);
-        graph.addEdge(4, 7); // <<<< Causes a divided graph, where not all nodes are reachable
-        GraphOutputter outputter(std::cout);
-        graph.accept(outputter);
+    graph.addEdge(3, 1);
+    graph.addDirectedEdge(3, 6);
+    graph.addEdge(2, 6);
+    graph.addEdge(1, 2);
+    graph.addEdge(4, 7); // <<<< Causes a divided graph, where not all nodes are reachable
+    GraphOutputter outputter(std::cout);
+    graph.accept(outputter);
 
 #if TEST_BFS
-        result = result && check("Test BFS", testBFS(graph, 3));
-        result = result && check("Test BFS", testBFS(graph, 7));
-        result = result && check("Test BFS", !testBFS(graph, 5));
+    EXPECT_TRUE(testBFS(graph, 3));
+    EXPECT_TRUE(testBFS(graph, 7));
+    EXPECT_FALSE(testBFS(graph, 5));
 #endif
 #if TEST_DFS
-        result = result && check("Test DFS", testDFS(graph, 3));
-        result = result && check("Test DFS", testDFS(graph, 7));
-        result = result && check("Test DFS", !testDFS(graph, 5));
+    EXPECT_TRUE(testDFS(graph, 3));
+    EXPECT_TRUE(testDFS(graph, 7));
+    EXPECT_FALSE(testDFS(graph, 5));
 #endif
-#if TEST_PATH_GEN
-        result = result && check("Test path generation", testPathGen());
-#endif
-    }
-    catch (const std::exception & ex)
-    {
-        std::cerr << ex.what() << std::endl;
-        return false;
-    }
-    return result;
 }
 
 class V : public Graph<int>::Visitor
@@ -166,30 +148,28 @@ class Cell;
 std::function<void(Graph<std::shared_ptr<const Cell>>::Path&)> pathReceiver;
 //= std::bind(&RouteGenViaGraph::receivePath, std::reference_wrapper<RouteGenViaGraph>(*this), std::placeholders::_1);
 
-bool test2 ()
+TEST(graph_test, test2)
 {
-    bool result = true;
     Graph<int> graph;
-    result = result && check("Graph empty after initialized", graph.isEmpty());
+    EXPECT_TRUE(graph.isEmpty());
     graph.addEdge(3, 6);
     graph.addDirectedEdge(6, 1);
-    result = result && check("Graph not empty after edge added", !graph.isEmpty());
+    EXPECT_FALSE(graph.isEmpty());
     graph.clear();
-    result = result && check("Graph empty after clear()", graph.isEmpty());
+    EXPECT_TRUE(graph.isEmpty());
     V visitor;
     graph.accept(visitor);
-    result = result && check("No nodes visited for empty graph", visitor.visited.empty());
+    EXPECT_TRUE(visitor.visited.empty());
     graph.addEdge(4, 9);
     graph.addDirectedEdge(9, 3);
     graph.accept(visitor);
-    result = result && check("All nodes visited", visitor.visited.size() == 3);
-    result = result && check("Node 3 visited", std::find(visitor.visited.begin(), visitor.visited.end(), 3) != visitor.visited.end());
-    result = result && check("Node 4 visited", std::find(visitor.visited.begin(), visitor.visited.end(), 4) != visitor.visited.end());
-    result = result && check("Node 9 visited", std::find(visitor.visited.begin(), visitor.visited.end(), 9) != visitor.visited.end());
-    // TODO
+    EXPECT_TRUE(visitor.visited.size() == 3);
+    EXPECT_TRUE(std::find(visitor.visited.begin(), visitor.visited.end(), 3) != visitor.visited.end());
+    EXPECT_TRUE(std::find(visitor.visited.begin(), visitor.visited.end(), 4) != visitor.visited.end());
+    EXPECT_TRUE(std::find(visitor.visited.begin(), visitor.visited.end(), 9) != visitor.visited.end());
+    // TODO more graph tests
     //pathReceiver(std::bind(&RouteGenViaGraph::receivePath, std::reference_wrapper<RouteGenViaGraph>(*this), std::placeholders::_1))
     //graph.setEmitPathCallback(pathReceiver);
-    return result;
 }
 
 static std::vector<std::vector<int>> validatorPaths;
@@ -221,10 +201,9 @@ bool validator (const std::vector<int>& path)
 }
 #endif
 
-bool testValidation ()
+TEST(graph_test, test_validation)
 {
     std::cout << "Test validation" << std::endl;
-    bool result = true;
     Graph<int> graph;
     std::function<bool(const std::vector<int>&)> fval = std::bind(&validator, std::placeholders::_1);
     graph.setValidatePathCallback(&fval);
@@ -279,7 +258,7 @@ bool testValidation ()
         std::cout << std::endl;
     }
 
-    result = result && check("Number of paths accepted ", paths.size() == 2);
+    EXPECT_EQ(paths.size(), 2);
 
     std::cout << "-------------------------------" << std::endl;
     paths.clear();
@@ -291,7 +270,7 @@ bool testValidation ()
            1, 5
            1, 8, 3, 9, 5
      */
-    result = result && check("Number of paths accepted ", paths.size() == 2);
+    EXPECT_EQ(paths.size(), 2);
 
     /*std::cout << validatorPaths.size() << " paths processed by validator" << std::endl;
     for (auto path : validatorPaths)
@@ -301,7 +280,13 @@ bool testValidation ()
         std::cout << std::endl;
     }*/
 
-    return result;
+    std::cout << "-------------------------------" << std::endl;
+    paths.clear();
+    validatorPaths.clear();
+    graph.genAllPaths(1, 6);
+    std::cout << std::endl;
+    // There are no valid routes from 1 to 6
+    EXPECT_EQ(paths.size(), 0);
 }
 
 // C++ program to print all paths
@@ -431,16 +416,4 @@ int somebodyElses()
 #endif
 
     return 0;
-}
-
-int main ()
-{
-    std::cout << "Test graph" << std::endl;
-    bool result = true;
-    result = result && testGraph();
-    result = result && test2();
-    result = result && testValidation();
-
-    //somebodyElses();
-    return result ? 0 : 1;
 }

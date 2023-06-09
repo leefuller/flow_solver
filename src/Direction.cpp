@@ -1,5 +1,4 @@
 #include "Direction.h"
-//#include "PuzzleException.h"
 #include "exceptions.h"
 
 #include <cmath>
@@ -27,8 +26,8 @@ const char * asString (Direction d) noexcept
 
 /**
  * Create a coordinate corresponding to a change of coordinate due to given direction.
- * ie. Adding the result to a puzzle coordinate will give the new puzzle coordinate.
- * @return result as a coordinate representing the change. (Not representing a puzzle coordinate)
+ * ie. Adding the returned result to a coordinate will give the end coordinate.
+ * @return result as a coordinate representing the change. (Not representing a coordinate)
  */
 static Coordinate createCoordinateChange (Direction d, int distance = 1)
 {
@@ -84,9 +83,9 @@ Direction areAdjacent (Coordinate start, Coordinate end) noexcept
     // Adjacent means the difference between coordinates is 1
     if (diff[0] > 1 || diff[1] > 1)
         return Direction::NONE;
-    if (!diff[0]) // Difference is in column (east or west)
+    if (!diff[0]) // Difference is in east/west
         return cEnd < cStart ? Direction::WEST : Direction::EAST;
-    if (!diff[1]) // Difference is in row (north or south)
+    if (!diff[1]) // Difference is in north/south
         return rEnd < rStart ? Direction::NORTH : Direction::SOUTH;
     // Diagonal
     /*
@@ -119,7 +118,7 @@ Direction addDirections (Direction d1, Direction d2)
     // A valid result will be between {-1,-1} and {1,1}, inclusive.
     // A value outside that range can only be achieved by an unsupported/invalid operation.
     // For example, adding EAST and SOUTH_EAST (which in the real world is EAST-SOUTH-EAST, but is not supported here)
-    // produces a column change of 2.
+    // produces a change of 2.
     int r = c1[0] + c2[0];
     int c = c1[1] + c2[1];
     switch (r)
@@ -173,6 +172,10 @@ Direction cornerDirection (std::array<unsigned, 4> gaps)
     return result;
 }
 
+/**
+ * Calculate direction given by rotating a direction by 1 step left (anti-clockwise)
+ * based on using 8 compass directions.
+ */
 Direction rotateLeft (Direction start)
 {
     switch (start)
@@ -189,6 +192,10 @@ Direction rotateLeft (Direction start)
     return start;
 }
 
+/**
+ * Calculate direction given by rotating a direction by 1 step right (clockwise)
+ * based on using 8 compass directions.
+ */
 Direction rotateRight (Direction start)
 {
     switch (start)
@@ -203,6 +210,42 @@ Direction rotateRight (Direction start)
         case NORTH_WEST:return NORTH;
     }
     return start;
+}
+
+/**
+ * Get the direction between 2 coordinates.
+ * The coordinates do not have to be adjacent,
+ * but for diagonal direction, they must be at 45 degrees from each axis relative to the start.
+ * @param start     Starting coordinate
+ * @param dest      Destination coordinate
+ * @return direction to dest from start
+ */
+Direction getDirectionBetweenCoordinates (Coordinate start, Coordinate dest)
+{
+    if (start == dest)
+        return Direction::NONE;
+    auto [xStart, yStart] = start;
+    auto [xDest, yDest] = dest;
+
+    int xDistance = xDest - xStart;
+    int yDistance = yDest - yStart;
+
+    if (!xDistance) // Directly north or south
+        return yDistance > 0 ? Direction::NORTH : Direction::SOUTH;
+    if (!yDistance) // Directly east or west
+        return xDistance > 0 ? Direction::EAST: Direction::WEST;
+
+    // For 8 compass points, a diagonal direction must have the same x and y distances
+    if (abs(xDistance) != abs(yDistance))
+    {
+        throw InvalidOperation("Cannot derive direction from coordinates");
+    }
+    if (xDistance > 0)
+        return yDistance > 0 ? Direction::NORTH_EAST : Direction::SOUTH_EAST;
+    if (xDistance < 0)
+        return yDistance > 0 ? Direction::NORTH_WEST : Direction::SOUTH_WEST;
+
+    return Direction::NONE;
 }
 
 std::ostream & operator<< (std::ostream & os, const Route & route) noexcept

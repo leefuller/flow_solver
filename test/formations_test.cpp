@@ -1,37 +1,22 @@
 #include <iostream>
 
-//#include "../include/Puzzle.h"
 #include "../app/formations.h"
-#include "test_helper.h"
+#include <gtest/gtest.h>
 
-bool testInvalidDeviation ()
+TEST(formations_test, testInvalidDeviation)
 {
-    bool result = true;
-    // TODO
-    return result;
+    // TODO formation test for invalid deviation
+    FAIL();
 }
 
-bool testEntrapment ()
+TEST(formations_test, testEntrapment)
 {
-    bool result = true;
-    // TODO
-    return result;
+    // TODO formation test entrapment
+    FAIL();
 }
 
-bool testCornerCheck ()
+TEST(formations_test, testCornerCheck)
 {
-    bool result = true;
-    // TODO
-    return result;
+    // TODO formation test for corner check
+    FAIL();
 }
-
-int main ()
-{
-    bool result = true;
-    //std::shared_ptr<LogScope> sl = logger.getScopedLogger("Test formations");
-    result = result && testCornerCheck();
-    result = result && testInvalidDeviation();
-    result = result && testEntrapment();
-    return result ? 0 : 1;
-}
-

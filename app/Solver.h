@@ -46,6 +46,9 @@ class Solver : public RouteReceiver
 
 	void connectIfOnlyOnePossibility (CellPtr p, bool & changed);
 
+	void updateRemovePossibleForAllOther (PipeId idPipe) noexcept;
+	bool isRouteComplete (PipeId idPipe) const noexcept;
+
 	/**
 	 * Check whether a cell is a vertical channel, defined by the walls.
 	 * Disregards pipes.

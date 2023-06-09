@@ -34,6 +34,8 @@ class RouteGenViaGraph : public RouteGenerator
 
     Graph<ConstCellPtr> m_graph;
 
+    ConstPuzzlePtr m_puzzle;
+
     Matrix<bool> m_visited;
 
     std::function<void(Graph<ConstCellPtr>::Path&)> m_pathReceiver;
