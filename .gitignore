@@ -10,17 +10,22 @@
 
 # Executables
 *.exe
+bin
 
 # CMake generated artifacts
 CMakeCache.txt
-cmake_install.cmake
-CMakefiles/*
-CTestTestfile.cmake
+*.cmake
+CMakeDoxyfile.in
+CMakeFiles
 DartConfiguration.tcl
 Makefile
+
+# ctest generated artifacts
+Testing
 
 # Eclipse artifacts
 .cproject
 .project
+.settings
 
 /build/

@@ -1,6 +1,5 @@
 #include "../include/Puzzle.h"
 #include "formations.h"
-#include "Helper.h"
 #include "Logger.h"
 
 static Logger & logger = Logger::getDefaultLogger();
@@ -71,13 +70,14 @@ bool detectDeadEndFormation (ConstPuzzlePtr puzzle, Coordinate coord)
             unsigned count = 0;
             for (Direction d2 : allTraversalDirections)
             {
-                if (d == d2)
-                    continue;
                 if (adjacent[d2] == nullptr)
                     continue;
-                if (adjacent[d]->getPipeId() == id)
+                if (adjacent[d2]->getPipeId() == id)
                     ++count;
             }
+#if ANNOUNCE_DEAD_END_DETECT
+            logger << "Matches next to empty cell at " << coord << " = " << count << std::endl;
+#endif
             if (count == 2)
                 return false;
         }

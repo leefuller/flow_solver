@@ -211,6 +211,7 @@ class Cell
 
     static void setOutputConnectorRep (bool repr = true) noexcept;
 
+    /** @return true if output is to include connector representation */
     static bool isOutputConnectorRep () noexcept
     { return outputConnectorRep; }
 

@@ -36,28 +36,28 @@ target_link_libraries(plumber_test
 )
 
 add_executable(formations_test formations_test.cpp)
-target_sources(formations_test PRIVATE formations_test.cpp ../app/oneway.cpp ../app/Helper.cpp)
+target_sources(formations_test PRIVATE formations_test.cpp ../app/formations.cpp ../app/oneway.cpp ../app/deadend.cpp ../app/adjacencyLaw.cpp)
 target_link_libraries(formations_test
 	PRIVATE flow
 	GTest::gtest_main
 )
 
 add_executable(oneway_test oneway_test.cpp)
-target_sources(oneway_test PRIVATE oneway_test.cpp ../app/oneway.cpp ../app/adjacencyLaw.cpp ../app/Helper.cpp)
+target_sources(oneway_test PRIVATE oneway_test.cpp ../app/oneway.cpp ../app/adjacencyLaw.cpp)
 target_link_libraries(oneway_test
 	PRIVATE flow
 	GTest::gtest_main
 )
 
 add_executable(deadend_test deadend_test.cpp)
-target_sources(deadend_test PRIVATE deadend_test.cpp ../app/deadend.cpp ../app/Helper.cpp)
+target_sources(deadend_test PRIVATE deadend_test.cpp ../app/deadend.cpp)
 target_link_libraries(deadend_test
 	PRIVATE flow
 	GTest::gtest_main
 )
 
 add_executable(adjacency_test adjacency_test.cpp)
-target_sources(adjacency_test PRIVATE adjacency_test.cpp ../app/adjacencyLaw.cpp ../app/Helper.cpp ../src/Logger.cpp)
+target_sources(adjacency_test PRIVATE adjacency_test.cpp ../app/adjacencyLaw.cpp ../src/Logger.cpp)
 target_link_libraries(adjacency_test 
 	PRIVATE flow
 	GTest::gtest_main
@@ -73,6 +73,13 @@ target_link_libraries(matrix_test
 	GTest::gtest_main
 )
 
+add_executable(solver_test solver_test.cpp 
+	../app/Solver.cpp ../app/RouteGenViaGraph.cpp ../app/deadend.cpp ../app/formations.cpp ../app/adjacencyLaw.cpp ../app/oneway.cpp)
+target_link_libraries(solver_test 
+	PRIVATE flow
+	GTest::gtest_main
+)
+
 include(GoogleTest)
 gtest_discover_tests(direction_test)
 gtest_discover_tests(cell_test)
@@ -84,3 +91,4 @@ gtest_discover_tests(deadend_test)
 gtest_discover_tests(adjacency_test)
 gtest_discover_tests(graph_test)
 gtest_discover_tests(matrix_test)
+gtest_discover_tests(solver_test)

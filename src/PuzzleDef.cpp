@@ -125,7 +125,9 @@ std::vector<std::unique_ptr<Cell>> PuzzleDefinition::parseHorizontalCells (const
  */
 void PuzzleDefinition::parsePuzzleDef (const char * puzzleDef)
 {
+#if ANNOUNCE_SOLVER_DETAIL
     logger << "Parse puzzle definition" << std::endl;
+#endif
     std::vector<std::unique_ptr<Cell>> rowAbove;
     std::vector<CellBorder> borderAbove;
     unsigned parserState = 0; // 0 to parse horizontal wall definition; 1 for row of cells
@@ -154,7 +156,9 @@ void PuzzleDefinition::parsePuzzleDef (const char * puzzleDef)
                 break;
         }
     }
+#if ANNOUNCE_SOLVER_DETAIL
     logger << "Parsed puzzle definition" << std::endl;
+#endif
 }
 
 /**
@@ -307,6 +311,41 @@ bool PuzzleDefinition::isEndpoint (Coordinate coord) const noexcept
 { return getConstCellAtCoordinate(coord)->isEndpoint(); }
 
 /**
+ * From the given coordinate determine how many cells can be traversed before reaching a wall.
+ * @param c     Starting coordinate
+ * @param d     Traversal direction
+ * @return number of empty cells between c and wall
+ */
+unsigned PuzzleDefinition::gapToWall (Coordinate c, Direction d) const noexcept
+{
+    unsigned count = 0;
+    ConstCellPtr pCell = getConstCellAtCoordinate(c);
+    while (1)
+    {
+        // check if cell has a border in that direction.
+        if (pCell->getBorder(d) == CellBorder::WALL)
+            break;
+        if (!coordinateChange(c, d))
+            break;
+        pCell = getConstCellAtCoordinate(c);
+        ++count;
+    }
+    return count;
+}
+
+/**
+ * Convenience function return the gapToWall function result for each each traversal direction from a coordinate.
+ * @return array indexed by Direction
+ */
+std::array<unsigned, 4> PuzzleDefinition::getGapsToWalls (Coordinate c) const noexcept
+{
+    std::array<unsigned, 4> result;
+    for (Direction d : allTraversalDirections)
+        result[d] = gapToWall(c, d);
+    return result;
+}
+
+/**
  * Get directions which can be reached directly from the cell at the given coordinate.
  * ie. Directions not blocked by a wall.
  * @return set of directions that are not blocked by a wall.
@@ -361,7 +400,9 @@ void PuzzleDefinition::validatePuzzle ()
 {
     if (m_puzzleRows.size() < 1)
         throw PuzzleException("A valid puzzle definition requires at least 1 row");
+#if ANNOUNCE_SOLVER_DETAIL
     logger << "Validate puzzle with " << m_puzzleRows.size() << " rows" << std::endl;
+#endif
 
     std::map<PipeId, unsigned> endpoints; // count endpoints per pipe id
     int r = 0;
@@ -382,8 +423,8 @@ void PuzzleDefinition::validatePuzzle ()
                 if (count > 1)
                     throw PuzzleException("There are more than 2 endpoints for a pipe");
                 endpoints[cell->getPipeId()] = count + 1;
-                cell->setEndpoint(count == 0 ? PIPE_END_1 : PIPE_END_2);
-                if (cell->getEndpoint() == PIPE_END_2)
+                cell->setEndpoint(count == 0 ? PIPE_START : PIPE_END);
+                if (cell->getEndpoint() == PIPE_END)
                     m_pipeIds.insert(cell->getPipeId());
 
                 for (Direction d : allTraversalDirections)
@@ -430,5 +471,7 @@ void PuzzleDefinition::validatePuzzle ()
                 throw PuzzleException("Bottom border not complete");
         }
     }
+#if ANNOUNCE_SOLVER_DETAIL
     logger << "Validated puzzle with " << m_puzzleRows.size() << " rows" << std::endl;
+#endif
 }

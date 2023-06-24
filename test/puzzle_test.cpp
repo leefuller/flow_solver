@@ -87,6 +87,79 @@ TEST(puzzle_test, test_distance_to_obstruction)
     EXPECT_TRUE(puzzle->gapToObstruction({1,5}, Direction::NORTH) == 1);
 }
 
+TEST(puzzle_test, test_distance_to_wall)
+{
+    std::cout << "Test distance to wall" << std::endl;
+    const char * p = \
+            {" = = = = = = = ,"  \
+             "|. . .|. . . .|,"  \
+             "|             |,"  \
+             "|A B . . . B A|,"  \
+             " = = = = = = = "   \
+            };
+    PuzzleDefinition def(p);
+    std::shared_ptr<Puzzle> puzzle = def.generatePuzzle();
+    for (int r = 0; r < puzzle->getNumRows(); ++r)
+    {
+        // Check against puzzle border
+        for (int c = 0; c < puzzle->getNumCols(); ++c)
+        {
+            if (r == 0)
+                EXPECT_TRUE(puzzle->gapToWall({r,c}, Direction::NORTH) == 0);
+            if (r == puzzle->getNumRows() - 1)
+                EXPECT_TRUE(puzzle->gapToWall({r,c}, Direction::SOUTH) == 0);
+            if (c == 0)
+                EXPECT_TRUE(puzzle->gapToWall({r,c}, Direction::WEST) == 0);
+            if (c == puzzle->getNumCols() - 1)
+                EXPECT_TRUE(puzzle->gapToWall({r,c}, Direction::EAST) == 0);
+        }
+    }
+    EXPECT_TRUE(puzzle->gapToWall({0,0}, Direction::EAST) == 2);
+    EXPECT_TRUE(puzzle->gapToWall({0,1}, Direction::EAST) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({0,2}, Direction::EAST) == 0);
+    EXPECT_TRUE(puzzle->gapToWall({0,3}, Direction::EAST) == 3);
+    EXPECT_TRUE(puzzle->gapToWall({0,4}, Direction::EAST) == 2);
+    EXPECT_TRUE(puzzle->gapToWall({0,5}, Direction::EAST) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({0,6}, Direction::WEST) == 3);
+    EXPECT_TRUE(puzzle->gapToWall({0,5}, Direction::WEST) == 2);
+    EXPECT_TRUE(puzzle->gapToWall({0,4}, Direction::WEST) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({0,3}, Direction::WEST) == 0);
+    EXPECT_TRUE(puzzle->gapToWall({0,2}, Direction::WEST) == 2);
+    EXPECT_TRUE(puzzle->gapToWall({0,1}, Direction::WEST) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({0,0}, Direction::WEST) == 0);
+
+    EXPECT_TRUE(puzzle->gapToWall({0,0}, Direction::SOUTH) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({0,1}, Direction::SOUTH) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({0,2}, Direction::SOUTH) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({0,3}, Direction::SOUTH) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({0,4}, Direction::SOUTH) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({0,5}, Direction::SOUTH) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({0,6}, Direction::SOUTH) == 1);
+
+    EXPECT_TRUE(puzzle->gapToWall({1,0}, Direction::EAST) == 6);
+    EXPECT_TRUE(puzzle->gapToWall({1,1}, Direction::EAST) == 5);
+    EXPECT_TRUE(puzzle->gapToWall({1,2}, Direction::EAST) == 4);
+    EXPECT_TRUE(puzzle->gapToWall({1,3}, Direction::EAST) == 3);
+    EXPECT_TRUE(puzzle->gapToWall({1,4}, Direction::EAST) == 2);
+    EXPECT_TRUE(puzzle->gapToWall({1,5}, Direction::EAST) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({1,6}, Direction::EAST) == 0);
+    EXPECT_TRUE(puzzle->gapToWall({1,6}, Direction::WEST) == 6);
+    EXPECT_TRUE(puzzle->gapToWall({1,5}, Direction::WEST) == 5);
+    EXPECT_TRUE(puzzle->gapToWall({1,4}, Direction::WEST) == 4);
+    EXPECT_TRUE(puzzle->gapToWall({1,3}, Direction::WEST) == 3);
+    EXPECT_TRUE(puzzle->gapToWall({1,2}, Direction::WEST) == 2);
+    EXPECT_TRUE(puzzle->gapToWall({1,1}, Direction::WEST) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({1,0}, Direction::WEST) == 0);
+
+    EXPECT_TRUE(puzzle->gapToWall({1,0}, Direction::NORTH) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({1,1}, Direction::NORTH) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({1,2}, Direction::NORTH) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({1,3}, Direction::NORTH) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({1,4}, Direction::NORTH) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({1,5}, Direction::NORTH) == 1);
+    EXPECT_TRUE(puzzle->gapToWall({1,5}, Direction::NORTH) == 1);
+}
+
 TEST(puzzle_test, test_generation)
 {
     std::cout << "Test puzzle generation" << std::endl;
@@ -190,15 +263,15 @@ TEST(puzzle_test, test_generation)
     puzzle->removeRoute ();
     // TODO verify above
     /* TODO more puzzle tests
-    bool puzzle->traceRoute (PipeId idPipe, Route & route);
+    bool puzzle->traceRoute (PipeId idPipe, PipeEnd endpoint, Route & route);
     void puzzle->traceRoutes (std::map<PipeId, Route> &);
     void puzzle->forEveryCell (std::function<void(std::shared_ptr<Cell>)> * f)
     void puzzle->forEachTraversalDirection (std::function<void(Direction d)> * f);
     */
-    Coordinate coordEnd1 = puzzle->findPipeEnd('A', PipeEnd::PIPE_END_1);
+    Coordinate coordEnd1 = puzzle->findPipeEnd('A', PipeEnd::PIPE_START);
     // The end point is assigned arbitrarily during puzzle validation
     EXPECT_TRUE(coordEnd1 == createCoordinate(1,0) || coordEnd1 == createCoordinate(1,6));
-    Coordinate coordEnd2 = puzzle->findPipeEnd('A', PipeEnd::PIPE_END_2);
+    Coordinate coordEnd2 = puzzle->findPipeEnd('A', PipeEnd::PIPE_END);
     EXPECT_TRUE(coordEnd2 == createCoordinate(1,0) || coordEnd2 == createCoordinate(1,6));
     EXPECT_TRUE(coordEnd1 != coordEnd2);
 
@@ -210,4 +283,77 @@ TEST(puzzle_test, test_generation)
 
     std::set<Direction> directions = puzzle->getConnectedDirections (createCoordinate(0,0));
     EXPECT_TRUE(directions == std::set<Direction>({Direction::SOUTH, Direction::EAST}));
+}
+
+TEST(puzzle_test, test_traceroute)
+{
+    std::cout << "Test trace route" << std::endl;
+    const char * p = \
+            {" = = = = = = = ,"  \
+             "|. . . . . . .|,"  \
+             "|             |,"  \
+             "|A B . . . B A|,"  \
+             " = = = = = = = "   \
+            };
+    PuzzleDefinition def(p);
+    std::shared_ptr<Puzzle> puzzle = def.generatePuzzle();
+    puzzle->getPlumber()->connect({1,0}, {0,0}, 'A', CellConnection::FIXTURE_CONNECTION);
+    /* Now
+        |A . . . . . .|
+        |A B . . . B A|
+    */
+    Route routeFwd;
+    puzzle->traceRoute('A', PipeEnd::PIPE_START, routeFwd);
+    ConstCellPtr pCell = puzzle->getConstCellAtCoordinate({1,0});
+    if (pCell->getEndpoint() == PipeEnd::PIPE_START)
+    {
+        Route routeExpected{{1,0},{0,0}};
+        EXPECT_TRUE(routesEqual(routeFwd, routeExpected));
+    }
+    else if (pCell->getEndpoint() == PipeEnd::PIPE_END)
+    {
+        Route routeExpected{{0,6}};
+        EXPECT_TRUE(routesEqual(routeFwd, routeExpected));
+    }
+    else
+    {
+        FAIL();
+    }
+
+    // Trace backwards
+    Route routeRev;
+    puzzle->traceRoute('A', PipeEnd::PIPE_END, routeRev);
+    if (pCell->getEndpoint() == PipeEnd::PIPE_START)
+    {
+        Route routeExpected{{1,6}};
+        EXPECT_TRUE(routesEqual(routeRev, routeExpected));
+    }
+    else if (pCell->getEndpoint() == PipeEnd::PIPE_END)
+    {
+        Route routeExpected{{0,6},{0,0}};
+        EXPECT_TRUE(routesEqual(routeRev, routeExpected));
+        EXPECT_TRUE(puzzle->isProxyEnd('A', {0,0}));
+    }
+
+    puzzle->getPlumber()->connect({1,6}, {0,6}, 'A', CellConnection::FIXTURE_CONNECTION);
+    /* Now
+        |A . . . . . A|
+        |A B . . . B A|
+    */
+    routeRev.clear();
+    puzzle->traceRoute('A', PipeEnd::PIPE_END, routeRev);
+    if (pCell->getEndpoint() == PipeEnd::PIPE_START)
+    {
+        Route routeExpected{{1,6},{0,6}};
+        EXPECT_TRUE(routesEqual(routeRev, routeExpected));
+        EXPECT_TRUE(puzzle->isProxyEnd('A', {0,6}));
+        EXPECT_FALSE(puzzle->isProxyEnd('A', {1,6}));
+    }
+    else if (pCell->getEndpoint() == PipeEnd::PIPE_END)
+    {
+        Route routeExpected{{0,6},{0,0}};
+        EXPECT_TRUE(routesEqual(routeRev, routeExpected));
+        EXPECT_TRUE(puzzle->isProxyEnd('A', {0,0}));
+        EXPECT_FALSE(puzzle->isProxyEnd('A', {1,0}));
+    }
 }

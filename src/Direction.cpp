@@ -29,7 +29,7 @@ const char * asString (Direction d) noexcept
  * ie. Adding the returned result to a coordinate will give the end coordinate.
  * @return result as a coordinate representing the change. (Not representing a coordinate)
  */
-static Coordinate createCoordinateChange (Direction d, int distance = 1)
+static Coordinate createCoordinateChange (Direction d, int distance = 1) noexcept(false)
 {
     switch (d)
     {
@@ -158,7 +158,7 @@ Direction addDirections (Direction d1, Direction d2)
  * The direction of a corner is a diagonal one.
  * @return the direction to the corner, or Direction::NONE if there is not a corner
  */
-Direction cornerDirection (std::array<unsigned, 4> gaps)
+Direction cornerDirection (std::array<unsigned, 4> gaps) noexcept
 {
     unsigned countZero = std::count_if(std::begin(gaps), std::end(gaps), [](unsigned gap){ return gap == 0; });
     if (countZero != 2)
@@ -176,7 +176,7 @@ Direction cornerDirection (std::array<unsigned, 4> gaps)
  * Calculate direction given by rotating a direction by 1 step left (anti-clockwise)
  * based on using 8 compass directions.
  */
-Direction rotateLeft (Direction start)
+Direction rotateLeft (Direction start) noexcept
 {
     switch (start)
     {
@@ -196,7 +196,7 @@ Direction rotateLeft (Direction start)
  * Calculate direction given by rotating a direction by 1 step right (clockwise)
  * based on using 8 compass directions.
  */
-Direction rotateRight (Direction start)
+Direction rotateRight (Direction start) noexcept
 {
     switch (start)
     {
@@ -220,18 +220,18 @@ Direction rotateRight (Direction start)
  * @param dest      Destination coordinate
  * @return direction to dest from start
  */
-Direction getDirectionBetweenCoordinates (Coordinate start, Coordinate dest)
+Direction getDirectionBetweenCoordinates (Coordinate start, Coordinate dest) noexcept(false)
 {
     if (start == dest)
         return Direction::NONE;
-    auto [xStart, yStart] = start;
-    auto [xDest, yDest] = dest;
+    auto [rStart, cStart] = start; // row, column
+    auto [rDest, cDest] = dest; // row, column
 
-    int xDistance = xDest - xStart;
-    int yDistance = yDest - yStart;
+    int xDistance = cDest - cStart;
+    int yDistance = rDest - rStart;
 
     if (!xDistance) // Directly north or south
-        return yDistance > 0 ? Direction::NORTH : Direction::SOUTH;
+        return yDistance > 0 ? Direction::SOUTH : Direction::NORTH;
     if (!yDistance) // Directly east or west
         return xDistance > 0 ? Direction::EAST: Direction::WEST;
 
@@ -241,9 +241,9 @@ Direction getDirectionBetweenCoordinates (Coordinate start, Coordinate dest)
         throw InvalidOperation("Cannot derive direction from coordinates");
     }
     if (xDistance > 0)
-        return yDistance > 0 ? Direction::NORTH_EAST : Direction::SOUTH_EAST;
+        return yDistance > 0 ? Direction::SOUTH_EAST : Direction::NORTH_EAST;
     if (xDistance < 0)
-        return yDistance > 0 ? Direction::NORTH_WEST : Direction::SOUTH_WEST;
+        return yDistance > 0 ? Direction::SOUTH_WEST : Direction::NORTH_WEST;
 
     return Direction::NONE;
 }
@@ -259,4 +259,16 @@ std::ostream & operator<< (std::ostream & os, const Route & route) noexcept
         started = true;
     }
     return os;
+}
+
+bool routesEqual (const Route & route1, const Route & route2)
+{
+    if (route1.size() != route2.size())
+        return false;
+    for (unsigned i = 0; i < route1.size(); ++i)
+    {
+        if (route1[i] != route2[i])
+            return false;
+    }
+    return true;
 }

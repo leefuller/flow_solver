@@ -1,0 +1,9 @@
+# CMake generated artifacts
+CMakeCache.txt
+*.cmake
+CMakeDoxyfile.in
+CMakeFiles
+Makefile
+Doxyfile.docs
+
+html

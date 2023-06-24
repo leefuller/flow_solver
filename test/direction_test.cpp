@@ -217,33 +217,34 @@ TEST(direction_test, corner1)
 
 TEST(direction_test, directionBetweenCoordinates)
 {
+     // Coordinates are row, column
     EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,0}) == Direction::NONE);
     EXPECT_TRUE(getDirectionBetweenCoordinates({1,1}, {1,1}) == Direction::NONE);
 
-    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,1}) == Direction::NORTH);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,50}) == Direction::NORTH);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({10,20}, {10,50}) == Direction::NORTH);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({10,-20}, {10,-5}) == Direction::NORTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,1}) == Direction::EAST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,50}) == Direction::EAST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({10,20}, {10,50}) == Direction::EAST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({10,-20}, {10,-5}) == Direction::EAST);
 
-    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,-1}) == Direction::SOUTH);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,-50}) == Direction::SOUTH);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({10,20}, {10,5}) == Direction::SOUTH);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({10,-20}, {10,-23}) == Direction::SOUTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,-1}) == Direction::WEST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {0,-50}) == Direction::WEST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({10,20}, {10,5}) == Direction::WEST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({10,-20}, {10,-23}) == Direction::WEST);
 
-    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {1,0}) == Direction::EAST);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {50,0}) == Direction::EAST);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({10,20}, {50,20}) == Direction::EAST);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({-10,20}, {-5,20}) == Direction::EAST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {1,0}) == Direction::SOUTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {50,0}) == Direction::SOUTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({10,20}, {50,20}) == Direction::SOUTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({-10,20}, {-5,20}) == Direction::SOUTH);
 
-    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {-1,0}) == Direction::WEST);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {-50,0}) == Direction::WEST);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({10,20}, {-50,20}) == Direction::WEST);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({-10,20}, {-50,20}) == Direction::WEST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {-1,0}) == Direction::NORTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {-50,0}) == Direction::NORTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({10,20}, {-50,20}) == Direction::NORTH);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({-10,20}, {-50,20}) == Direction::NORTH);
 
-    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {1,1}) == Direction::NORTH_EAST);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {-1,1}) == Direction::NORTH_WEST);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {-1,-1}) == Direction::SOUTH_WEST);
-    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {1,-1}) == Direction::SOUTH_EAST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {1,1}) == Direction::SOUTH_EAST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {-1,1}) == Direction::NORTH_EAST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {-1,-1}) == Direction::NORTH_WEST);
+    EXPECT_TRUE(getDirectionBetweenCoordinates({0,0}, {1,-1}) == Direction::SOUTH_WEST);
 
     EXPECT_THROW(getDirectionBetweenCoordinates({0,0}, {1,2}), InvalidOperation);
 }

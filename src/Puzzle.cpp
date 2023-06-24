@@ -142,7 +142,81 @@ bool Puzzle::checkIfSolution (ConstPuzzlePtr puzzle, const std::map<PipeId, Rout
     return true;
 }
 
-// Adjacent using Direction type ---------------------------------------------
+/**
+ * Get all traversable directions from coordinate.
+ * Traversal is prevented by WALL, or if the target is already occupied,
+ * unless the occupied target is the pipe endpoint.
+ * Does not check if endpoint has another connection.
+ *
+ * @return all traversable directions from coordinate.
+ */
+std::set<Direction> Puzzle::getNowTraversableDirections (Coordinate coord, PipeId idPipe) const
+{
+    std::set<Direction> result;
+    for (Direction d : allTraversalDirections)
+    {
+        if (canNowTraverseDirectionFrom(coord, d, idPipe))
+            result.insert(d);
+    }
+    return result;
+}
+
+/**
+ * Return true if nothing prevents traversal in given direction from given coordinate.
+ * Traversal is prevented by WALL, or if the target is already occupied,
+ * unless the occupied target is the pipe endpoint.
+ * @param direction     Direction from start coordinate to check for traversal
+ * @param coord         Start coordinate
+ * @param idPipe        Pipe identifier. Can be NO_PIPE_ID to check disregarding pipes (TODO remove this complexity).
+ */
+bool Puzzle::canNowTraverseDirectionFrom (Coordinate coord, Direction direction, PipeId idPipe) const noexcept
+{
+    ConstCellPtr pCellFrom = getConstCellAtCoordinate(coord);
+    if (!pCellFrom->isBorderOpen(direction))
+        return false;
+
+    if (pCellFrom->getConnection(direction) == CellConnection::FIXTURE_CONNECTION)
+        return false;
+
+    if (pCellFrom->isEndpoint())
+    {
+        // Cannot traverse if the endpoint is already connected to a fixture.
+        // There should be no connector in any direction other than the fixture.
+        for (Direction d : allTraversalDirections)
+        {
+            if (pCellFrom->getConnection(d) == CellConnection::FIXTURE_CONNECTION)
+                return false; // endpoint already has a fixture connection
+        }
+    }
+    else
+    {
+        // Cannot traverse if not an endpoint and there are 2 fixtures to the cell.
+        unsigned count = 0;
+        for (Direction d : allTraversalDirections)
+        {
+            if (pCellFrom->getConnection(d) == CellConnection::FIXTURE_CONNECTION)
+                ++count;
+        }
+        if (count == 2)
+            return false;
+    }
+
+
+    Coordinate nextCoord = coord;
+    if (!coordinateChange(nextCoord, direction))
+        return false;
+
+    // At this point we know a cell exists in the given direction, and there is no wall preventing traversal.
+    ConstCellPtr pCellNext = getConstCellAtCoordinate(nextCoord);
+
+    if (idPipe == NO_PIPE_ID)
+        return true;
+    if (pCellNext->getPipeId() == idPipe && pCellNext->isEndpoint())
+        return true;
+    return pCellNext->isEmpty(); // can traverse to empty cell
+}
+
+// Adjacent -----------------------------------------------------------------
 
 /**
  * Get the adjacent cell in the given direction, regardless of inner walls.
@@ -230,12 +304,21 @@ std::map<Direction, ConstCellPtr> Puzzle::getAdjacentCellsInTraversalDirections 
     return result;
 }
 
+bool Puzzle::isProxyEnd (PipeId id, Coordinate c) const noexcept
+{
+    Route route;
+    traceRoute(id, PipeEnd::PIPE_END, route);
+    return route.back() == c;
+}
+
 // ----------------------------------------------------
 
 /**
  * Insert the route into the puzzle.
  * Does not change fixture status of any cell.
  * The puzzle will remember the additions, and will remove them in removeRoute()
+ * @param idPipe    Pipe identifier
+ * @param route     Route to insert
  */
 void Puzzle::insertRoute (PipeId idPipe, const Route & route)
 {
@@ -275,6 +358,8 @@ void Puzzle::removeRoute ()
 /**
  * If the route can continue from the given cell in the given direction,
  * then add the next coordinate in that direction to the route.
+ * @param pCell     
+ * @param route     Route being created
  * @param direction Direction from pCell
  * @return true if the route can go in direction from cell
  */
@@ -292,48 +377,40 @@ bool Puzzle::continueDirectionForRoute (ConstCellPtr pCell, Route & route, Direc
 }
 
 /**
- * Trace routes for pipe in current puzzle state.
+ * Trace route for a pipe in current puzzle state.
+ * @param idPipe    Pipe identifier
+ * @param endpoint  Where to start the trace (PIPE_START for forward trace from start, or PIPE_END to trace back from end)
+ * @param route     To return route traced from start of pipe
  * @return true if complete route found
  */
-bool Puzzle::traceRoute (PipeId idPipe, Route & route) const
+bool Puzzle::traceRoute (PipeId idPipe, PipeEnd endpoint, Route & route) const
 {
     if (!route.size())
     {
-        // start
-        Coordinate coordStart = findPipeEnd(idPipe, PipeEnd::PIPE_END_1);
-        //logger << "Trace " << idPipe << " from " << coordStart;
+        Coordinate coordStart = findPipeEnd(idPipe, endpoint);
         m_visited.clear();
         route.push_back(coordStart);
     }
     Coordinate coord = route.back();
     m_visited.insert(coord);
     ConstCellPtr pCell = getConstCellAtCoordinate(coord);
-    if (pCell->getEndpoint() == PipeEnd::PIPE_END_2)
-    {
-        //logger << " endpoint." << std::endl;
+    if (pCell->getEndpoint() == oppositeEnd(endpoint))
         return true;
-    }
-    //std::bind();
-#if 0
-    // lambda to check connection, and next coordinate (in given direction) to route, if not already visited
-    auto lam = [&route, pCell, coord, idPipe] (Direction direction) -> bool {
-        return continueDirectionForRoute(pCell, route, direction);
-    };
-    forEachDirection(lam);
-#endif
-    //std::find(std::begin(m_visited), std::end(m_visited), coordinateChange()) != m_visited.end;
+
     if (continueDirectionForRoute(pCell, route, Direction::NORTH))
-        return traceRoute(idPipe, route);
+        return traceRoute(idPipe, endpoint, route);
     else if (continueDirectionForRoute(pCell, route, Direction::SOUTH))
-        return traceRoute(idPipe, route);
+        return traceRoute(idPipe, endpoint, route);
     else if (continueDirectionForRoute(pCell, route, Direction::WEST))
-        return traceRoute(idPipe, route);
+        return traceRoute(idPipe, endpoint, route);
     else if (continueDirectionForRoute(pCell, route, Direction::EAST))
-        return traceRoute(idPipe, route);
-    //logger << " stopped." << std::endl;
+        return traceRoute(idPipe, endpoint, route);
     return false;
 }
 
+/**
+ * Trace routes for all pipes.
+ */
 void Puzzle::traceRoutes (std::map<PipeId, Route> & m) const
 {
     logger << "Trace routes" << std::endl;
@@ -341,7 +418,7 @@ void Puzzle::traceRoutes (std::map<PipeId, Route> & m) const
     m.clear();
     for (PipeId idPipe : m_def.getPipeIds())
     {
-        traceRoute(idPipe, route);
+        traceRoute(idPipe, PipeEnd::PIPE_START, route);
         m[idPipe] = route;
     }
 }

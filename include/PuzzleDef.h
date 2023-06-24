@@ -67,6 +67,9 @@ class PuzzleDefinition
 
       bool isEndpoint (Coordinate coord) const noexcept;
 
+      unsigned gapToWall (Coordinate c, Direction d) const noexcept;
+      std::array<unsigned, 4> getGapsToWalls (Coordinate c) const noexcept;
+
     private:
       ConstCellPtr getConstCellAtCoordinate(Coordinate coord, bool rangeCheck = false) const noexcept(false);
       Cell * getCellAtCoordinate(Coordinate coord, bool rangeCheck = false) noexcept(false);

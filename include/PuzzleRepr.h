@@ -18,8 +18,8 @@
 // Connection representations for horizontal ------------------------------
 #define NO_CONNECTOR_SYMBOL_LHS         ' '
 #define NO_CONNECTOR_SYMBOL_RHS         ' '
-#define OPEN_CONNECTION_SYMBOL_LHS      'o'
-#define OPEN_CONNECTION_SYMBOL_RHS      'o'
+#define OPEN_CONNECTION_SYMBOL_LHS      '.'
+#define OPEN_CONNECTION_SYMBOL_RHS      '.'
 #define TEMPORARY_CONNECTION_SYMBOL_LHS '$'
 #define TEMPORARY_CONNECTION_SYMBOL_RHS '$'
 #define FIXTURE_CONNECTION_SYMBOL_LHS   '#'
@@ -31,8 +31,8 @@
 // 3 chars wide because a cell uses 3 chars in the horizontal, to include horizontal connectors.
 #define NO_CONNECTOR_SYMBOL_UP              "   "
 #define NO_CONNECTOR_SYMBOL_DOWN            "   "
-#define OPEN_CONNECTION_SYMBOL_UP           " o "
-#define OPEN_CONNECTION_SYMBOL_DOWN         " o "
+#define OPEN_CONNECTION_SYMBOL_UP           " . "
+#define OPEN_CONNECTION_SYMBOL_DOWN         " . "
 #define TEMPORARY_CONNECTION_SYMBOL_UP      " $ "
 #define TEMPORARY_CONNECTION_SYMBOL_DOWN    " $ "
 #define FIXTURE_CONNECTION_SYMBOL_UP        " # "

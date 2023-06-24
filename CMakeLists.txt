@@ -25,7 +25,9 @@ include(CTest)
 
 enable_testing()
 
-find_package(Doxygen)
+find_package(Doxygen
+            REQUIRED dot 
+            OPTIONAL_COMPONENTS mscgen dia)
 if(Doxygen_FOUND)
   add_subdirectory(doc)
 else()

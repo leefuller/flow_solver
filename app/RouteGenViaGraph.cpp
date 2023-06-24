@@ -53,12 +53,14 @@ void RouteGenViaGraph::receivePath (Graph<ConstCellPtr>::Path & path)
     Route route;
     for (ConstCellPtr pCell : path)
         route.push_back(pCell->getCoordinate());
-    // If path end is intermediary to route endpoint, append the cells to the endpoint
+    // If path end is proxy to route endpoint, append the cells to the endpoint
     // to complete the route
     if (!path.back()->isEndpoint())
     {
         auto it = std::end(route);
-        auto pv = std::prev(it); // point at coordinate before last
+        auto pv = std::prev(it); // point at last coordinate in route
+        if (pv != std::begin(route))
+            pv = std::prev(pv); // point at coordinate before last in route
         // Determine direction of fixture connection into last cell in the path,
         // so that direction is not used as path to follow
         Direction incomingDir = getDirectionBetweenCoordinates(*pv, route.back());
@@ -76,7 +78,7 @@ void RouteGenViaGraph::receivePath (Graph<ConstCellPtr>::Path & path)
                 {
                     pCell = m_puzzle->getConstCellAdjacent(pCell->getCoordinate(), d);
                     route.push_back(pCell->getCoordinate());
-                    incomingDir = opposite(d);
+                    incomingDir = d;
                     break;
                 }
             }
@@ -103,15 +105,15 @@ void RouteGenViaGraph::generateRoutes (PipeId id, ConstPuzzlePtr puzzle)
 
     createGraph(*puzzle, id);
 
-    GraphOutputter<ConstCellPtr> out(std::cout);
-    m_graph.accept(out);
+    /*GraphOutputter<ConstCellPtr> out(std::cout);
+    m_graph.accept(out);*/
 
-    Coordinate start = puzzle->findPipeEnd(id, PipeEnd::PIPE_END_1);
-    // If preliminary logic has derived some fixtures attached to the PIPE_END_2,
-    // then the path generator needs to connect to the start of that, rather than PIPE_END_2.
+    Coordinate start = puzzle->findPipeEnd(id, PipeEnd::PIPE_START);
+    // If preliminary logic has derived some fixtures attached to the PIPE_END,
+    // then the path generator needs to connect to the start of that, rather than PIPE_END.
     // Similar is not necessary for start, because the route generation
     // implicitly follows connections from the start.
-    Coordinate end = puzzle->findPipeEnd(id, PipeEnd::PIPE_END_2);
+    Coordinate end = puzzle->findPipeEnd(id, PipeEnd::PIPE_END);
     Direction incoming = Direction::NONE;
     ConstCellPtr destCell = puzzle->getConstCellAtCoordinate(end);
     do
@@ -155,7 +157,7 @@ void RouteGenViaGraph::handleStartEndPoint (const Puzzle & puzzle, ConstCellPtr 
             //if (pCellAdjacent->getPipeId() != pCell->getPipeId())
                 //continue;
 #if SUPPORT_ROUTE_DIRECTION
-            if (pCell->getEndpoint() == PipeEnd::PIPE_END_1)
+            if (pCell->getEndpoint() == PipeEnd::PIPE_START)
                 m_graph.addDirectedEdge(pCell, pCellAdjacent); // out from start point
             else
                 m_graph.addDirectedEdge(pCellAdjacent, pCell); // into endpoint
@@ -177,7 +179,7 @@ void RouteGenViaGraph::handleStartEndPoint (const Puzzle & puzzle, ConstCellPtr 
         //if (pCellAdjacent->getPipeId() != pCell->getPipeId())
             //continue;
 #if SUPPORT_ROUTE_DIRECTION
-        if (pCell->getEndpoint() == PipeEnd::PIPE_END_1)
+        if (pCell->getEndpoint() == PipeEnd::PIPE_START)
             m_graph.addDirectedEdge(pCell, pCellAdjacent); // out from start point
         else
             m_graph.addDirectedEdge(pCellAdjacent, pCell); // into endpoint
@@ -200,7 +202,7 @@ void RouteGenViaGraph::traverseToCreateGraph (const Puzzle & puzzle, PipeId idPi
     if (pCell->getPipeId() != idPipe && pCell->getPipeId() != NO_PIPE_ID)
         return; // cell is for different pipe
 
-    if (pCell->getEndpoint() == PipeEnd::PIPE_END_1 || pCell->getEndpoint() == PipeEnd::PIPE_END_2)
+    if (pCell->getEndpoint() == PipeEnd::PIPE_START || pCell->getEndpoint() == PipeEnd::PIPE_END)
     {
         handleStartEndPoint(puzzle, pCell, visited);
     }
@@ -252,7 +254,7 @@ void RouteGenViaGraph::traverseToCreateGraph (const Puzzle & puzzle, PipeId idPi
 
 void RouteGenViaGraph::createGraph (const Puzzle & puzzle, PipeId idPipe)
 {
-    Coordinate start = puzzle.findPipeEnd(idPipe, PipeEnd::PIPE_END_1);
+    Coordinate start = puzzle.findPipeEnd(idPipe, PipeEnd::PIPE_START);
     m_graph.clear();
     m_visited.setAllValues(false);
     traverseToCreateGraph(puzzle, idPipe, start, m_visited);

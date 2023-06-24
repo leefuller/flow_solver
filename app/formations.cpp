@@ -11,8 +11,23 @@
 static Logger & logger = Logger::getDefaultLogger();
 
 /**
- * Check whether a cell at a coordinate is on the inside of a corner.
- * The corner can be created by either or both walls or pipes.
+ * Check whether a cell is a corner, defined by the walls.
+ * Disregards pipes.
+ * @param coord     Coordinate of cell to check
+ * @return true if the cell at the given coordinate is a corner
+ */
+bool isCorner (ConstPuzzlePtr puzzle, Coordinate coord) noexcept
+{
+    ConstCellPtr pCell = puzzle->getConstCellAtCoordinate(coord);
+    // A corner has 2 connected walls that are not opposite
+    if (pCell->countWalls() != 2)
+        return false;
+    return !pCell->isHorizontalChannel() && !pCell->isVerticalChannel();
+}
+
+/**
+ * Check whether a cell at a coordinate is on the inside of a corner,
+ * where the corner is created by walls.
  * A corner exists where a cell is immediately obstructed in 2 traversal directions that are 90 degrees separated.
  * Whether or not the cell contains a pipe is disregarded.
  * Here are the 4 formations:
@@ -25,14 +40,13 @@ static Logger & logger = Logger::getDefaultLogger();
  */
 Direction checkCornerAtCoordinate (ConstPuzzlePtr puzzle, Coordinate c)
 {
-    return cornerDirection(puzzle->getGapsToObstructions(c));
+    return cornerDirection(puzzle->getGapsToWalls(c));
 }
 
 /**
  * Check whether a cell at a coordinate is 1 cell separated from a corner,
  * without a wall between. A pipe can be between.
  * (Think of it as though you cannot see through a wall, but you can see past a pipe.)
- * The corner can be created by either or both walls or pipes.
  * For example:
  *
  *   . X    The cell 'X' is at a south-west corner, south-west of 'X'
@@ -58,78 +72,75 @@ Direction checkOneStepToCorner (ConstPuzzlePtr puzzle, Coordinate c, Direction d
         return Direction::NONE;
 
     Direction dc = checkCornerAtCoordinate(puzzle, pAdj->getCoordinate());
-    if (dc != Direction::NONE)
+    switch (dc)
     {
-        switch (dc)
-        {
-            case Direction::NORTH_EAST:
-                /* North-east corner visible for 3 cases
-                      (1)      (2)      (3)
-                      ==        ==       ==
-                       .|      X .|       .|
-                     X                    X
+        case Direction::NORTH_EAST:
+            /* North-east corner visible for 3 cases
+                    (1)      (2)      (3)
+                    ==        ==       ==
+                    .|      X .|       .|
+                    X                    X
 
-                    The direction to "look" must see the inside of the corner
-                 */
-                if (d == Direction::NORTH_EAST) // case 1
-                    return (p->isBorderOpen(Direction::NORTH) && p->isBorderOpen(Direction::EAST)) ? dc : Direction::NONE;
-                if (d == Direction::EAST) // case 2
-                    return p->isBorderOpen(Direction::EAST) ? dc : Direction::NONE;
-                if (d == Direction::NORTH) // case 3
-                    return p->isBorderOpen(Direction::NORTH) ? dc : Direction::NONE;
-                return Direction::NONE;
+                The direction to "look" must see the inside of the corner
+                */
+            if (d == Direction::NORTH_EAST) // case 1
+                return (p->isBorderOpen(Direction::NORTH) && p->isBorderOpen(Direction::EAST)) ? dc : Direction::NONE;
+            if (d == Direction::EAST) // case 2
+                return p->isBorderOpen(Direction::EAST) ? dc : Direction::NONE;
+            if (d == Direction::NORTH) // case 3
+                return p->isBorderOpen(Direction::NORTH) ? dc : Direction::NONE;
+            return Direction::NONE;
 
-            case Direction::NORTH_WEST:
-                /* North-west corner visible for 3 cases
-                      (1)        (2)        (3)
-                     ==          ==         ==
-                    |.          |. X       |.
-                       X                    X
+        case Direction::NORTH_WEST:
+            /* North-west corner visible for 3 cases
+                    (1)        (2)        (3)
+                    ==          ==         ==
+                |.          |. X       |.
+                    X                    X
 
-                    The direction to "look" must see the inside of the corner
-                 */
-                if (d == Direction::NORTH_WEST) // case 1
-                    return (p->isBorderOpen(Direction::NORTH) && p->isBorderOpen(Direction::WEST)) ? dc : Direction::NONE;
-                if (d == Direction::WEST) // case 2
-                    return p->isBorderOpen(Direction::WEST) ? dc : Direction::NONE;
-                if (d == Direction::NORTH) // case 3
-                    return p->isBorderOpen(Direction::NORTH) ? dc : Direction::NONE;
-                return Direction::NONE;
+                The direction to "look" must see the inside of the corner
+                */
+            if (d == Direction::NORTH_WEST) // case 1
+                return (p->isBorderOpen(Direction::NORTH) && p->isBorderOpen(Direction::WEST)) ? dc : Direction::NONE;
+            if (d == Direction::WEST) // case 2
+                return p->isBorderOpen(Direction::WEST) ? dc : Direction::NONE;
+            if (d == Direction::NORTH) // case 3
+                return p->isBorderOpen(Direction::NORTH) ? dc : Direction::NONE;
+            return Direction::NONE;
 
-            case Direction::SOUTH_EAST:
-                /* South-east corner visible for 3 cases
-                      (1)      (2)      (3)
-                     X                    X
-                       .|      X .|       .|
-                      ==        ==       ==
+        case Direction::SOUTH_EAST:
+            /* South-east corner visible for 3 cases
+                    (1)      (2)      (3)
+                    X                    X
+                    .|      X .|       .|
+                    ==        ==       ==
 
-                    The direction to "look" must see the inside of the corner
-                 */
-                if (d == Direction::SOUTH_EAST) // case 1
-                    return (p->isBorderOpen(Direction::SOUTH) && p->isBorderOpen(Direction::EAST)) ? dc : Direction::NONE;
-                if (d == Direction::EAST) // case 2
-                    return p->isBorderOpen(Direction::EAST) ? dc : Direction::NONE;
-                if (d == Direction::SOUTH) // case 3
-                    return p->isBorderOpen(Direction::SOUTH) ? dc : Direction::NONE;
-                return Direction::NONE;
+                The direction to "look" must see the inside of the corner
+                */
+            if (d == Direction::SOUTH_EAST) // case 1
+                return (p->isBorderOpen(Direction::SOUTH) && p->isBorderOpen(Direction::EAST)) ? dc : Direction::NONE;
+            if (d == Direction::EAST) // case 2
+                return p->isBorderOpen(Direction::EAST) ? dc : Direction::NONE;
+            if (d == Direction::SOUTH) // case 3
+                return p->isBorderOpen(Direction::SOUTH) ? dc : Direction::NONE;
+            return Direction::NONE;
 
-            case Direction::SOUTH_WEST:
-                /* South-west corner visible for 3 cases
-                      (1)      (2)      (3)
-                        X               X
-                     |.        |. X    |.
-                      ==        ==      ==
+        case Direction::SOUTH_WEST:
+            /* South-west corner visible for 3 cases
+                    (1)      (2)      (3)
+                    X               X
+                    |.        |. X    |.
+                    ==        ==      ==
 
-                    The direction to "look" must see the inside of the corner
-                 */
-                if (d == Direction::SOUTH_WEST) // case 1
-                    return (p->isBorderOpen(Direction::SOUTH) && p->isBorderOpen(Direction::WEST)) ? dc : Direction::NONE;
-                if (d == Direction::WEST) // case 2
-                    return p->isBorderOpen(Direction::WEST) ? dc : Direction::NONE;
-                if (d == Direction::SOUTH) // case 3
-                    return p->isBorderOpen(Direction::SOUTH) ? dc : Direction::NONE;
-                return Direction::NONE;
-        }
+                The direction to "look" must see the inside of the corner
+                */
+            if (d == Direction::SOUTH_WEST) // case 1
+                return (p->isBorderOpen(Direction::SOUTH) && p->isBorderOpen(Direction::WEST)) ? dc : Direction::NONE;
+            if (d == Direction::WEST) // case 2
+                return p->isBorderOpen(Direction::WEST) ? dc : Direction::NONE;
+            if (d == Direction::SOUTH) // case 3
+                return p->isBorderOpen(Direction::SOUTH) ? dc : Direction::NONE;
+            return Direction::NONE;
     }
     return Direction::NONE;
 }
@@ -177,7 +188,7 @@ bool detectInvalidDeviation (ConstPuzzlePtr puzzle, const Route & route, PipeId 
 /**
  * Find a pipe endpoint that may be reachable via empty cells only.
  * @param puzzle
- * @param pCell
+ * @param c         Start coordinate
  * @param idPipe    Identifier of pipe
  * @param visited   Coordinates visited so far
  * @return true if the endpoint is found.
@@ -196,14 +207,17 @@ static bool recurseReachable (ConstPuzzlePtr puzzle, Coordinate c, PipeId idPipe
             continue;
         if (!pAdj->isEmpty())
         {
-            if (pAdj->getPipeId() == idPipe && pAdj->getEndpoint() == PipeEnd::PIPE_END_2)
+            if (pAdj->getPipeId() == idPipe && (pAdj->getEndpoint() == PipeEnd::PIPE_END || puzzle->isProxyEnd(idPipe, pAdj->getCoordinate())))
             {
                 // found
+                //logger << "Reachable end found for pipe " << idPipe << " at " << pAdj->getCoordinate() << std::endl;
                 return true;
             }
+            continue;
         }
         visited.insert(pAdj->getCoordinate());
-        return recurseReachable(puzzle, pAdj->getCoordinate(), idPipe, visited);
+        if (recurseReachable(puzzle, pAdj->getCoordinate(), idPipe, visited))
+            return true;
     }
     return false;
 }
@@ -232,8 +246,10 @@ bool detectEntrapment (ConstPuzzlePtr puzzle, const Route & route, PipeId idPipe
             return;
         // Dead end formation can indicate a cell is trapped
         if (detectDeadEndFormation(puzzle, cell->getCoordinate()))
+        {
+            logger << "Trap at dead end " << cell->getCoordinate() << std::endl;
             trapped = true;
-        // TODO what about more complex entrapment?
+        }
     };
     puzzle->forEveryCell(&lam);
 
@@ -260,12 +276,43 @@ bool detectEntrapment (ConstPuzzlePtr puzzle, const Route & route, PipeId idPipe
         for (PipeId id : ids)
         {
             std::set<Coordinate> reachable;
-            Coordinate start = puzzle->findPipeEnd(id, PipeEnd::PIPE_END_1);
+            Coordinate start = puzzle->findPipeEnd(id, PipeEnd::PIPE_START);
             reachable.insert(start);
-            // Add reachable empty cells to reachable set.
-            if (recurseReachable(puzzle, start, id, reachable))
+            // Follow existing pipe from start, adding to reachable set
+            for (bool follow = true; follow; )
             {
-                trapped = false;
+                follow = false;
+                for (Direction d : allTraversalDirections)
+                {
+                    ConstCellPtr p = puzzle->getConstCellAdjacent(start, d);
+                    if (p == nullptr)
+                        continue;
+                    if (p->getPipeId() == id)
+                    {
+                        if (reachable.find(p->getCoordinate()) != reachable.end())
+                            continue;
+                        start = p->getCoordinate();
+                        reachable.insert(start);
+                        follow = true;
+                        break;
+                    }
+                }
+            }
+            if (start == puzzle->findPipeEnd(id, PipeEnd::PIPE_END) || puzzle->isProxyEnd(id, start))
+            {
+                // pipe is complete
+                //logger << "End found for pipe " << id << " at " << start << std::endl;
+                continue;
+            }
+
+            // Add reachable empty cells to reachable set.
+            //logger << "Recurse reachable for pipe " << id << " from " << start << std::endl;
+            if (!recurseReachable(puzzle, start, id, reachable))
+            {
+#if ANNOUNCE_ENTRAPMENT
+                logger << "End not reachable for pipe " << id << " from " << start << std::endl;
+#endif
+                trapped = true;
                 break;
             }
         }

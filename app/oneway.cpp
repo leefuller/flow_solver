@@ -1,6 +1,5 @@
 #include "../include/Puzzle.h"
 #include "formations.h"
-#include "Helper.h"
 #include "Logger.h"
 
 #include <algorithm>
@@ -250,7 +249,7 @@ Direction theOnlyWay (ConstPuzzlePtr puzzle, Coordinate coord)
     //logger << coord << " has " << cellGroup.size() << " adjacent cells" << std::endl;
 #endif
 
-    std::set<Direction> traversableDirections = Helper::getNowTraversableDirections(puzzle, coord, idPipe);
+    std::set<Direction> traversableDirections = puzzle->getNowTraversableDirections(coord, idPipe);
 #if ANNOUNCE_ONE_WAY_DETECT
     //logger << coord << " has " << traversableDirections.size() << " traversable direction(s)" << std::endl;
 #endif
@@ -273,5 +272,6 @@ Direction theOnlyWay (ConstPuzzlePtr puzzle, Coordinate coord)
     Direction dc = checkForChannel(puzzle, coord, traversableDirections);
     if (dc != Direction::NONE)
         return dc;
+    // TODO checkFillToCorner here, instead of separately?
     return Direction::NONE;
 }

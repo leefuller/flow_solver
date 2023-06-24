@@ -7,11 +7,10 @@
 #include <memory>
 #include <iostream>
 
-#include "Graph.h"
+#include "RouteGenViaGraph.h"
 #include "../include/Puzzle.h"
 #include "../include/PuzzleDef.h"
 #include "RouteReceiver.h"
-#include "Helper.h"
 
 class Solver : public RouteReceiver
 {
@@ -87,9 +86,32 @@ class Solver : public RouteReceiver
 	/** Each pipe has a list of possible routes. */
 	std::map<PipeId, std::vector<Route>> m_routesDict;
 
-	std::vector<std::pair<PipeId, Route>> m_routeList;
+	//std::vector<std::pair<PipeId, Route>> m_routeList;
 
 	friend void checkSolution (Solver & solver, std::vector<std::pair<PipeId, Route>>::iterator start, std::vector<std::pair<PipeId, Route>>::iterator end);
+};
+
+/**
+ * Use to inject a route into a puzzle.
+ * Automatically removes it when this is destroyed.
+ */
+class TryRoute
+{
+    public:
+        TryRoute (PuzzlePtr puzzle, PipeId idPipe, const Route & route)
+            : m_puzzle(puzzle), m_route(route)
+        {
+            m_puzzle->insertRoute(idPipe, route);
+        }
+
+        ~TryRoute ()
+        {
+            m_puzzle->removeRoute();
+        }
+
+    private:
+        PuzzlePtr m_puzzle;
+        Route m_route;
 };
 
 #endif

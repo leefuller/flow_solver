@@ -18,12 +18,12 @@
 static Logger & logger = Logger::getDefaultLogger();
 
 /**
- * Add pipe identifier to set of identifiers, if the cell at coordinate has endpoint PipeEnd::PIPE_END_1. Otherwise, do nothing.
+ * Add pipe identifier to set of identifiers, if the cell at coordinate has endpoint PipeEnd::PIPE_START. Otherwise, do nothing.
  * @param cell      Cell to assess
  */
 void Solver::addPipeIdToIdSetIfCellIsStart (ConstCellPtr cell) noexcept
 {
-    if (cell->getEndpoint() == PipeEnd::PIPE_END_1)
+    if (cell->getEndpoint() == PipeEnd::PIPE_START)
         m_pipeIds.insert(cell->getPipeId());
 }
 
@@ -44,14 +44,14 @@ void Solver::generateRoutes (const std::map<PipeId, Route> & existing)
 
         m_routeGen.addReceiver(this);
 
-        Coordinate start = m_puzzle->findPipeEnd(idPipe, PipeEnd::PIPE_END_1);
-        Coordinate end = m_puzzle->findPipeEnd(idPipe, PipeEnd::PIPE_END_2);
+        Coordinate start = m_puzzle->findPipeEnd(idPipe, PipeEnd::PIPE_START);
+        Coordinate end = m_puzzle->findPipeEnd(idPipe, PipeEnd::PIPE_END);
         // Follow fixtures to get to the point where the path is unknown
         Route route;
         route.push_back(start);
         ConstCellPtr pCell = m_puzzle->getConstCellAtCoordinate(start);
         Direction forward = Direction::NONE;
-        for (bool fixed = true; fixed && pCell->getEndpoint() != PipeEnd::PIPE_END_2;)
+        for (bool fixed = true; fixed && pCell->getEndpoint() != PipeEnd::PIPE_END;)
         {
             fixed = false;
             for (Direction direction : allTraversalDirections)
@@ -84,7 +84,8 @@ void Solver::generateRoutes (const std::map<PipeId, Route> & existing)
         m_routeGen.generateRoutes(idPipe, m_puzzle);//, existing[idPipe]);
         m_routeGen.removeReceiver(this);
         logger << countRoutes << " routes for " << idPipe << std::endl;
-        logger << countRoutesDiscarded << " routes discarded" << std::endl;
+        if (countRoutesDiscarded)
+            logger << countRoutesDiscarded << " routes discarded" << std::endl;
     }
 }
 
@@ -103,29 +104,6 @@ void Solver::addRoute (PipeId idPipe, const Route & route)
     }
     m_routesDict[idPipe].push_back(route);
 }
-
-/**
- * Use to inject a route into a puzzle.
- * Automatically removes it when this is destroyed.
- */
-class TryRoute
-{
-    public:
-        TryRoute (PuzzlePtr puzzle, PipeId idPipe, const Route & route)
-            : m_puzzle(puzzle), m_route(route)
-        {
-            m_puzzle->insertRoute(idPipe, route);
-        }
-
-        ~TryRoute ()
-        {
-            m_puzzle->removeRoute();
-        }
-
-    private:
-        PuzzlePtr m_puzzle;
-        Route m_route;
-};
 
 const PipeId interestingPipe = 'N';
 
@@ -189,10 +167,22 @@ bool Solver::checkSolution (std::vector<std::pair<PipeId, Route>>::iterator star
     return Puzzle::checkIfSolution(m_puzzle, m);
 }
 
-// Recursive template function to process combinations
-// (From n items, process combinations of r items)
+#if 0
+/**
+ * Recursive template function to process combinations
+ * (From n items, process combinations of r items)
+ * @param nbegin        Iterator for start of n items
+ * @param nend          Iterator for end of n items
+ * @param n_column      
+ * @param rbegin        Iterator for start of r items
+ * @param rend          Iterator for end of r items
+ * @param r_column
+ * @param loop
+ * @param func          Function to run for each combination
+ */
 template <class RanIt, class Func>
-bool recursive_combination (PuzzlePtr puzzle, RanIt nbegin, RanIt nend, int n_column,
+bool recursive_combination (
+    RanIt nbegin, RanIt nend, int n_column,
     RanIt rbegin, RanIt rend, int r_column, int loop, 
     Func func)
 {
@@ -220,12 +210,13 @@ bool recursive_combination (PuzzlePtr puzzle, RanIt nbegin, RanIt nend, int n_co
         *it1 = *it2;
         ++local_n_column;
 
-        if (recursive_combination(puzzle, nbegin, nend, local_n_column, rbegin, rend, r_column + 1, localloop, func))
+        if (recursive_combination(nbegin, nend, local_n_column, rbegin, rend, r_column + 1, localloop, func))
             return true;
         --localloop;
     }
     return false;
 }
+#endif
 
 /**
  * Check whether a coordinate is adjacent to the start of a channel, but not in the channel.
@@ -251,7 +242,7 @@ bool Solver::isAdjacentToChannelOpening (Coordinate coord) const noexcept
             return true;
 
         // Check for entry to a channel via a corner.
-        if (!Helper::isCorner(m_puzzle, coord2))
+        if (!isCorner(m_puzzle, coord2))
             continue; // try next direction
 
         ConstCellPtr pCellNext = m_puzzle->getConstCellAtCoordinate(coord2);
@@ -263,7 +254,7 @@ bool Solver::isAdjacentToChannelOpening (Coordinate coord) const noexcept
         switch (direction)
         {
             case Direction::NORTH:
-                [[fallthrough]]
+                //[[fallthrough]]
             case Direction::SOUTH:
                 if (coordinateChange(coord3, pCellNext->getBorder(Direction::WEST) == CellBorder::OPEN ? Direction::WEST : Direction::EAST))
                     return false;
@@ -277,7 +268,7 @@ bool Solver::isAdjacentToChannelOpening (Coordinate coord) const noexcept
                 break;
 
             case Direction::WEST:
-                [[fallthrough]]
+                //[[fallthrough]]
             case Direction::EAST:
                 // We already checked that it is not a horizontal channel, so get direction of corner
                 if (coordinateChange(coord3,pCellNext->getBorder(Direction::NORTH) == CellBorder::OPEN ? Direction::NORTH : Direction::SOUTH))
@@ -303,28 +294,6 @@ static void describeConnection (ConstCellPtr cellFrom, ConstCellPtr cellAdjacent
     std::cout << " to ";
     cellAdjacent->describe(std::cout);
 }
-
-/*bool updateConnectorsBetweenCells (CellPtr pCell, Direction d)
-{
-    if (pCell == nullptr)
-        return false;
-    bool changed = false;
-    CellPtr pAdj = m_puzzle->getCellAdjacent(pCell->getCoordinate(), d);
-    if (pAdj == nullptr)
-    {
-        // Should be no connector from pCell for direction
-        changed = m_puzzle->getPlumber()->removeConnector(pCell, d);
-    }
-    else // There is an adjacent cell in direction
-    {
-        if (!pCell->canAcceptConnection(d))
-        {
-            changed = m_puzzle->getPlumber()->removeConnector(pCell, d);
-            changed = changed || m_puzzle->getPlumber()->removeConnector(pAdj, opposite(d));
-        }
-    }
-    return changed;
-}*/
 
 /**
  * For each cell adjacent to the given cell, check connectors between them.
@@ -372,7 +341,7 @@ std::set<CellPtr> Solver::reviseCell (CellPtr pCell) noexcept(false)
             continue;
         }
         // else pCell can accept connection
-        if (pCell->isFixture())
+        if (pCell->isFixture() && pCell->getBorder(d) != CellBorder::WALL)
         {
             CellPtr pAdj = m_puzzle->getCellAdjacent(pCell->getCoordinate(), d);
             if (pAdj != nullptr)
@@ -417,9 +386,11 @@ std::set<CellPtr> Solver::reviseCell (CellPtr pCell) noexcept(false)
                                 pCell->setPossiblePipes(pAdj->getPipeId());
                                 // if pipe is complete, update possibilities for all other puzzle cells
                                 Route route;
-                                if (m_puzzle->traceRoute(pCell->getPipeId(), route))
+                                if (m_puzzle->traceRoute(pCell->getPipeId(), PipeEnd::PIPE_START, route))
                                 {
+#if ANNOUNCE_SOLVER_DETAIL
                                     logger << "Found route " << std::endl;
+#endif
                                     m_prelimRoutes.insert_or_assign(pCell->getPipeId(), route);
                                     updateRemovePossibleForAllOther(pCell->getPipeId());
                                 }
@@ -470,7 +441,7 @@ void Solver::connectAndRevise (CellPtr pCellFrom, CellPtr pCellAdjacent, CellCon
 
     // Check if a route has been formed
     Route route;
-    if (m_puzzle->traceRoute(pCellFrom->getPipeId(), route))
+    if (m_puzzle->traceRoute(pCellFrom->getPipeId(), PipeEnd::PIPE_START, route))
     {
         logger << "Found route " << std::endl;
         m_prelimRoutes.insert_or_assign(pCellFrom->getPipeId(), route);
@@ -503,7 +474,11 @@ bool Solver::validatePath (const std::vector<ConstCellPtr> & path)
     PipeId idPipe = path[0]->getPipeId();
     Route route;
     for (auto p : path)
+    {
         route.push_back(p->getCoordinate());
+        //if (p->getCoordinate() == createCoordinate(7,1))
+          //  logger << "*******************************" << std::endl;
+    }
     try
     {
         TryRoute t(m_puzzle, idPipe, route);
@@ -533,6 +508,11 @@ bool Solver::validatePath (const std::vector<ConstCellPtr> & path)
     return true;
 }
 
+/**
+ * Connect given pipe to adjacent cell if there is only 1 possible pipe for the adjacent cell.
+ * @param p
+ * @param changed
+ */
 void Solver::connectIfOnlyOnePossibility (CellPtr p, bool & changed)
 {
     if (p == nullptr)
@@ -542,16 +522,20 @@ void Solver::connectIfOnlyOnePossibility (CellPtr p, bool & changed)
         std::set<Direction> sameIdsAdjacent;
         for (Direction d : allTraversalDirections)
         {
+            if (p->getBorder(d) == CellBorder::WALL)
+                continue;
             CellPtr pAdj = m_puzzle->getCellAdjacent(p->getCoordinate(), d);
             if (pAdj == nullptr)
                 continue;
             if (pAdj->getPipeId() == UNREACHABLE_CELL_DEF_CH)
                 continue;
             const std::set<PipeId> & ids = pAdj->getPossiblePipes();
+#if ANNOUNCE_SOLVER_DETAIL
             logger << p->getCoordinate() << " " << asString(d) << " has " << ids.size() << " possibilities";
             for (PipeId id : ids)
                 logger << "'" << id << "' ";
             logger << std::endl;
+#endif
             if (ids.size() == 1)
             {
                 PipeId id = *std::begin(ids);
@@ -559,7 +543,9 @@ void Solver::connectIfOnlyOnePossibility (CellPtr p, bool & changed)
                     continue;
                 if (p->getConnection(d) == CellConnection::FIXTURE_CONNECTION)
                     continue;
+#if ANNOUNCE_SOLVER_DETAIL
                 logger << "Connect with only 1 possibility at " << pAdj->getCoordinate() << std::endl;
+#endif
                 connectAndRevise(p, pAdj, CellConnection::FIXTURE_CONNECTION);
                 changed = true;
             }
@@ -574,7 +560,9 @@ void Solver::connectIfOnlyOnePossibility (CellPtr p, bool & changed)
             if (p->getConnection(d) == CellConnection::FIXTURE_CONNECTION || p->getConnection(d) == CellConnection::NO_CONNECTOR)
                 return;
             CellPtr pAdj = m_puzzle->getCellAdjacent(p->getCoordinate(), d);
-            logger << "Connect with only 1 possibile direction at " << pAdj->getCoordinate() << std::endl;
+#if ANNOUNCE_SOLVER_DETAIL
+            logger << "Connect with only 1 possible direction at " << pAdj->getCoordinate() << std::endl;
+#endif
             connectAndRevise(p, pAdj, CellConnection::FIXTURE_CONNECTION);
             changed = true;
         }
@@ -589,7 +577,9 @@ bool Solver::checkObstructionAfter1 (ConstCellPtr pCell, Direction d)
 {
     if (pCell == nullptr)
         return false;
+#if ANNOUNCE_SOLVER_DETAIL
     logger << "check obstruction " << asString(d) << " after 1" << std::endl;
+#endif
     if (!pCell->isBorderOpen(d)) // obstructed by a wall
         return false;
 
@@ -637,7 +627,10 @@ void Solver::checkCornerFormation (CellPtr pCell, Direction dCorner)
        X
 
       If there is an obstruction 1 step north or east of 'X', then the cell between
-      (marked 'o') cannot be 'X'. Obstruction can be border or pipe.
+      (marked 'o') cannot be 'X'.
+      If the obstruction is a wall (cases 2a and 3a), the statement is always correct.
+      FIXME If the obstruction is a pipe, the statement is only true if the obstructing pipe cannot accept another connection.
+      If the obstructing pipe is able to accept another connection (cases 2b and 3b), then the cell marked 'o' could possibly be 'X'.
 
         (2a)   (2b)            (3a)     (3b)
         ===    A B              ==       A
@@ -652,7 +645,9 @@ void Solver::checkCornerFormation (CellPtr pCell, Direction dCorner)
     {
         // Case (1) Given cell is diagonal from corner
         CellPtr pCorner = m_puzzle->getCellAdjacent(c, dCorner);
+#if ANNOUNCE_SOLVER_DETAIL
         logger << asString(dCorner) << " corner from " << c << " removes possibility of " << idPipe << " at " << pCorner->getCoordinate() << std::endl;
+#endif
         pCorner->removePossibility(idPipe);
 
         // Check corner for obstruction on 1 axis
@@ -660,8 +655,10 @@ void Solver::checkCornerFormation (CellPtr pCell, Direction dCorner)
         CellPtr pAxis = m_puzzle->getCellAdjacent(c, dAxis);
         if (checkObstructionAfter1(pCell, dAxis))
         {
+#if ANNOUNCE_SOLVER_DETAIL
             logger << asString(dCorner) << " from " << c << " corner with " << asString(dAxis) <<
                     " obstruction removes possibility of " << idPipe << " at " << pAxis->getCoordinate() << std::endl;
+#endif
             pAxis->removePossibility(idPipe);
         }
 
@@ -670,8 +667,10 @@ void Solver::checkCornerFormation (CellPtr pCell, Direction dCorner)
         pAxis = m_puzzle->getCellAdjacent(c, dAxis);
         if (checkObstructionAfter1(pCell, dAxis))
         {
+#if ANNOUNCE_SOLVER_DETAIL
             logger << asString(dCorner) << " from " << c << " corner with " << asString(dAxis)
                     << " obstruction removes possibility of " << idPipe << " at " << pAxis->getCoordinate() << std::endl;
+#endif
             pAxis->removePossibility(idPipe);
         }
     }
@@ -846,12 +845,14 @@ bool Solver::solve()
                 phase = 1;
         }
 
-        std::cout << "After one way rule applied:" << std::endl;
+        std::cout << "After preliminary phase:" << std::endl;
         Cell::setOutputConnectorRep(true);
         m_puzzle->streamPuzzleMatrix(std::cout);
 
+#if ANNOUNCE_SOLVER_DETAIL
         logger << "Possible cell contents:" << std::endl;
         listCellPossibilities(m_puzzle);
+#endif
 
         //---------------------------------------------------------
 
@@ -872,13 +873,15 @@ bool Solver::solve()
             return false;
         }
 
-        logger << "Generated routes for " << m_routesDict.size() << " pipes..." << std::endl;
+        logger << "Generated routes for " << m_routesDict.size() << " pipes." << std::endl;
         std::set<PipeId> solvedRoutes;
+        std::set<Coordinate> solvedCoordinates;
+        unsigned long count = 1;
         // Generate a list of routes, as a list of pairs (id, route)
         for (std::pair<const PipeId, std::vector<Route>> & pipeRouteList : m_routesDict) // std::map<PipeId, std::vector<Route>> m_routesDict;
         {
             PipeId idPipe = pipeRouteList.first;
-            logger << "Pipe " << pipeRouteList.first << " has " << pipeRouteList.second.size() << " routes" << std::endl;
+            /*logger << "Pipe " << pipeRouteList.first << " has " << pipeRouteList.second.size() << " routes" << std::endl;
             for (Route & route : pipeRouteList.second)
             {
                 logger << route << std::endl;
@@ -887,57 +890,111 @@ bool Solver::solve()
                 Cell::setOutputConnectorRep(false);
                 m_puzzle->streamPuzzleMatrix(std::cout);
                 m_puzzle->removeRoute();
-            }
+            }*/
+
+            count *= pipeRouteList.second.size();
 
             if (pipeRouteList.second.size() == 1)
+            {
                 solvedRoutes.insert(idPipe);
-        }
-
-        // Generate route list excluding routes from other pipes if they contain any coordinate in a solved route.
-        for (std::pair<const PipeId, std::vector<Route>> & pipeRouteList : m_routesDict)
-        {
-            PipeId idPipe = pipeRouteList.first;
-            if (solvedRoutes.find(idPipe) != solvedRoutes.end())
-            {
-                m_routeList.push_back(std::pair<PipeId, Route>(idPipe, pipeRouteList.second[0]));
-                continue;
+                for (Coordinate c : pipeRouteList.second[0])
+                    solvedCoordinates.insert(c);
             }
-            for (Route & route : pipeRouteList.second) // for each route for idPipe
+        }
+        if (!solvedRoutes.empty())
+        {
+            // Remove routes that intersect a solved route
+            for (std::pair<const PipeId, std::vector<Route>> & pipeRouteList : m_routesDict) // std::map<PipeId, std::vector<Route>> m_routesDict;
             {
-                bool exclude = false;
-                for (PipeId idSolved : solvedRoutes)
+                PipeId idPipe = pipeRouteList.first;
+                if (solvedRoutes.find(idPipe) != solvedRoutes.end())
+                    continue;
+                for (Route route : pipeRouteList.second)
                 {
-                    Route & routeSolved = m_routesDict[idSolved][0];
-                    for (Coordinate & c : route)
+                    for (Coordinate c : solvedCoordinates)
                     {
-                        if (coordinateInRoute(c, routeSolved))
+                        if (coordinateInRoute(c, route))
                         {
-                            // Route can be excluded
-                            exclude = true;
+                            // TODO remove route
+
                             break;
                         }
                     }
-                    if (exclude)
-                        break;
                 }
-                if (!exclude)
-                    m_routeList.push_back(std::pair<PipeId, Route>(idPipe, route));
             }
         }
 
-        logger << m_routeList.size() << " routes generated." << std::endl;
-
         //---------------------------------------------------------
-
+      
+        logger << count << " combinations." << std::endl;
         logger << "Searching for solution..." << std::endl;
+
+        std::vector<PipeId> ids; // make list of pipe ids to use as a sequence in generating combinations
+        for (std::pair<const PipeId, std::vector<Route>> & pipeRouteList : m_routesDict)
+            ids.push_back(pipeRouteList.first);
+
         // Find combination of pipes (1 per id) where endpoints are reached without intersection of pipes (ie. without any shared coordinate)
-        unsigned r = m_pipeIds.size();
-        std::vector<std::pair<PipeId, Route>> comb(r);
-        unsigned n = m_routeList.size();
-        std::function<bool(std::vector<std::pair<PipeId, Route>>::iterator, std::vector<std::pair<PipeId, Route>>::iterator)> fCheckSolution
-            = std::bind(&Solver::checkSolution, std::reference_wrapper<Solver>(*this),
-                std::placeholders::_1, std::placeholders::_2);
-        return recursive_combination(m_puzzle, m_routeList.begin(), m_routeList.end(), 0, comb.begin(), comb.end(), 0, n - r, &fCheckSolution);
+        //unsigned n = m_pipeIds.size();
+        unsigned n = ids.size();
+        unsigned * index = new unsigned[n];
+        for (unsigned i = 0; i < n; ++i)
+            index[i] = 0;
+
+        while (true)
+        {
+            // Handle combination
+            std::set<Coordinate> coordinateSet;
+            bool duplicate = false;
+            for (unsigned i = 0; i < n && !duplicate; i++)
+            {
+                const Route & route = m_routesDict[ids[i]][index[i]];
+                for (Coordinate c : route)
+                {
+                    if (coordinateSet.find(c) != coordinateSet.end())
+                    {
+                        duplicate = true;
+                        break;
+                    }
+                    coordinateSet.insert(c);
+                }
+            }
+            if (!duplicate)
+            {
+                // Solution found
+                //checkSolution();
+                std::cout << "Solved:" << std::endl;
+                for (unsigned i = 0; i < n; ++i)
+                {
+                    const Route & route = m_routesDict[ids[i]][index[i]];
+                    std::cout << ids[i] << ": ";
+                    for (Coordinate c : route)
+                        std::cout << c << ' ';
+                    std::cout << std::endl;
+                }
+                delete[] index;
+                return true;
+            }
+            else // duplicate
+            {
+                // no need to look at elements to the right when a duplicate (pipe intersection) is found
+                // FIXME but then code below will never execute
+                //continue;
+            }
+
+            // find rightmost group that has more elements left
+            int next = n - 1;
+            while (next >= 0 && (index[next] + 1 >= m_routesDict[ids[next]].size()))
+                --next;
+            if (next < 0) // no combinations left
+                break;
+
+            index[next]++;
+            // reset index for remaining groups right
+            for (unsigned i = next + 1; i < n; i++)
+                index[i] = 0;
+        }
+
+        delete[] index;
     }
     catch (const std::exception & ex)
     {
@@ -949,35 +1006,3 @@ bool Solver::solve()
 Solver::Solver (const char * puzzleDef)
   : m_puzzleDef(puzzleDef), m_puzzle(m_puzzleDef.generatePuzzle()), m_routeGen(m_puzzle)
 {}
-
-extern const char * getPuzzleDef ();
-
-int main (int argc, const char * argv[])
-{
-    try
-    {
-        Solver solver(getPuzzleDef());
-        bool solved = solver.solve();
-        if (!solved)
-            logger << "No solution found" << std::endl;
-    }
-    catch (const PuzzleException & ex)
-    {
-    	std::cerr << ex << std::endl;
-    }
-    catch (const std::exception & ex)
-    {
-        std::cerr << ex.what() << std::endl;
-    }
-    catch (const char * s)
-    {
-        std::cerr << s << std::endl;
-    }
-    catch (...)
-    {
-        std::cerr << "Unexpected object thrown" << std::endl;
-    }
-
-    logger << "Exit." << std::endl;
-    return 0;
-}

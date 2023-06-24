@@ -46,6 +46,8 @@ inline std::ostream & operator<< (std::ostream & os, Coordinate c) noexcept
     return os;
 }
 
+extern bool routesEqual (const Route & route1, const Route & route2);
+
 /** @return true if coordinate exists in route */
 inline bool coordinateInRoute (const Coordinate & coord, const Route & route) noexcept
 { return std::find(std::begin(route), std::end(route), coord) != std::end(route); }
@@ -108,12 +110,12 @@ Direction addDirections (Direction d1, Direction d2);
 
 bool coordinateChange (Coordinate & start, Direction direction, unsigned distance = 1) noexcept;
 
-Direction cornerDirection (std::array<unsigned, 4> gaps);
+Direction cornerDirection (std::array<unsigned, 4> gaps) noexcept;
 
-Direction rotateLeft (Direction start);
+Direction rotateLeft (Direction start) noexcept;
 
-Direction rotateRight (Direction start);
+Direction rotateRight (Direction start) noexcept;
 
-Direction getDirectionBetweenCoordinates (Coordinate from, Coordinate to);
+Direction getDirectionBetweenCoordinates (Coordinate from, Coordinate to) noexcept(false);
 
 #endif

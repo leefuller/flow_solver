@@ -89,6 +89,8 @@ class Puzzle
 
 	std::map<Direction, ConstCellPtr> getAdjacentCellsInTraversalDirections (Coordinate coord, bool wallsBlock = false) const ;//noexcept
 
+    bool isProxyEnd (PipeId id, Coordinate c) const noexcept;
+
     // Query directions ------------------------
 
     /**
@@ -100,12 +102,15 @@ class Puzzle
     std::set<Direction> getConnectedDirections (Coordinate coord) const
     { return m_def.getConnectedDirections(coord); }
 
+    std::set<Direction> getNowTraversableDirections (Coordinate coord, PipeId idPipe) const;
+    bool canNowTraverseDirectionFrom (Coordinate coord, Direction direction, PipeId idPipe) const noexcept;
+
     // ------------------------------
 
 	void insertRoute (PipeId id, const Route & route);
     void removeRoute ();
 
-	bool traceRoute (PipeId idPipe, Route & route) const;
+	bool traceRoute (PipeId idPipe, PipeEnd endpoint, Route & route) const;
 	void traceRoutes (std::map<PipeId, Route> &) const;
 
     // ------------------------------
@@ -159,6 +164,12 @@ class Puzzle
 
     bool passCoordinateRangeCheck (Coordinate c) const noexcept
     { return m_def.passCoordinateRangeCheck(c); }
+
+    unsigned gapToWall (Coordinate c, Direction d) const noexcept
+    { return m_def.gapToWall(c, d); }
+
+    std::array<unsigned, 4> getGapsToWalls (Coordinate c) const noexcept
+    { return m_def.getGapsToWalls(c); }
 
     unsigned gapToObstruction (Coordinate c, Direction d) const noexcept;
     std::array<unsigned, 4> getGapsToObstructions (Coordinate c) const noexcept;

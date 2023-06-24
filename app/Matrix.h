@@ -20,6 +20,13 @@ template<typename T> class Matrix
             m_values[i] = new T[colCount];
     }
 
+    ~Matrix ()
+    {
+        for (unsigned i = 0; i < m_rowCount; ++i)
+            delete[] m_values[i];
+        delete[] m_values;
+    }
+
 	/**
 	 * @return number of rows in matrix
 	 */

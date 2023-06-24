@@ -193,9 +193,9 @@ gets to this point.
 |    ===              |
 |G N Y . . Y . b W . .|
 |                     |
-|G N . . . . . . p . N|
+|G N . . . . . . K . N|
 |                     |
-|G . . p . . . . . . .|
+|G . . K . . . . . . .|
 |                     |
 |. . . . . . . . . R .|     Gap in route 'G' can be filled, otherwise adjacency law would be broken by any other route.
 |                     |
@@ -203,6 +203,19 @@ gets to this point.
 |                     |
 |G . . . . . . . . . .|
  =====================
+
+The solution is
+ N N       O O O O O O              
+ G N   B     P P P P O
+ G N   B W W W W W P O
+ G N   B W O O b W P O
+ G N     W W O b W P O
+ G N Y Y Y Y O b W O O
+ G N O O O O O K K O N
+ G N O K K K K K O O N
+ G N O O O O O O O R N
+ G N R R R R R R R R N
+ G N N N N N N N N N N
  */
 
 /* Apply "only one way" rule will solve this in the preliminary phase */
@@ -226,16 +239,49 @@ const char * inkblot1 = \
  " =============== "   \
 };
 
+const char * _8x8_Mania1 = \
+{" = = = = = = = = ,"  \
+ "|B . . B Y . . .|,"  \
+ "|               |,"  \
+ "|. . R P K . K .|,"  \
+ "|               |,"  \
+ "|. . D . . . . .|,"  \
+ "|               |,"  \
+ "|. . G . O N . .|,"  \
+ "|               |,"  \
+ "|. . . . P . . .|,"  \
+ "|               |,"  \
+ "|. . . R . . . .|,"  \
+ "|               |,"  \
+ "|. D . G . . O Y|,"  \
+ "|               |,"  \
+ "|. . . . . . . N|,"  \
+ " = = = = = = = ="   \
+};
+
+const char * puzzleDefs[] = {
+    //simplePuzzleDef1,
+    //simplePuzzleDef2,
+    courtyard1,
+    //puzzleDef3,
+    //inkblot1,
+    //pockets34,
+    //_8x8_Mania1,
+    //worm31,
+    nullptr
+};
+
 /**
  * @return the puzzle definition for a single puzzle
  */
 const char * getPuzzleDef ()
 {
-    //return simplePuzzleDef1;
+    return simplePuzzleDef1;
     //return simplePuzzleDef2;
     //return courtyard1;
     //return puzzleDef3;
     //return inkblot1;
     //return pockets34;
-    return worm31;
+    //return _8x8_Mania1;
+    //return worm31;
 }

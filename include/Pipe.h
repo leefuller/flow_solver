@@ -9,10 +9,24 @@
 enum PipeEnd
 {
     NO_ENDPOINT = 0,
-    PIPE_END_1 = 1,
-    PIPE_END_2 = 2,
+    PIPE_START = 1,
+    PIPE_END = 2,
+    //PIPE_END_PROXY,   // When a partial route is attached to PIPE_END, generated routes from pipe start are to the proxy for pipe end
     //PIPE_INTERMEDIATE_FIXTURE // TODO A fixture that is not an end point
 };
+
+#include <stdexcept>
+
+inline PipeEnd oppositeEnd (PipeEnd e)
+{
+    switch (e)
+    {
+        case NO_ENDPOINT: break;
+        case PIPE_START:  return  PIPE_END;
+        case PIPE_END:    return PIPE_START;
+    }
+    throw std::invalid_argument("invalid endpoint parameter");
+}
 
 using PipeId=char;
 

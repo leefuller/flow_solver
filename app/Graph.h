@@ -9,7 +9,7 @@
 #include <functional>
 #include <optional>
 #include <string>
-//#include <iostream>
+#include <iostream>
 
 /*
  Graph Terminology:
@@ -317,12 +317,11 @@ class Graph
             {
                 if (!(*validatePathCallback)(path))
                 {
-                    // No need to change path here. Rolling back the recursion does that.
                     //std::cout << "Add node " << pos << " to invalid set" << std::endl;
                     m_invalid.insert(pos);
                     //std::cout << "Pop node " << path.back() << std::endl;
                     path.pop_back();
-                    //visited.erase(pos);
+                    visited.erase(pos);
                     return;
                 }
             }
@@ -372,6 +371,8 @@ class Graph
      * Callback from genAllPaths when a path is found.
      */
     std::function<void(Path&)> * emitPathCallback{nullptr};
+
+    //std::function<void(const NodeT&)> * representFn{nullptr};
 };
 
 #endif
