@@ -12,6 +12,17 @@
 #define ANNOUNCE_ROUTE_FOUND            0
 #define ANNOUNCE_SOLVER_DETAIL          0
 
+const PipeId INTERESTING_PIPE = 'K';
+inline bool interestingPipe (PipeId id)
+{ return INTERESTING_PIPE == id; }
+
+inline bool interestingCoordinate (Coordinate c, PipeId idPipe = NO_PIPE_ID)
+{
+    if (c != createCoordinate(8,7))
+        return false;
+    return idPipe == NO_PIPE_ID ? true : interestingPipe(idPipe);
+}
+
 bool isCorner (ConstPuzzlePtr puzzle, Coordinate coord) noexcept;
 
 Direction checkCornerAtCoordinate (ConstPuzzlePtr puzzle, Coordinate c);

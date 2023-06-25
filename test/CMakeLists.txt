@@ -36,7 +36,13 @@ target_link_libraries(plumber_test
 )
 
 add_executable(formations_test formations_test.cpp)
-target_sources(formations_test PRIVATE formations_test.cpp ../app/formations.cpp ../app/oneway.cpp ../app/deadend.cpp ../app/adjacencyLaw.cpp)
+target_sources(formations_test PRIVATE formations_test.cpp 
+	../app/formations.cpp
+	../app/oneway.cpp
+	../app/deadend.cpp
+	../app/adjacencyLaw.cpp
+	../app/entrapment.cpp
+)
 target_link_libraries(formations_test
 	PRIVATE flow
 	GTest::gtest_main
@@ -74,7 +80,14 @@ target_link_libraries(matrix_test
 )
 
 add_executable(solver_test solver_test.cpp 
-	../app/Solver.cpp ../app/RouteGenViaGraph.cpp ../app/deadend.cpp ../app/formations.cpp ../app/adjacencyLaw.cpp ../app/oneway.cpp)
+	../app/Solver.cpp
+	../app/RouteGenViaGraph.cpp
+	../app/deadend.cpp
+	../app/formations.cpp
+	../app/adjacencyLaw.cpp
+	../app/oneway.cpp
+	../app/entrapment.cpp
+)
 target_link_libraries(solver_test 
 	PRIVATE flow
 	GTest::gtest_main

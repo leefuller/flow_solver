@@ -186,140 +186,11 @@ bool detectInvalidDeviation (ConstPuzzlePtr puzzle, const Route & route, PipeId 
 }
 
 /**
- * Find a pipe endpoint that may be reachable via empty cells only.
- * @param puzzle
- * @param c         Start coordinate
- * @param idPipe    Identifier of pipe
- * @param visited   Coordinates visited so far
- * @return true if the endpoint is found.
+ * Detect whether the given route results in a bad formation.
+ * @param puzzle    Puzzle to assess
+ * @param route     Route to assess
+ * @param idPipe    Pipe identifier for route
  */
-static bool recurseReachable (ConstPuzzlePtr puzzle, Coordinate c, PipeId idPipe, std::set<Coordinate> & visited)
-{
-    for (Direction d : allTraversalDirections)
-    {
-        if (!puzzle->isCoordinateChangeValid (c, d))
-            continue;
-
-        ConstCellPtr pAdj = puzzle->getConstCellAdjacent(c, d);
-        if (pAdj == nullptr)
-            continue;
-        if (std::find(std::begin(visited), std::end(visited), pAdj->getCoordinate()) != visited.end()) // already visited
-            continue;
-        if (!pAdj->isEmpty())
-        {
-            if (pAdj->getPipeId() == idPipe && (pAdj->getEndpoint() == PipeEnd::PIPE_END || puzzle->isProxyEnd(idPipe, pAdj->getCoordinate())))
-            {
-                // found
-                //logger << "Reachable end found for pipe " << idPipe << " at " << pAdj->getCoordinate() << std::endl;
-                return true;
-            }
-            continue;
-        }
-        visited.insert(pAdj->getCoordinate());
-        if (recurseReachable(puzzle, pAdj->getCoordinate(), idPipe, visited))
-            return true;
-    }
-    return false;
-}
-
-/**
- * Entrapment exists where a route traps empty cells,
- * or cells that have one endpoint for a particular pipe, but not both,
- * within an area that prevents any other pipe from reaching.
- * @param puzzle    The puzzle state being assessed
- * @param route     The route being considered
- * @param idPipe    The pipe id for the route
- * @return true if the route traps something
- */
-bool detectEntrapment (ConstPuzzlePtr puzzle, const Route & route, PipeId idPipe)
-{
-    // Note, there can be more than 1 trapped area. Return true on detection of first.
-    // An area trapped could be a lot of the puzzle.
-    // An endpoint is trapped if it cannot reach the corresponding endpoint, where the route acts as a wall.
-
-    bool trapped = false;
-
-    // The simplest case is where a single empty cell is trapped.
-    // (ie. on each side is a border or other pipe.)
-    std::function<void(ConstCellPtr)> lam = [&puzzle, &trapped, idPipe](ConstCellPtr cell){
-        if (!puzzle->isCellReachable(cell->getCoordinate()))
-            return;
-        // Dead end formation can indicate a cell is trapped
-        if (detectDeadEndFormation(puzzle, cell->getCoordinate()))
-        {
-            logger << "Trap at dead end " << cell->getCoordinate() << std::endl;
-            trapped = true;
-        }
-    };
-    puzzle->forEveryCell(&lam);
-
-    if (!trapped)
-    {
-        /*
-          From the start point of every pipe:
-          If the route for that pipe is not complete,
-          "flood" all empty cells reachable from it.
-          If the other endpoint is not reached, then it is trapped.
-          For example, from either side "A" is trapped
-
-              =======================
-             | .  X  X  .     A  A (A)
-             |
-             | . (X)|X  .  .  A (X) .
-             |
-             | .  .  X  X  .  A  A  .
-              ==
-             |(A) A  .  X  .  .  .  .
-              =======================
-         */
-        const std::set<PipeId> & ids = puzzle->getPipeIds();
-        for (PipeId id : ids)
-        {
-            std::set<Coordinate> reachable;
-            Coordinate start = puzzle->findPipeEnd(id, PipeEnd::PIPE_START);
-            reachable.insert(start);
-            // Follow existing pipe from start, adding to reachable set
-            for (bool follow = true; follow; )
-            {
-                follow = false;
-                for (Direction d : allTraversalDirections)
-                {
-                    ConstCellPtr p = puzzle->getConstCellAdjacent(start, d);
-                    if (p == nullptr)
-                        continue;
-                    if (p->getPipeId() == id)
-                    {
-                        if (reachable.find(p->getCoordinate()) != reachable.end())
-                            continue;
-                        start = p->getCoordinate();
-                        reachable.insert(start);
-                        follow = true;
-                        break;
-                    }
-                }
-            }
-            if (start == puzzle->findPipeEnd(id, PipeEnd::PIPE_END) || puzzle->isProxyEnd(id, start))
-            {
-                // pipe is complete
-                //logger << "End found for pipe " << id << " at " << start << std::endl;
-                continue;
-            }
-
-            // Add reachable empty cells to reachable set.
-            //logger << "Recurse reachable for pipe " << id << " from " << start << std::endl;
-            if (!recurseReachable(puzzle, start, id, reachable))
-            {
-#if ANNOUNCE_ENTRAPMENT
-                logger << "End not reachable for pipe " << id << " from " << start << std::endl;
-#endif
-                trapped = true;
-                break;
-            }
-        }
-    }
-    return trapped;
-}
-
 bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPipe)
 {
     try
@@ -328,8 +199,6 @@ bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPi
         {
 #if ANNOUNCE_ADJACENCY_LAW_BREAK
             logger << "Adjacency rule broken for " << idPipe << " route " << route << std::endl;
-            //logger.stream() << route;
-            //logger << std::endl;
             Cell::setOutputConnectorRep(false);
             puzzle->streamPuzzleMatrix(logger.stream());
 #endif
@@ -338,8 +207,9 @@ bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPi
     }
     catch (const PuzzleException & ex)
     {
-        //logger.logException("Puzzle exception in checking adjacency for route", ex);
+#if ANNOUNCE_SOLVER_DETAIL
         logger << "Puzzle exception in checking adjacency for route: " << ex << std::endl;
+#endif
         throw;
     }
     try
@@ -356,8 +226,9 @@ bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPi
     }
     catch (const PuzzleException & ex)
     {
-        //logger.logException("Puzzle exception in checking for dead end formation for route ", ex);
+#if ANNOUNCE_SOLVER_DETAIL
         logger << "Puzzle exception in checking for dead end formation for route: " << ex << std::endl;
+#endif
         throw;
     }
     try
@@ -374,8 +245,9 @@ bool detectBadFormation (ConstPuzzlePtr puzzle, const Route & route, PipeId idPi
     }
     catch (const PuzzleException & ex)
     {
-        //logger.logException("Puzzle exception in checking for invalid deviation for route ", ex);
+#if ANNOUNCE_SOLVER_DETAIL
         logger << "Puzzle exception in checking for invalid deviation for route: " << ex << std::endl;
+#endif
         throw;
     }
     if (detectEntrapment(puzzle, route, idPipe))

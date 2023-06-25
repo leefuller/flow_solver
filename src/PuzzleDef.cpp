@@ -257,7 +257,7 @@ bool PuzzleDefinition::passCoordinateRangeCheck (Coordinate coord) const noexcep
 
 /**
  * Determine whether a coordinate change is valid, given starting coordinate and direction.
- * Disregards walls.
+ * Disregards walls and existing pipes.
  * @param coord     Starting coordinate
  * @param adj       Direction
  * @return true if coordinate change would be valid

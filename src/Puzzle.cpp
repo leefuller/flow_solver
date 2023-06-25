@@ -221,7 +221,7 @@ bool Puzzle::canNowTraverseDirectionFrom (Coordinate coord, Direction direction,
 /**
  * Get the adjacent cell in the given direction, regardless of inner walls.
  * (Inner walls are disregarded because diagonally has no direct route.
- * So keep result consistent for all adjacent.)
+ * So keep result consistent for all directions.)
  * @param direction     Direction from start coordinate to lookup
  * @param c     Coordinate of start cell
  * @return adjacent cell, regardless of inner walls. If an outer wall is in the direction, return nullptr.
@@ -238,7 +238,7 @@ ConstCellPtr Puzzle::getConstCellAdjacent (Coordinate c, Direction direction) co
 /**
  * Get the adjacent cell in the given direction, regardless of inner walls.
  * (Inner walls are disregarded because diagonally has no direct route.
- * So keep result consistent for all adjacent.)
+ * So keep result consistent for all directions.)
  * @param direction     Direction from start coordinate to lookup
  * @param c     Coordinate of start cell
  * @return adjacent cell, regardless of inner walls. If an outer wall is in the direction, return nullptr.

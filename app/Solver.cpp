@@ -105,8 +105,6 @@ void Solver::addRoute (PipeId idPipe, const Route & route)
     m_routesDict[idPipe].push_back(route);
 }
 
-const PipeId interestingPipe = 'N';
-
 /**
  * Callback from route generator for discovered route.
  * @param idPipe    Identifier of pipe
@@ -118,7 +116,7 @@ void Solver::processRoute (PipeId idPipe, Route & route)
     try
     {
 #if ANNOUNCE_SOLVER_DETAIL
-        if (idPipe == interestingPipe)
+        if (interestingPipe(idPipe))
             std::cout << idPipe << ": " << route << std::endl;
 #endif
         TryRoute t(m_puzzle, idPipe, route);
@@ -142,7 +140,7 @@ void Solver::processRoute (PipeId idPipe, Route & route)
     }
     catch (const PuzzleException & ex)
     {
-        if (idPipe == interestingPipe)
+        if (interestingPipe(idPipe))
         {
             logger << "Caught exception in processing route " << route << std::endl;
             logger << "Exception processing route: " << ex << std::endl;
@@ -498,7 +496,7 @@ bool Solver::validatePath (const std::vector<ConstCellPtr> & path)
     }
     catch (const PuzzleException & ex)
     {
-        if (idPipe == interestingPipe)
+        if (interestingPipe(idPipe))
         {
             logger << "Caught exception in processing route " << route << std::endl;
             logger << "Exception processing route: " << ex << std::endl;

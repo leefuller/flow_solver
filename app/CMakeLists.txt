@@ -7,6 +7,7 @@ add_executable(solver
 	formations.cpp
 	adjacencyLaw.cpp
 	deadend.cpp
+	entrapment.cpp
 	oneway.cpp
 	RouteGenViaGraph.cpp
 )
