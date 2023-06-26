@@ -118,6 +118,9 @@ class Graph
             std::string m_msg;
     };
 
+    static const bool STOP_GENERATION = false;
+    static const bool CONTINUE_GENERATION = !STOP_GENERATION;
+
     /**
      * Discover all paths between source and destination.
      * Any, and all paths discovered cause the emitPath function to be called.
@@ -240,7 +243,7 @@ class Graph
             visitor.visitNode(s->first, s->second);
     }
 
-    void setEmitPathCallback (std::function<void(Path&)> * callback) noexcept
+    void setEmitPathCallback (std::function<bool(Path&)> * callback) noexcept
     { emitPathCallback = callback; }
 
     void setValidatePathCallback (std::function<bool(const Path&)> * callback) noexcept
@@ -259,18 +262,20 @@ class Graph
     /**
      * Callback from genAllPaths when a path is found.
      * This only occurs during genAllPaths()
+     * @return STOP_GENERATION to stop further path generation
      */
-    void emitPath (Path & path) noexcept
+    bool emitPath (Path & path) noexcept
     {
         if (emitPathCallback != nullptr)
         {
             try
             {
-                (*emitPathCallback)(path);
+                return (*emitPathCallback)(path);
             }
             catch (...)
             {} // swallow anything thrown by callback
         }
+        return CONTINUE_GENERATION;
     }
 
     /**
@@ -300,8 +305,13 @@ class Graph
 
     /**
      * Recursive part of path generation.
+     * @param pos       Current position
+     * @param dest      Destination
+     * @param visited   Set of nodes visited
+     * @param path      Path generated so far
+     * @return STOP_GENERATION to stop further path generation
      */
-    void genAllPathsHelper (NodeT pos, NodeT dest, std::set<NodeT> & visited, Path & path) noexcept(false)
+    bool genAllPathsHelper (NodeT pos, NodeT dest, std::set<NodeT> & visited, Path & path) noexcept(false)
     {
         visited.insert(pos);
         path.push_back(pos);
@@ -309,7 +319,8 @@ class Graph
         if (pos == dest)
         {
             //std::cout << "emit path" << std::endl;
-            emitPath(path);
+            if (emitPath(path) == STOP_GENERATION)
+                return STOP_GENERATION;
         }
         else
         {
@@ -322,7 +333,7 @@ class Graph
                     //std::cout << "Pop node " << path.back() << std::endl;
                     path.pop_back();
                     visited.erase(pos);
-                    return;
+                    return CONTINUE_GENERATION;
                 }
             }
             // Not at destination yet. Recur for adjacent nodes not visited yet.
@@ -335,7 +346,10 @@ class Graph
                     continue;
                 }
                 if (visited.find(node) == visited.end())
-                    genAllPathsHelper(node, dest, visited, path);
+                {
+                    if (genAllPathsHelper(node, dest, visited, path) == STOP_GENERATION)
+                        return STOP_GENERATION;
+                }
             }
             // will now go back in the recursion stack,
             // so adjacent nodes in invalid group are no longer invalid
@@ -353,6 +367,7 @@ class Graph
         //std::cout << "Pop node " << path.back() << std::endl;
         path.pop_back();
         visited.erase(pos);
+        return CONTINUE_GENERATION;
     }
 
     /** Adjacency list */
@@ -369,8 +384,9 @@ class Graph
 
     /**
      * Callback from genAllPaths when a path is found.
+     * @return STOP_GENERATION to stop further path generation
      */
-    std::function<void(Path&)> * emitPathCallback{nullptr};
+    std::function<bool(Path&)> * emitPathCallback{nullptr};
 
     //std::function<void(const NodeT&)> * representFn{nullptr};
 };

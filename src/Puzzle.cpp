@@ -106,8 +106,11 @@ std::array<unsigned, 4> Puzzle::getGapsToObstructions (Coordinate c) const noexc
  */
 bool Puzzle::checkIfSolution (ConstPuzzlePtr puzzle, const std::map<PipeId, Route> & s)
 {
-    if (s.size() != puzzle->getNumPipes())
+    /*if (s.size() != puzzle->getNumPipes())
+    {
+        logger << "checkIfSolution: Puzzle has " << s.size() << " pipes. Expect " << puzzle->getNumPipes() << std::endl;
         return false; // Require one route per pipe
+    }*/
 
     std::set<Coordinate> coordinates;
     for (auto p : s)
@@ -119,6 +122,7 @@ bool Puzzle::checkIfSolution (ConstPuzzlePtr puzzle, const std::map<PipeId, Rout
             coordinates.insert(coord);
         }
     }
+
     // Check every cell is used.
     for (int r = 0; r < puzzle->getNumRows(); ++r)
     {
@@ -126,7 +130,9 @@ bool Puzzle::checkIfSolution (ConstPuzzlePtr puzzle, const std::map<PipeId, Rout
         {
             if (!puzzle->isCellReachable({r, c}))
                 continue;
-            if (coordinates.find({r, c}) == coordinates.end()) // TODO change to simple number, rather than iterate over cells
+            if (puzzle->getConstCellAtCoordinate({r, c})->isFixture())
+                continue;
+            if (coordinates.find({r, c}) == coordinates.end())
                 return false;
         }
     }

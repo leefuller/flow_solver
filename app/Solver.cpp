@@ -32,17 +32,15 @@ static unsigned countRoutesDiscarded = 0;
 
 /**
  * Calls the designated route generator which emits routes as they are generated.
- * @param existing  Route data already existing
+ * @param idPipe    Pipe identifier for routes
  */
-void Solver::generateRoutes (const std::map<PipeId, Route> & existing)
+void Solver::generateRoutes (PipeId idPipe)
 {
-    logger << "Solver: Generate routes" << std::endl;
-    for (PipeId idPipe : m_pipeIds)
-    {
+        logger << "Solver: Generate routes for " << idPipe << std::endl;
         countRoutes = 0;
         countRoutesDiscarded = 0;
 
-        m_routeGen.addReceiver(this);
+        m_routeGen.setReceiver(this);
 
         Coordinate start = m_puzzle->findPipeEnd(idPipe, PipeEnd::PIPE_START);
         Coordinate end = m_puzzle->findPipeEnd(idPipe, PipeEnd::PIPE_END);
@@ -72,21 +70,19 @@ void Solver::generateRoutes (const std::map<PipeId, Route> & existing)
         if (route.back() == end) // Route complete
         {
             processRoute(idPipe, route);
-            continue;
+            return;
         }
 
-        // TODO multi-threaded (thread per pipe). Each thread would need a copy of the puzzle.
         logger << "Generating routes for " << idPipe << std::endl;
         // NOTE: The route generator does not explicitly trace existing fixtures from start point.
         // The traverseToCreateGraph checks for NO_CONNECTOR to skip making a useless graph edge,
         // as long as the preliminary stuff has done a good job.
         // So that means the graph creation implicitly tracks the already assigned fixtures.
-        m_routeGen.generateRoutes(idPipe, m_puzzle);//, existing[idPipe]);
-        m_routeGen.removeReceiver(this);
+        m_routeGen.generateRoutes(idPipe, m_puzzle);
+        m_routeGen.removeReceiver();
         logger << countRoutes << " routes for " << idPipe << std::endl;
         if (countRoutesDiscarded)
             logger << countRoutesDiscarded << " routes discarded" << std::endl;
-    }
 }
 
 /**
@@ -109,8 +105,9 @@ void Solver::addRoute (PipeId idPipe, const Route & route)
  * Callback from route generator for discovered route.
  * @param idPipe    Identifier of pipe
  * @param route     Route generated
+ * @return Graph::STOP_GENERATION to indicate route generation can stop
  */
-void Solver::processRoute (PipeId idPipe, Route & route)
+bool Solver::processRoute (PipeId idPipe, Route & route)
 {
     ++countRoutes;
     try
@@ -136,6 +133,39 @@ void Solver::processRoute (PipeId idPipe, Route & route)
             m_puzzle->streamPuzzleMatrix(std::cout);
 #endif
             addRoute(idPipe, route);
+
+            if (m_pipeIds.size() > 1)
+            {
+                // Create solver with puzzle copy having pipe inserted.
+                std::set<PipeId> remainingPipes(m_pipeIds);
+                remainingPipes.erase(idPipe);
+                Solver solver(m_puzzle, remainingPipes);
+                if (route.size() > 1)
+                {
+                    Coordinate prevCoord = route[0];
+                    for (unsigned i = 1; i < route.size(); ++i)
+                    {
+                        Direction dFrom = areAdjacent(prevCoord, route[i]);
+                        CellPtr pCell1 = solver.m_puzzle->getCellAtCoordinate(prevCoord);
+                        if (pCell1->getConnection(dFrom) != CellConnection::FIXTURE_CONNECTION)
+                        {
+                            CellPtr pCell2 = solver.m_puzzle->getCellAtCoordinate(route[i]);
+#if ANNOUNCE_SOLVER_DETAIL
+                            logger << "Connect cells " << prevCoord << " to " << route[i] << std::endl;
+#endif
+                            solver.connectAndRevise(pCell1, pCell2, CellConnection::FIXTURE_CONNECTION);
+                        }
+                        prevCoord = route[i];
+                    }
+                }
+                // Call next solver
+                logger << "Solve for next pipe. Remaining = " << remainingPipes.size() << std::endl;
+                if (solver.solve())
+                {
+                    setSolved();
+                    return Graph<ConstCellPtr>::STOP_GENERATION;
+                }
+            }
         }
     }
     catch (const PuzzleException & ex)
@@ -147,6 +177,7 @@ void Solver::processRoute (PipeId idPipe, Route & route)
         }
         throw;
     }
+    return Graph<ConstCellPtr>::CONTINUE_GENERATION;
 }
 
 /**
@@ -164,57 +195,6 @@ bool Solver::checkSolution (std::vector<std::pair<PipeId, Route>>::iterator star
     }
     return Puzzle::checkIfSolution(m_puzzle, m);
 }
-
-#if 0
-/**
- * Recursive template function to process combinations
- * (From n items, process combinations of r items)
- * @param nbegin        Iterator for start of n items
- * @param nend          Iterator for end of n items
- * @param n_column      
- * @param rbegin        Iterator for start of r items
- * @param rend          Iterator for end of r items
- * @param r_column
- * @param loop
- * @param func          Function to run for each combination
- */
-template <class RanIt, class Func>
-bool recursive_combination (
-    RanIt nbegin, RanIt nend, int n_column,
-    RanIt rbegin, RanIt rend, int r_column, int loop, 
-    Func func)
-{
-    int r_size = rend - rbegin; // r
-    int localloop = loop; //
-    int local_n_column = n_column; //
-
-    // A different combination is out
-    if (r_column > (r_size - 1))
-    {
-        // func to return true to end recursion
-        return (*func)(rbegin, rend);
-    }
-    //===========================
-
-    for (int i = 0; i <= loop; ++i)
-    {
-        RanIt it1 = rbegin;
-        for (int cnt = 0; cnt < r_column; ++cnt)
-            ++it1;
-        RanIt it2 = nbegin;
-        for (int cnt2 = 0; cnt2 < n_column+i; ++cnt2)
-            ++it2;
-
-        *it1 = *it2;
-        ++local_n_column;
-
-        if (recursive_combination(nbegin, nend, local_n_column, rbegin, rend, r_column + 1, localloop, func))
-            return true;
-        --localloop;
-    }
-    return false;
-}
-#endif
 
 /**
  * Check whether a coordinate is adjacent to the start of a channel, but not in the channel.
@@ -750,17 +730,37 @@ bool Solver::solve()
                 std::bind(&Solver::addPipeIdToIdSetIfCellIsStart, std::reference_wrapper<Solver>(*this),
             std::placeholders::_1); // Placeholder for CellPtr
         m_puzzle->forEveryCell(&f);
+
         logger << "Pipes expected: " << m_pipeIds.size() << std::endl;
 
-        // Initialize possibilities for every cell that is not an endpoint
+        // Remove completed pipes from set
+        m_prelimRoutes.clear();
+        std::set<PipeId> remainingPipes;
+        for (PipeId id : m_pipeIds)
+        {
+            Route route;
+            if (m_puzzle->traceRoute(id, PipeEnd::PIPE_START, route))
+                m_prelimRoutes[id] = route;
+            else
+                remainingPipes.insert(id);
+            route.clear();
+        }
+        logger << "Pipes remaining: " << remainingPipes.size() << std::endl;
+        if (remainingPipes.empty())
+            return Puzzle::checkIfSolution(m_puzzle, m_prelimRoutes);
+
+        m_pipeIds = remainingPipes;
+
+        // Initialize possibilities for every cell that is not a fixture
         std::set<PipeId> & allPipesSet = m_pipeIds;
+
         // Set pipe possibilities
         std::function<void(CellPtr)> lam = [this, allPipesSet](CellPtr cell){
             if (cell == nullptr)
                 return;
             if (!m_puzzle->isCellReachable(cell->getCoordinate()))
                 return;
-            if (cell->isEndpoint())
+            if (cell->isFixture())
             { cell->setPossiblePipes(cell->getPipeId()); }
             else
             { cell->setPossiblePipes(allPipesSet); }
@@ -779,6 +779,9 @@ bool Solver::solve()
         bool changed = true;
 
         //---------------------------------------------------------
+        Cell::setOutputConnectorRep(true);
+        m_puzzle->streamPuzzleMatrix(std::cout);
+
         unsigned phase = 1;
         // Phase 1: Run the "only one way" rule until the puzzle stops changing
         logger << "Solving: Preliminary phase" << std::endl;
@@ -862,137 +865,12 @@ bool Solver::solve()
 
         // For each pipe, find routes between endpoints.
         logger << "Generating routes..." << std::endl;
-        generateRoutes(m_prelimRoutes);
 
-        if (m_routesDict.size() != m_pipeIds.size())
-        {
-            logger << "Solution impossible. No valid route found for a pipe." << std::endl;
-            logger << "Expect " << m_pipeIds.size() << " pipes. Have " << m_routesDict.size() << std::endl;
-            return false;
-        }
-
-        logger << "Generated routes for " << m_routesDict.size() << " pipes." << std::endl;
-        std::set<PipeId> solvedRoutes;
-        std::set<Coordinate> solvedCoordinates;
-        unsigned long count = 1;
-        // Generate a list of routes, as a list of pairs (id, route)
-        for (std::pair<const PipeId, std::vector<Route>> & pipeRouteList : m_routesDict) // std::map<PipeId, std::vector<Route>> m_routesDict;
-        {
-            PipeId idPipe = pipeRouteList.first;
-            /*logger << "Pipe " << pipeRouteList.first << " has " << pipeRouteList.second.size() << " routes" << std::endl;
-            for (Route & route : pipeRouteList.second)
-            {
-                logger << route << std::endl;
-                // Insert route into puzzle to show in output
-                m_puzzle->insertRoute(idPipe, route);
-                Cell::setOutputConnectorRep(false);
-                m_puzzle->streamPuzzleMatrix(std::cout);
-                m_puzzle->removeRoute();
-            }*/
-
-            count *= pipeRouteList.second.size();
-
-            if (pipeRouteList.second.size() == 1)
-            {
-                solvedRoutes.insert(idPipe);
-                for (Coordinate c : pipeRouteList.second[0])
-                    solvedCoordinates.insert(c);
-            }
-        }
-        if (!solvedRoutes.empty())
-        {
-            // Remove routes that intersect a solved route
-            for (std::pair<const PipeId, std::vector<Route>> & pipeRouteList : m_routesDict) // std::map<PipeId, std::vector<Route>> m_routesDict;
-            {
-                PipeId idPipe = pipeRouteList.first;
-                if (solvedRoutes.find(idPipe) != solvedRoutes.end())
-                    continue;
-                for (Route route : pipeRouteList.second)
-                {
-                    for (Coordinate c : solvedCoordinates)
-                    {
-                        if (coordinateInRoute(c, route))
-                        {
-                            // TODO remove route
-
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        //---------------------------------------------------------
-      
-        logger << count << " combinations." << std::endl;
-        logger << "Searching for solution..." << std::endl;
-
-        std::vector<PipeId> ids; // make list of pipe ids to use as a sequence in generating combinations
-        for (std::pair<const PipeId, std::vector<Route>> & pipeRouteList : m_routesDict)
-            ids.push_back(pipeRouteList.first);
-
-        // Find combination of pipes (1 per id) where endpoints are reached without intersection of pipes (ie. without any shared coordinate)
-        //unsigned n = m_pipeIds.size();
-        unsigned n = ids.size();
-        unsigned * index = new unsigned[n];
-        for (unsigned i = 0; i < n; ++i)
-            index[i] = 0;
-
-        while (true)
-        {
-            // Handle combination
-            std::set<Coordinate> coordinateSet;
-            bool duplicate = false;
-            for (unsigned i = 0; i < n && !duplicate; i++)
-            {
-                const Route & route = m_routesDict[ids[i]][index[i]];
-                for (Coordinate c : route)
-                {
-                    if (coordinateSet.find(c) != coordinateSet.end())
-                    {
-                        duplicate = true;
-                        break;
-                    }
-                    coordinateSet.insert(c);
-                }
-            }
-            if (!duplicate)
-            {
-                // Solution found
-                //checkSolution();
-                std::cout << "Solved:" << std::endl;
-                for (unsigned i = 0; i < n; ++i)
-                {
-                    const Route & route = m_routesDict[ids[i]][index[i]];
-                    std::cout << ids[i] << ": ";
-                    for (Coordinate c : route)
-                        std::cout << c << ' ';
-                    std::cout << std::endl;
-                }
-                delete[] index;
-                return true;
-            }
-            else // duplicate
-            {
-                // no need to look at elements to the right when a duplicate (pipe intersection) is found
-                // FIXME but then code below will never execute
-                //continue;
-            }
-
-            // find rightmost group that has more elements left
-            int next = n - 1;
-            while (next >= 0 && (index[next] + 1 >= m_routesDict[ids[next]].size()))
-                --next;
-            if (next < 0) // no combinations left
-                break;
-
-            index[next]++;
-            // reset index for remaining groups right
-            for (unsigned i = next + 1; i < n; i++)
-                index[i] = 0;
-        }
-
-        delete[] index;
+        // Choose 1 of the pipe ids
+        PipeId idPipe = *m_pipeIds.begin();
+        generateRoutes(idPipe);
+        //generateRoutes(m_prelimRoutes);
+        return isSolved();
     }
     catch (const std::exception & ex)
     {
@@ -1003,4 +881,13 @@ bool Solver::solve()
 
 Solver::Solver (const char * puzzleDef)
   : m_puzzleDef(puzzleDef), m_puzzle(m_puzzleDef.generatePuzzle()), m_routeGen(m_puzzle)
+{}
+
+/**
+ * Create a new Solver with a copy of a puzzle
+ * @param p         Puzzle to be copied
+ * @param ids       Set of pipe identifiers
+ */
+Solver::Solver (const PuzzlePtr p, const std::set<PipeId> & ids)
+  : m_puzzleDef(p->definition()), m_puzzle(new Puzzle(*p)), m_pipeIds(ids), m_routeGen(m_puzzle)
 {}

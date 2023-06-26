@@ -3,6 +3,8 @@
 #include "Cell.h"
 #include "Logger.h"
 
+#define DEBUG_ROUTEGEN  0
+
 static Logger & logger = Logger::getDefaultLogger();
 
 /*
@@ -41,15 +43,30 @@ class GraphOutputter : public Graph<NodeT>::Visitor
         std::ostream & m_os;
 };
 
-void RouteGenViaGraph::receivePath (Graph<ConstCellPtr>::Path & path)
+/**
+ * Handle path emitted by Graph
+ * @param path  Path generated
+ * @return Graph::STOP_GENERATION to stop further path generation
+ */
+bool RouteGenViaGraph::receivePath (Graph<ConstCellPtr>::Path & path)
 {
     // The emission from the graph does not identify anything other than the path between nodes.
     // Need to convert path to Route and emit
     if (path.empty())
-        return;
+    {
+#if DEBUG_ROUTEGEN
+        logger << "Empty path generated" << std::endl;
+#endif
+        return Graph<ConstCellPtr>::STOP_GENERATION;
+    }
     PipeId idPipe = path[0]->getPipeId();
     if (idPipe == NO_PIPE_ID) // should not happen
-        return;
+    {
+#if DEBUG_ROUTEGEN
+        //logger << "Path generated with no id" << std::endl;
+#endif
+        return Graph<ConstCellPtr>::STOP_GENERATION;
+    }
     Route route;
     for (ConstCellPtr pCell : path)
         route.push_back(pCell->getCoordinate());
@@ -84,8 +101,7 @@ void RouteGenViaGraph::receivePath (Graph<ConstCellPtr>::Path & path)
             }
         }
     }
-    RouteGenerator::emitRoute(idPipe, route);
-
+    return RouteGenerator::emitRoute(idPipe, route);
 }
 
 RouteGenViaGraph::RouteGenViaGraph (ConstPuzzlePtr puzzle)

@@ -174,6 +174,9 @@ class Puzzle
     unsigned gapToObstruction (Coordinate c, Direction d) const noexcept;
     std::array<unsigned, 4> getGapsToObstructions (Coordinate c) const noexcept;
 
+    const PuzzleDefinition & definition () const noexcept
+    { return m_def; }
+
   private:
     bool continueDirectionForRoute (ConstCellPtr pCell, Route & route, Direction direction) const noexcept;
 

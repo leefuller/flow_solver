@@ -16,17 +16,18 @@ class Solver : public RouteReceiver
 {
   public:
     Solver (const char * puzzleDef);
+	Solver (const PuzzlePtr p, const std::set<PipeId> & pipeIds);
 
 	Solver (const Solver &) = delete;
 
     bool solve();
 
-	virtual void processRoute (PipeId idPipe, Route & route);
+	virtual bool processRoute (PipeId idPipe, Route & route) override;
 
 	bool checkSolution (std::vector<std::pair<PipeId, Route>>::iterator start, std::vector<std::pair<PipeId, Route>>::iterator end);
 
   private:
-	void generateRoutes (const std::map<PipeId, Route> & existing);
+	void generateRoutes (PipeId idPipe);
 
 	void addRoute (PipeId idPipe, const Route & route);
 
@@ -70,6 +71,12 @@ class Solver : public RouteReceiver
 
     bool validatePath (const std::vector<ConstCellPtr> & path);
 
+	void setSolved (bool solved = true) noexcept
+	{ m_solved = solved; }
+
+	bool isSolved () const noexcept
+	{ return m_solved; }
+
     /** Definition for puzzle to be solved */
     PuzzleDefinition m_puzzleDef;
 
@@ -87,6 +94,8 @@ class Solver : public RouteReceiver
 	std::map<PipeId, std::vector<Route>> m_routesDict;
 
 	//std::vector<std::pair<PipeId, Route>> m_routeList;
+
+	bool m_solved{false};
 
 	friend void checkSolution (Solver & solver, std::vector<std::pair<PipeId, Route>>::iterator start, std::vector<std::pair<PipeId, Route>>::iterator end);
 };

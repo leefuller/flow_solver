@@ -36,7 +36,7 @@ class PuzzleDefinition
           validatePuzzle();
       }
 
-      PuzzleDefinition (const PuzzleDefinition&) = delete; // prevent copy construct
+      PuzzleDefinition (const PuzzleDefinition&);
       PuzzleDefinition (PuzzleDefinition && p) = delete; // prevent move construct
       PuzzleDefinition & operator= (const PuzzleDefinition &) = delete; // prevent copy assignment
       PuzzleDefinition & operator= (PuzzleDefinition &&) = delete; // prevent move assignment

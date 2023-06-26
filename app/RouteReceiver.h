@@ -11,12 +11,16 @@ using Route = std::vector<Coordinate>;
 
 /**
  * Base class for those to process routes.
- * RouteGenerator accepts instances to callback when a route is generated.
  */
 class RouteReceiver
 {
   public:
-    virtual void processRoute (PipeId idPipe, Route & route) = 0;
+    /**
+     * @param idPipe    Identifier of pipe for route
+     * @param route     Route to handle
+     * @return false to indicate route generation can stop, where the source is a RouteGenerator
+     */
+    virtual bool processRoute (PipeId idPipe, Route & route) = 0;
 
     virtual ~RouteReceiver ()
     {}

@@ -22,37 +22,40 @@ class RouteGenerator
 
     virtual ~RouteGenerator () {}
 
-    inline void emitRoute (PipeId idPipe, Route & route) const noexcept
+    /**
+     * Callback from the Graph route generator when a completed route is found.
+     * @param idPipe    Identifier of pipe for route
+     * @param route     Route to handle
+     * @return false to indicate route generation can stop
+     */
+    inline bool emitRoute (PipeId idPipe, Route & route) const noexcept
     {
-    	for (RouteReceiver * rx : m_receivers)
+        if (m_receiver == nullptr)
+            return false; // no point generating routes if there is no handler for them
+
+        try
         {
-            try
-            {
-                rx->processRoute(idPipe, route);
-            }
-            catch (const PuzzleException & ex)
-            {
-                std::cerr << "Puzzle exception in route processor: " << ex << std::endl;
-            }
-            catch (...)
-            {
-                std::cerr << "Something thrown by route processor" << std::endl;
-            }
+            return m_receiver->processRoute(idPipe, route);
         }
+        catch (const PuzzleException & ex)
+        {
+            std::cerr << "Puzzle exception in route processor: " << ex << std::endl;
+        }
+        catch (...)
+        {
+            std::cerr << "Something thrown by route processor" << std::endl;
+        }
+        return true;
     }
 
-    void addReceiver(RouteReceiver * receiver)
-    {
-        m_receivers.push_back(receiver);
-    }
+    void setReceiver(RouteReceiver * receiver)
+    { m_receiver = receiver; }
 
-    void removeReceiver(RouteReceiver * receiver)
-    {
-        m_receivers.remove(receiver);
-    }
+    void removeReceiver()
+    { m_receiver = nullptr; }
 
   private:
-    std::list<RouteReceiver *> m_receivers;
+    RouteReceiver * m_receiver{nullptr};
 };
 
 #endif

@@ -32,7 +32,7 @@ class GraphOutputter : public Graph<int>::Visitor
 
 static std::vector<std::vector<int>> paths;
 
-void receivePath (const std::vector<int> & path)
+bool receivePath (const std::vector<int> & path)
 {
     std::cout << "Received path: ";
     for (auto it = std::begin(path); it != std::end(path); ++it)
@@ -41,6 +41,7 @@ void receivePath (const std::vector<int> & path)
     }
     std::cout << std::endl;
     paths.push_back(path);
+    return Graph<int>::CONTINUE_GENERATION;
 }
 
 #define TEST_BFS    1
@@ -85,7 +86,7 @@ TEST(graph_test, graph_path_gen)
     graph.addEdge(1, 2);
     graph.addEdge(4, 7); // <<<< Causes a divided graph, where not all nodes are reachable
 
-    std::function<void(std::vector<int> & path)> fn = receivePath;
+    std::function<bool(std::vector<int> & path)> fn = receivePath;
     graph.setEmitPathCallback(&fn);
     std::cout << "All paths from 1 to 6:" << std::endl;
     paths.clear();
@@ -207,7 +208,7 @@ TEST(graph_test, test_validation)
     Graph<int> graph;
     std::function<bool(const std::vector<int>&)> fval = std::bind(&validator, std::placeholders::_1);
     graph.setValidatePathCallback(&fval);
-    std::function<void(std::vector<int> & path)> fn = receivePath;
+    std::function<bool(std::vector<int> & path)> fn = receivePath;
     graph.setEmitPathCallback(&fn);
 
     graph.addEdge(3, 8);

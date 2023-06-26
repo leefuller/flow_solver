@@ -168,7 +168,7 @@ const char * _8x8_Mania1 = \
     EXPECT_TRUE(solver.solve());
 }
 
-#if 0
+#if 1
 TEST(solver_test, test_worm31)
 {
 const char * worm31 =
@@ -201,3 +201,28 @@ const char * worm31 =
     EXPECT_TRUE(solver.solve());
 }
 #endif
+
+TEST(solver_test, test_extreme22)
+{
+const char * extreme22 = \
+{" = = = = = = = = ,"  \
+ "|. . . . . . . .|,"  \
+ "|               |,"  \
+ "|. B . . . . . .|,"  \
+ "|               |,"  \
+ "|. . . G . . . .|,"  \
+ "|               |,"  \
+ "|. . . . . . . .|,"  \
+ "|               |,"  \
+ "|. . . R . . . .|,"  \
+ "|               |,"  \
+ "|. . B . . . . .|,"  \
+ "|               |,"  \
+ "|Y . . . . . . .|,"  \
+ "|               |,"  \
+ "|. . . . . G Y R|,"  \
+ " = = = = = = = ="   \
+};
+    Solver solver(extreme22);
+    EXPECT_TRUE(solver.solve());
+}

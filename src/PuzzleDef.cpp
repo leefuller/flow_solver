@@ -475,3 +475,16 @@ void PuzzleDefinition::validatePuzzle ()
     logger << "Validated puzzle with " << m_puzzleRows.size() << " rows" << std::endl;
 #endif
 }
+
+PuzzleDefinition::PuzzleDefinition (const PuzzleDefinition& def)
+    : m_pipeIds(def.getPipeIds()), m_puzzleRows(std::vector<std::vector<std::unique_ptr<Cell>>>(def.getNumRows()))
+{
+    for (unsigned i = 0; i < def.getNumRows(); ++i)
+    {
+        std::vector<std::unique_ptr<Cell>> & v = m_puzzleRows[i];
+        for (auto & p : def.m_puzzleRows[i])
+        {
+            v.push_back(std::make_unique<Cell>(p));
+        }
+    }
+}

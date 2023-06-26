@@ -1,6 +1,7 @@
 #include "Plumber.h"
 #include "Cell.h"
 #include "Puzzle.h"
+#define LOG_PLUMBER_ACTION  0
 #if LOG_PLUMBER_ACTION
 #include "Logger.h"
 static Logger & logger = Logger::getDefaultLogger();

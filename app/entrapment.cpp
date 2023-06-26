@@ -45,10 +45,8 @@ static bool recurseReachable (ConstPuzzlePtr puzzle, Coordinate c, PipeId idPipe
 #endif
             continue;
         }
-        //visited.insert(pAdj->getCoordinate()); // FIXME: should this be insertting c ?
         visited.insert(c);
         if (recurseReachable(puzzle, pAdj->getCoordinate(), idPipe, visited))
-        //if (recurseReachable(puzzle, c, idPipe, visited))
             return true;
     }
     return false;

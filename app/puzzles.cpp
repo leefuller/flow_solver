@@ -259,15 +259,46 @@ const char * _8x8_Mania1 = \
  " = = = = = = = ="   \
 };
 
+const char * extreme22 = \
+{" = = = = = = = = ,"  \
+ "|. . . . . . . .|,"  \
+ "|               |,"  \
+ "|. B . . . . . .|,"  \
+ "|               |,"  \
+ "|. . . G . . . .|,"  \
+ "|               |,"  \
+ "|. . . . . . . .|,"  \
+ "|               |,"  \
+ "|. . . R . . . .|,"  \
+ "|               |,"  \
+ "|. . B . . . . .|,"  \
+ "|               |,"  \
+ "|Y . . . . . . .|,"  \
+ "|               |,"  \
+ "|. . . . . G Y R|,"  \
+ " = = = = = = = ="   \
+};
+/*
+R R R R R R R R
+R B Y Y Y Y Y R
+R B Y G G G Y R
+R B Y Y Y G Y R
+R B B R Y G Y R
+R R B R Y G Y R
+Y R R R Y G Y R
+Y Y Y Y Y G Y R
+*/
+
 const char * puzzleDefs[] = {
-    //simplePuzzleDef1,
-    //simplePuzzleDef2,
+    simplePuzzleDef1,
+    simplePuzzleDef2,
     courtyard1,
-    //puzzleDef3,
-    //inkblot1,
-    //pockets34,
-    //_8x8_Mania1,
+    puzzleDef3,
+    inkblot1,
+    pockets34,
+    _8x8_Mania1,
     //worm31,
+    extreme22,
     nullptr
 };
 

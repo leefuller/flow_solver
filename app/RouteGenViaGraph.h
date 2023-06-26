@@ -28,7 +28,7 @@ class RouteGenViaGraph : public RouteGenerator
 
     void handleStartEndPoint (const Puzzle & puzzle, ConstCellPtr pCell, Matrix<bool> & visited);
 
-    void receivePath (Graph<ConstCellPtr>::Path & path);
+    bool receivePath (Graph<ConstCellPtr>::Path & path);
 
     void validatePath (const Graph<ConstCellPtr>::Path & path);
 
@@ -38,7 +38,7 @@ class RouteGenViaGraph : public RouteGenerator
 
     Matrix<bool> m_visited;
 
-    std::function<void(Graph<ConstCellPtr>::Path&)> m_pathReceiver;
+    std::function<bool(Graph<ConstCellPtr>::Path&)> m_pathReceiver;
 };
 
 #endif
