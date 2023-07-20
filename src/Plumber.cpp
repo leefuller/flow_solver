@@ -9,18 +9,10 @@ static Logger & logger = Logger::getDefaultLogger();
 
 #include <sstream>
 
-PlumberException::PlumberException (const char * fmt,...) noexcept
-{
-    va_list args;
-    va_start(args, fmt);
-    setMsg(buildString(fmt, args));
-    va_end(args);
-}
-
-static void plumberCheck (bool expect, bool condition, const char * msg) noexcept(false)
+static void plumberCheck (const SourceRef & ref, bool expect, bool condition, const char * msg) noexcept(false)
 {
     if (condition != expect)
-        throw PlumberException(msg);
+        throw PlumberException(ref, msg);
 }
 
 static std::string makePlumberMessage (const char * msg, Coordinate c, Direction d = Direction::NONE) noexcept
@@ -32,43 +24,47 @@ static std::string makePlumberMessage (const char * msg, Coordinate c, Direction
     return ss.str();
 }
 
-static void plumberCheck (bool expect, bool condition, const char * msg, Coordinate c, Direction d = Direction::NONE) noexcept(false)
+static void plumberCheck (const SourceRef & ref, bool expect, bool condition, const char * msg, Coordinate c, Direction d = Direction::NONE) noexcept(false)
 {
     if (condition != expect)
-        throw PlumberException(makePlumberMessage(msg, c, d));
+        throw PlumberException(ref, makePlumberMessage(msg, c, d));
 }
 
 /** Helper function to throw PlumberException on condition false.
  * @param msg   Message in exception
  */
-static void plumberCheckTrue (bool condition, const char * msg) noexcept(false)
-{ plumberCheck(true, condition, msg); }
+static void plumberCheckTrue (const SourceRef & ref, bool condition, const char * msg) noexcept(false)
+{ plumberCheck(ref, true, condition, msg); }
 
-static void plumberCheckTrue (bool condition, const char * msg, Coordinate c, Direction d = Direction::NONE) noexcept(false)
-{ plumberCheck(true, condition, msg, c, d); }
+static void plumberCheckTrue (const SourceRef & ref, bool condition, const char * msg, Coordinate c, Direction d = Direction::NONE) noexcept(false)
+{ plumberCheck(ref, true, condition, msg, c, d); }
 
 /** Helper function to throw PlumberException on condition true.
  * @param msg   Message in exception
  */
-static void plumberCheckFalse (bool condition, const char * msg) noexcept(false)
-{ plumberCheck(false, condition, msg); }
+static void plumberCheckFalse (const SourceRef & ref, bool condition, const char * msg) noexcept(false)
+{ plumberCheck(ref, false, condition, msg); }
 
-static void plumberCheckFalse (bool condition, const char * msg, Coordinate c, Direction d = Direction::NONE) noexcept(false)
-{ plumberCheck(false, condition, msg, c, d); }
+static void plumberCheckFalse (const SourceRef & ref, bool condition, const char * msg, Coordinate c, Direction d = Direction::NONE) noexcept(false)
+{ plumberCheck(ref, false, condition, msg, c, d); }
 
 /**
  * Remove connector from cell, if possible.
  * @return true if the cell connection status was changed
  * @throw PlumberException if removal of connector would leave the cell invalid (so impossible to solve the puzzle)
  */
-bool Plumber::removeConnector (CellPtr pCell, Direction d)
+bool Plumber::removeConnector (CellPtr pCell, Direction d) noexcept(false)
 {
     if (pCell->getConnection(d) == CellConnection::NO_CONNECTOR)
         return false; // Nothing to do
+#if LOG_PLUMBER_ACTION
+    //logger << "Plumber asked to remove connection " << asString(d) << " from cell at " << coordinateToString(pCell->getCoordinate());
+    //logger << std::endl;
+#endif
     unsigned countConnectors = std::count_if(std::begin(pCell->m_connection), std::end(pCell->m_connection),
             [](CellConnection c){ return c != CellConnection::NO_CONNECTOR; });
     if (pCell->isEndpoint() && countConnectors == 1)
-        throw PlumberException("cannot remove last connection from endpoint", pCell->getCoordinate());
+        throw PlumberException(SOURCE_REF, "cannot remove last connection from endpoint " + coordinateToString(pCell->getCoordinate()));
     if (!pCell->isEndpoint() && countConnectors == 2)
     {
 #if LOG_PLUMBER_ACTION
@@ -76,7 +72,7 @@ bool Plumber::removeConnector (CellPtr pCell, Direction d)
         pCell->describe(logger.stream());
         logger << std::endl;
 #endif
-        throw PlumberException("cannot have less than 2 connections for cell", pCell->getCoordinate());
+        throw PlumberException(SOURCE_REF, "cannot have less than 2 connections for cell " + coordinateToString(pCell->getCoordinate()));
     }
 
     pCell->setConnection(d, CellConnection::NO_CONNECTOR);
@@ -108,39 +104,39 @@ void Plumber::connect (Coordinate c1, Coordinate c2, PipeId idPipe, CellConnecti
     logger << "Plumb " << con << " from " << c1 << " to " << c2 << " for pipe " << idPipe << std::endl;
 #endif
     if (con != CellConnection::FIXTURE_CONNECTION && con != CellConnection::TEMPORARY_CONNECTION)
-        throw PlumberException("attempt invalid connection %d", con);
+        throw PlumberException(SOURCE_REF, "attempt invalid connection " + std::to_string(con));
 
     Direction dFrom = areAdjacent(c1, c2); // Direction from c1 to c2, if adjacent
-    plumberCheckFalse(dFrom == Direction::NONE, "cannot connect cells not adjacent", c1);
+    plumberCheckFalse(SOURCE_REF, dFrom == Direction::NONE, "cannot connect cells not adjacent", c1);
 
     CellPtr pCell1 = m_puzzle->getCellAtCoordinate(c1);
-    plumberCheckFalse(pCell1 == nullptr, "attempt to connect cell not existing", c1);
+    plumberCheckFalse(SOURCE_REF, pCell1 == nullptr, "attempt to connect cell not existing", c1);
     CellPtr pCell2 = m_puzzle->getCellAtCoordinate(c2);
-    plumberCheckFalse(pCell2 == nullptr, "attempt to connect cell not existing", c2);
+    plumberCheckFalse(SOURCE_REF, pCell2 == nullptr, "attempt to connect cell not existing", c2);
 
     if (pCell1->getPipeId() == NO_PIPE_ID && pCell2->getPipeId() == NO_PIPE_ID)
-        throw PlumberException("nothing to connect");
+        throw PlumberException(SOURCE_REF, "nothing to connect");
 
-    plumberCheckFalse(pCell1->getPipeId() != idPipe && pCell1->getPipeId() != NO_PIPE_ID, "attempt to connect incompatible pipes", pCell1->getCoordinate());
-    plumberCheckFalse(pCell2->getPipeId() != idPipe && pCell2->getPipeId() != NO_PIPE_ID, "attempt to connect incompatible pipes", pCell2->getCoordinate());
+    plumberCheckFalse(SOURCE_REF, pCell1->getPipeId() != idPipe && pCell1->getPipeId() != NO_PIPE_ID, "attempt to connect incompatible pipes", pCell1->getCoordinate());
+    plumberCheckFalse(SOURCE_REF, pCell2->getPipeId() != idPipe && pCell2->getPipeId() != NO_PIPE_ID, "attempt to connect incompatible pipes", pCell2->getCoordinate());
 
     // Check adjacent connectors
-    plumberCheckFalse(pCell1->getConnection(dFrom) == CellConnection::NO_CONNECTOR, "attempt to connect where no connector exists", pCell1->getCoordinate(), dFrom);
-    plumberCheckFalse(pCell1->getConnection(dFrom) == CellConnection::FIXTURE_CONNECTION, "attempt to connect where fixed connection already exists", pCell1->getCoordinate(), dFrom);
-    plumberCheckFalse(pCell2->getConnection(opposite(dFrom)) == CellConnection::NO_CONNECTOR, "attempt to connect where no opposite connector exists", pCell2->getCoordinate(), opposite(dFrom));
-    plumberCheckFalse(pCell2->getConnection(opposite(dFrom)) == CellConnection::FIXTURE_CONNECTION, "attempt to connect where fixed connection already exists", pCell2->getCoordinate(), opposite(dFrom));
+    plumberCheckFalse(SOURCE_REF, pCell1->getConnection(dFrom) == CellConnection::NO_CONNECTOR, "attempt to connect where no connector exists", pCell1->getCoordinate(), dFrom);
+    plumberCheckFalse(SOURCE_REF, pCell1->getConnection(dFrom) == CellConnection::FIXTURE_CONNECTION, "attempt to connect where fixed connection already exists", pCell1->getCoordinate(), dFrom);
+    plumberCheckFalse(SOURCE_REF, pCell2->getConnection(opposite(dFrom)) == CellConnection::NO_CONNECTOR, "attempt to connect where no opposite connector exists", pCell2->getCoordinate(), opposite(dFrom));
+    plumberCheckFalse(SOURCE_REF, pCell2->getConnection(opposite(dFrom)) == CellConnection::FIXTURE_CONNECTION, "attempt to connect where fixed connection already exists", pCell2->getCoordinate(), opposite(dFrom));
 
     // Check attempt to set more than 1 fixture to endpoint, or more than 2 otherwise
     unsigned count = pCell1->countFixtureConnections();
     if (pCell1->isEndpoint() && count == 1)
-        throw PlumberException("attempt to connect extra fixed connection to end point", pCell1->getCoordinate());
+        throw PlumberException(SOURCE_REF, "attempt to connect extra fixed connection to end point", pCell1->getCoordinate());
     else if (count > 2) // cannot connect if cell already has 2 fixed connections
-        throw PlumberException("attempt to connect extra fixed connection", pCell1->getCoordinate());
+        throw PlumberException(SOURCE_REF, "attempt to connect extra fixed connection", pCell1->getCoordinate());
     count = pCell2->countFixtureConnections();
     if (pCell2->isEndpoint() && count == 1)
-        throw PlumberException("attempt to connect extra fixed connection to end point", pCell2->getCoordinate());
+        throw PlumberException(SOURCE_REF, "attempt to connect extra fixed connection to end point", pCell2->getCoordinate());
     else if (count > 2) // cannot connect if cell already has 2 fixed connections
-        throw PlumberException("attempt to connect extra fixed connection", pCell2->getCoordinate());
+        throw PlumberException(SOURCE_REF, "attempt to connect extra fixed connection", pCell2->getCoordinate());
 
     // Ok to connect
     pCell2->setPipeId(pCell1->getPipeId());

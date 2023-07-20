@@ -46,7 +46,7 @@ std::vector<CellBorder> PuzzleDefinition::parseHorizontalWall (const char ** pDe
         else
         {
             std::cerr << "Invalid character " << (int)c << " (" << c << ") in horizontal wall definition at " << i << std::endl;
-            throw PuzzleException("Invalid character in horizontal wall definition");
+            throw PuzzleException(SOURCE_REF, "Invalid character in horizontal wall definition");
         }
         skip = true;
         ++iCell;
@@ -303,7 +303,7 @@ Coordinate PuzzleDefinition::findPipeEnd (PipeId id, PipeEnd end) const noexcept
         }
         ++r;
     }
-    throw PuzzleException("pipe end not found");
+    throw PuzzleException(SOURCE_REF, "pipe end not found");
 }
 
 /** @return true if cell at coordinate is any endpoint */
@@ -399,7 +399,7 @@ std::vector<PuzzleRow> PuzzleDefinition::generateRows () const
 void PuzzleDefinition::validatePuzzle ()
 {
     if (m_puzzleRows.size() < 1)
-        throw PuzzleException("A valid puzzle definition requires at least 1 row");
+        throw PuzzleException(SOURCE_REF, "A valid puzzle definition requires at least 1 row");
 #if ANNOUNCE_SOLVER_DETAIL
     logger << "Validate puzzle with " << m_puzzleRows.size() << " rows" << std::endl;
 #endif
@@ -421,7 +421,7 @@ void PuzzleDefinition::validatePuzzle ()
                 cell->setConnection(Direction::EAST, cell->getBorder(Direction::EAST) == CellBorder::OPEN ? CellConnection::OPEN_FIXTURE : CellConnection::NO_CONNECTOR);
                 unsigned count = endpoints[cell->getPipeId()];
                 if (count > 1)
-                    throw PuzzleException("There are more than 2 endpoints for a pipe");
+                    throw PuzzleException(SOURCE_REF, "There are more than 2 endpoints for a pipe");
                 endpoints[cell->getPipeId()] = count + 1;
                 cell->setEndpoint(count == 0 ? PIPE_START : PIPE_END);
                 if (cell->getEndpoint() == PIPE_END)
@@ -445,15 +445,15 @@ void PuzzleDefinition::validatePuzzle ()
             }
         }
         if (row[0]->getBorder(Direction::WEST) != CellBorder::WALL)
-            throw PuzzleException("Left border not complete");
+            throw PuzzleException(SOURCE_REF, "Left border not complete");
         if (row[row.size() - 1]->getBorder(Direction::EAST) != CellBorder::WALL)
-            throw PuzzleException("Right border not complete");
+            throw PuzzleException(SOURCE_REF, "Right border not complete");
         ++r;
     }
     for (std::pair<PipeId, unsigned> endpoint : endpoints)
     {
         if (endpoint.second != 2)
-            throw PuzzleException("Pipe does not have 2 endpoints");
+            throw PuzzleException(SOURCE_REF, "Pipe does not have 2 endpoints");
     }
 
     // Check first row has top border, and last row has bottom border
@@ -463,12 +463,12 @@ void PuzzleDefinition::validatePuzzle ()
         if (isCellReachable({0, c}))
         {
             if (m_puzzleRows[0][c]->getBorder(Direction::NORTH) != CellBorder::WALL)
-                throw PuzzleException("Top border not complete");
+                throw PuzzleException(SOURCE_REF, "Top border not complete");
         }
         if (isCellReachable({rLast, c}))
         {
             if (m_puzzleRows[rLast][c]->getBorder(Direction::SOUTH) != CellBorder::WALL)
-                throw PuzzleException("Bottom border not complete");
+                throw PuzzleException(SOURCE_REF, "Bottom border not complete");
         }
     }
 #if ANNOUNCE_SOLVER_DETAIL

@@ -7,6 +7,9 @@
 
 static Logger & logger = Logger::getDefaultLogger();
 
+Logger & RouteGenViaGraph::getLogger () const noexcept
+{ return logger; }
+
 /*
  * Using graph terminology:
  * - Each cell is a node/vertex.
@@ -121,7 +124,7 @@ void RouteGenViaGraph::generateRoutes (PipeId id, ConstPuzzlePtr puzzle)
 
     createGraph(*puzzle, id);
 
-    /*GraphOutputter<ConstCellPtr> out(std::cout);
+    /*GraphOutputter<ConstCellPtr> out(logger.stream());
     m_graph.accept(out);*/
 
     Coordinate start = puzzle->findPipeEnd(id, PipeEnd::PIPE_START);
@@ -194,6 +197,8 @@ void RouteGenViaGraph::handleStartEndPoint (const Puzzle & puzzle, ConstCellPtr 
             continue;
         //if (pCellAdjacent->getPipeId() != pCell->getPipeId())
             //continue;
+        if (!pCellAdjacent->hasPossible(pCell->getPipeId()))
+            continue;
 #if SUPPORT_ROUTE_DIRECTION
         if (pCell->getEndpoint() == PipeEnd::PIPE_START)
             m_graph.addDirectedEdge(pCell, pCellAdjacent); // out from start point
@@ -217,6 +222,8 @@ void RouteGenViaGraph::traverseToCreateGraph (const Puzzle & puzzle, PipeId idPi
     visited.at(from) = true;
     if (pCell->getPipeId() != idPipe && pCell->getPipeId() != NO_PIPE_ID)
         return; // cell is for different pipe
+    if (!pCell->hasPossible(idPipe))
+        return; // pipe not possible at cell
 
     if (pCell->getEndpoint() == PipeEnd::PIPE_START || pCell->getEndpoint() == PipeEnd::PIPE_END)
     {
@@ -250,7 +257,7 @@ void RouteGenViaGraph::traverseToCreateGraph (const Puzzle & puzzle, PipeId idPi
             }
             else if (pCellAdjacent->getPipeId() == NO_PIPE_ID)
             {
-                //if (pCellAdjacent->hasPossible(idPipe))
+                if (pCellAdjacent->hasPossible(idPipe))
                     m_graph.addEdge(pCell, pCellAdjacent);
             }
         }

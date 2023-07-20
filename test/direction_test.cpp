@@ -73,11 +73,11 @@ TEST(direction_test, coordinate_change)
 
 TEST(direction_test, DirectionAsString)
 {
-    EXPECT_STREQ(asString(Direction::NORTH), "north");
-    EXPECT_STREQ(asString(Direction::SOUTH), "south");
-    EXPECT_STREQ(asString(Direction::WEST), "west");
-    EXPECT_STREQ(asString(Direction::EAST), "east");
-    EXPECT_STREQ(asString(Direction::NONE), "none");
+    EXPECT_STREQ(asCharSequence(Direction::NORTH), "north");
+    EXPECT_STREQ(asCharSequence(Direction::SOUTH), "south");
+    EXPECT_STREQ(asCharSequence(Direction::WEST), "west");
+    EXPECT_STREQ(asCharSequence(Direction::EAST), "east");
+    EXPECT_STREQ(asCharSequence(Direction::NONE), "none");
 }
 
 TEST(direction_test, Direction)

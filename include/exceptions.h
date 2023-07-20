@@ -9,12 +9,12 @@ class InvalidOperation : public PuzzleException
     public:
         //InvalidOperation (const char * fmt,...) noexcept;
 
-        InvalidOperation (const std::string & msg) noexcept
-            : PuzzleException(msg)
+        InvalidOperation (const SourceRef & ref, const std::string & msg) noexcept
+            : PuzzleException(ref, msg)
         {}
 
-        InvalidOperation (const std::string && msg) noexcept
-            : PuzzleException(msg)
+        InvalidOperation (const SourceRef & ref, const std::string && msg) noexcept
+            : PuzzleException(ref, msg)
         {}
 
         InvalidOperation (const InvalidOperation & ex) = default;

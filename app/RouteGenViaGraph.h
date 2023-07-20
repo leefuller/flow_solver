@@ -21,6 +21,9 @@ class RouteGenViaGraph : public RouteGenerator
     void setPathValidator (std::function<bool(const std::vector<ConstCellPtr>&)> * callback) noexcept
     { m_graph.setValidatePathCallback(callback); }
 
+  protected:
+    virtual Logger & getLogger () const noexcept;
+
   private:
     void createGraph (const Puzzle & puzzle, PipeId idPipe);
 

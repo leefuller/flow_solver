@@ -34,14 +34,15 @@ std::string PuzzleException::buildString (const char * fmt, va_list & args) noex
     return ss.str();
 }
 
-PuzzleException::PuzzleException (const char * fmt, va_list & args) noexcept
-    : m_msg(buildString(fmt, args))
+PuzzleException::PuzzleException (const SourceRef & ref, const char * fmt, va_list & args) noexcept
+    : m_ref(ref), m_msg(buildString(fmt, args))
 {}
 
 /**
  * Exception message created as in C printf arguments
  */
-PuzzleException::PuzzleException (const char * fmt,...) noexcept
+PuzzleException::PuzzleException (const SourceRef & ref, const char * fmt,...) noexcept
+    : m_ref(ref)
 {
     va_list args;
     va_start(args, fmt);

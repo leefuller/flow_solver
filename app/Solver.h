@@ -20,16 +20,16 @@ class Solver : public RouteReceiver
 
 	Solver (const Solver &) = delete;
 
-    bool solve();
+    bool solve() noexcept;
 
 	virtual bool processRoute (PipeId idPipe, Route & route) override;
 
-	bool checkSolution (std::vector<std::pair<PipeId, Route>>::iterator start, std::vector<std::pair<PipeId, Route>>::iterator end);
+	bool checkSolution (std::vector<std::pair<PipeId, Route>>::iterator start, std::vector<std::pair<PipeId, Route>>::iterator end) noexcept;
 
   private:
 	void generateRoutes (PipeId idPipe);
 
-	void addRoute (PipeId idPipe, const Route & route);
+	void addRoute (PipeId idPipe, const Route & route) noexcept;
 
 	void addPipeIdToIdSetIfCellIsStart (ConstCellPtr cell) noexcept;
 
@@ -90,14 +90,12 @@ class Solver : public RouteReceiver
 
     std::map<PipeId, Route> m_prelimRoutes;
 
-	/** Each pipe has a list of possible routes. */
-	std::map<PipeId, std::vector<Route>> m_routesDict;
-
-	//std::vector<std::pair<PipeId, Route>> m_routeList;
+	/** List of possible routes. */
+	std::vector<std::pair<PipeId, Route>> m_routeList;
 
 	bool m_solved{false};
 
-	friend void checkSolution (Solver & solver, std::vector<std::pair<PipeId, Route>>::iterator start, std::vector<std::pair<PipeId, Route>>::iterator end);
+	friend void checkSolution (Solver & solver, std::vector<std::pair<PipeId, Route>>::iterator start, std::vector<std::pair<PipeId, Route>>::iterator end) noexcept;
 };
 
 /**

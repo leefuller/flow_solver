@@ -90,15 +90,9 @@ void Solver::generateRoutes (PipeId idPipe)
  * @param idPipe    Pipe identifier
  * @param route     Route to add
  */
-void Solver::addRoute (PipeId idPipe, const Route & route)
+void Solver::addRoute (PipeId idPipe, const Route & route) noexcept
 {
-    if (m_routesDict.find(idPipe) == m_routesDict.end())
-    {
-        // Create empty route list for pipe
-        logger << "Create list of routes for " << idPipe << std::endl;
-        m_routesDict[idPipe] = std::vector<Route>();
-    }
-    m_routesDict[idPipe].push_back(route);
+    m_routeList.push_back(std::pair<PipeId, Route>(idPipe, route));
 }
 
 /**
@@ -153,7 +147,16 @@ bool Solver::processRoute (PipeId idPipe, Route & route)
 #if ANNOUNCE_SOLVER_DETAIL
                             logger << "Connect cells " << prevCoord << " to " << route[i] << std::endl;
 #endif
-                            solver.connectAndRevise(pCell1, pCell2, CellConnection::FIXTURE_CONNECTION);
+                            try
+                            {
+                                solver.connectAndRevise(pCell1, pCell2, CellConnection::FIXTURE_CONNECTION);
+                            }
+                            catch (PuzzleException & ex)
+                            {
+                                ex.addContext(SOURCE_REF, "connect " + coordinateToString(pCell1->getCoordinate()) + 
+                                " to " + coordinateToString(pCell2->getCoordinate()) + " in processing route " + routeToString(route));
+                                throw;
+                            }
                         }
                         prevCoord = route[i];
                     }
@@ -163,8 +166,16 @@ bool Solver::processRoute (PipeId idPipe, Route & route)
                 if (solver.solve())
                 {
                     setSolved();
-                    return Graph<ConstCellPtr>::STOP_GENERATION;
                 }
+            }
+            else
+            {
+                setSolved(checkSolution(m_routeList.begin(), m_routeList.end()));
+            }
+            if (isSolved())
+            {
+                logger << "Solved" << std::endl;
+                return Graph<ConstCellPtr>::STOP_GENERATION;
             }
         }
     }
@@ -184,7 +195,7 @@ bool Solver::processRoute (PipeId idPipe, Route & route)
  * Check if Routes in list given by iterators are a solution.
  * Requires one route per pipe id.
  */
-bool Solver::checkSolution (std::vector<std::pair<PipeId, Route>>::iterator start, std::vector<std::pair<PipeId, Route>>::iterator end)
+bool Solver::checkSolution (std::vector<std::pair<PipeId, Route>>::iterator start, std::vector<std::pair<PipeId, Route>>::iterator end) noexcept
 {
     std::map<PipeId, Route> m;
     for (; start != end; start++)
@@ -278,6 +289,7 @@ static void describeConnection (ConstCellPtr cellFrom, ConstCellPtr cellAdjacent
  * - If any adjacent pair of cells with common id have an open fixture facing each other,
  *   then it can be changed to a fixture, if allowed.
  * - A non-fixed connection next to a fixed endpoint can be removed.
+ * @param pCell     Cell bring revised
  * @return cells where any change is made
  */
 std::set<CellPtr> Solver::reviseCell (CellPtr pCell) noexcept(false)
@@ -288,104 +300,127 @@ std::set<CellPtr> Solver::reviseCell (CellPtr pCell) noexcept(false)
 #endif
     std::set<CellPtr> result;
     bool changed = false;
-    for (Direction d : allTraversalDirections)
+    try
     {
-        if (pCell->getConnection(d) == CellConnection::NO_CONNECTOR)
-            continue; // Disconnected direction is never restored
-
-        if (!pCell->canAcceptConnection(d))
+        for (Direction d : allTraversalDirections)
         {
-            // ensure no connector for direction
-            if (pCell->getConnection(d) != CellConnection::FIXTURE_CONNECTION &&
-                pCell->getConnection(d) != CellConnection::NO_CONNECTOR)
+            if (pCell->getConnection(d) == CellConnection::NO_CONNECTOR)
+                continue; // Disconnected direction is never restored
+
+            if (!pCell->canAcceptConnection(d))
             {
-                if (m_puzzle->getPlumber()->removeConnector(pCell, d))
+                // ensure no connector for direction
+                if (pCell->getConnection(d) != CellConnection::FIXTURE_CONNECTION &&
+                    pCell->getConnection(d) != CellConnection::NO_CONNECTOR)
                 {
-                    changed = true;
-                    result.insert(pCell);
+                    try 
+                    {
+                        if (m_puzzle->getPlumber()->removeConnector(pCell, d))
+                        {
+                            changed = true;
+                            result.insert(pCell);
+                        }
+                    }
+                    catch (PlumberException & ex)
+                    {
+                        ex.addContext(SOURCE_REF, "remove connection " + asString(d) + " from " + coordinateToString(pCell->getCoordinate()));
+                        throw;
+                    }
+                    // remove connector from adjacent cell, if any
+                    CellPtr pAdj = m_puzzle->getCellAdjacent(pCell->getCoordinate(), d);
+                    if (pAdj != nullptr)
+                    {
+                        try
+                        {
+                            if (m_puzzle->getPlumber()->removeConnector(pAdj, opposite(d)))
+                            {
+                                changed = true;
+                                result.insert(pAdj);
+                            }
+                        }
+                        catch (PlumberException & ex)
+                        {
+                            ex.addContext(SOURCE_REF, "remove connection " + asString(opposite(d)) + " from " + coordinateToString(pAdj->getCoordinate()));
+                            throw;
+                        }
+                    }
                 }
-                // remove connector from adjacent cell, if any
+                continue;
+            }
+            // else pCell can accept connection
+            if (pCell->isFixture() && pCell->getBorder(d) != CellBorder::WALL)
+            {
                 CellPtr pAdj = m_puzzle->getCellAdjacent(pCell->getCoordinate(), d);
                 if (pAdj != nullptr)
                 {
-                    // remove connector from adjacent cell, if any
-                    if (m_puzzle->getPlumber()->removeConnector(pAdj, opposite(d)))
+                    if (pAdj->isFixture())
                     {
-                        changed = true;
-                        result.insert(pAdj);
-                    }
-                }
-            }
-            continue;
-        }
-        // else pCell can accept connection
-        if (pCell->isFixture() && pCell->getBorder(d) != CellBorder::WALL)
-        {
-            CellPtr pAdj = m_puzzle->getCellAdjacent(pCell->getCoordinate(), d);
-            if (pAdj != nullptr)
-            {
-                if (pAdj->isFixture())
-                {
-                    if (pAdj->getPipeId() != pCell->getPipeId())
-                    {
-                        // Ensure no connector between adjacent fixtures for different pipes
-                        if (pCell->getConnection(d) != CellConnection::NO_CONNECTOR)
+                        if (pAdj->getPipeId() != pCell->getPipeId())
                         {
-                            if (m_puzzle->getPlumber()->removeConnector(pCell, d))
+                            // Ensure no connector between adjacent fixtures for different pipes
+                            if (pCell->getConnection(d) != CellConnection::NO_CONNECTOR)
                             {
-                                changed = true;
-                                result.insert(pCell);
-                                //result.insert(pAdj); // adjacent could change accordingly
-                            }
-                            // remove connector from adjacent cell, if any
-                            CellPtr pAdj = m_puzzle->getCellAdjacent(pCell->getCoordinate(), d);
-                            if (pAdj != nullptr)
-                            {
-                                // remove connector from adjacent cell, if any
-                                if (m_puzzle->getPlumber()->removeConnector(pAdj, opposite(d)))
+                                if (m_puzzle->getPlumber()->removeConnector(pCell, d))
                                 {
                                     changed = true;
-                                    result.insert(pAdj);
+                                    result.insert(pCell);
+                                    //result.insert(pAdj); // adjacent could change accordingly
                                 }
-                            }
-                            continue;
-                        }
-                    }
-                    else // next to same pipe
-                    {
-                        if (pAdj->getConnection(opposite(d)) != CellConnection::NO_CONNECTOR)
-                        {
-                            if (pAdj->canAcceptConnection(opposite(d)))
-                            {
-                                // Adjacent cell can connect
-                                m_puzzle->getPlumber()->connect(pCell->getCoordinate(), pAdj->getCoordinate(),
-                                        pCell->getPipeId(), CellConnection::FIXTURE_CONNECTION);
-
-                                pCell->setPossiblePipes(pAdj->getPipeId());
-                                // if pipe is complete, update possibilities for all other puzzle cells
-                                Route route;
-                                if (m_puzzle->traceRoute(pCell->getPipeId(), PipeEnd::PIPE_START, route))
+                                // remove connector from adjacent cell, if any
+                                CellPtr pAdj = m_puzzle->getCellAdjacent(pCell->getCoordinate(), d);
+                                if (pAdj != nullptr)
                                 {
-#if ANNOUNCE_SOLVER_DETAIL
-                                    logger << "Found route " << std::endl;
-#endif
-                                    m_prelimRoutes.insert_or_assign(pCell->getPipeId(), route);
-                                    updateRemovePossibleForAllOther(pCell->getPipeId());
+                                    // remove connector from adjacent cell, if any
+                                    if (m_puzzle->getPlumber()->removeConnector(pAdj, opposite(d)))
+                                    {
+                                        changed = true;
+                                        result.insert(pAdj);
+                                    }
                                 }
-
-                                changed = true;
-                                // need to revise both connected
-                                result.insert(pCell);
-                                result.insert(pAdj); // adjacent could change accordingly
                                 continue;
                             }
                         }
+                        else // next to same pipe
+                        {
+                            if (pAdj->getConnection(opposite(d)) != CellConnection::NO_CONNECTOR)
+                            {
+                                if (pAdj->canAcceptConnection(opposite(d)))
+                                {
+                                    // Adjacent cell can connect
+                                    m_puzzle->getPlumber()->connect(pCell->getCoordinate(), pAdj->getCoordinate(),
+                                            pCell->getPipeId(), CellConnection::FIXTURE_CONNECTION);
+
+                                    pCell->setPossiblePipes(pAdj->getPipeId());
+                                    // if pipe is complete, update possibilities for all other puzzle cells
+                                    Route route;
+                                    if (m_puzzle->traceRoute(pCell->getPipeId(), PipeEnd::PIPE_START, route))
+                                    {
+    #if ANNOUNCE_SOLVER_DETAIL
+                                        logger << "Found route " << std::endl;
+    #endif
+                                        m_prelimRoutes.insert_or_assign(pCell->getPipeId(), route);
+                                        updateRemovePossibleForAllOther(pCell->getPipeId());
+                                    }
+
+                                    changed = true;
+                                    // need to revise both connected
+                                    result.insert(pCell);
+                                    result.insert(pAdj); // adjacent could change accordingly
+                                    continue;
+                                }
+                            }
+                        }
                     }
+                    // else pAdj is not a fixture
                 }
-                // else pAdj is not a fixture
             }
+            // else pCell is not a fixture
         }
-        // else pCell is not a fixture
+    }
+    catch (PuzzleException & ex)
+    {
+        ex.addContext(SOURCE_REF, "revise cell at " + coordinateToString(pCell->getCoordinate()));
+        throw;
     }
     return result;
 }
@@ -433,9 +468,19 @@ void Solver::connectAndRevise (CellPtr pCellFrom, CellPtr pCellAdjacent, CellCon
     {
         for (CellPtr p : toRevise)
         {
-            std::set<CellPtr> r = reviseCell(p);
-            for (CellPtr pr : r)
-                reviseMore.insert(pr);
+            try
+            {
+                std::set<CellPtr> r = reviseCell(p);
+                for (CellPtr pr : r)
+                    reviseMore.insert(pr);
+            }
+            catch (PuzzleException & ex)
+            {
+                ex.addContext(SOURCE_REF, "revise after connect pipe " + 
+                    std::to_string(pCellFrom->getPipeId()) + " at " + 
+                    coordinateToString(pCellFrom->getCoordinate()) + " to " + coordinateToString(pCellAdjacent->getCoordinate()));
+                throw;
+            }
         };
         toRevise = reviseMore;
         reviseMore.clear();
@@ -487,62 +532,81 @@ bool Solver::validatePath (const std::vector<ConstCellPtr> & path)
 }
 
 /**
- * Connect given pipe to adjacent cell if there is only 1 possible pipe for the adjacent cell.
- * @param p
+ * Connect given pipe to adjacent cell if there is only 1 possible pipe for the adjacent cell,
+ * and it has the same id as the cell p.
+ * @param pCheck         Cell for which possible connection is checked
  * @param changed
  */
-void Solver::connectIfOnlyOnePossibility (CellPtr p, bool & changed)
+void Solver::connectIfOnlyOnePossibility (CellPtr pCheck, bool & changed)
 {
-    if (p == nullptr)
+    if (pCheck == nullptr)
         return;
-    if (p->isFixture())
+    if (pCheck->isFixture())
     {
-        std::set<Direction> sameIdsAdjacent;
-        for (Direction d : allTraversalDirections)
+        std::set<Direction> sameIdsAdjacent; // directions to adjacent cells matching cell pipe id
+        for (Direction dirToAdjacent : allTraversalDirections)
         {
-            if (p->getBorder(d) == CellBorder::WALL)
+            if (pCheck->getBorder(dirToAdjacent) == CellBorder::WALL)
                 continue;
-            CellPtr pAdj = m_puzzle->getCellAdjacent(p->getCoordinate(), d);
+            CellPtr pAdj = m_puzzle->getCellAdjacent(pCheck->getCoordinate(), dirToAdjacent);
             if (pAdj == nullptr)
                 continue;
             if (pAdj->getPipeId() == UNREACHABLE_CELL_DEF_CH)
                 continue;
-            const std::set<PipeId> & ids = pAdj->getPossiblePipes();
+
+            // Adjacent cell is directly reachable, disregarding it's current status
+            const std::set<PipeId> & idsPossible = pAdj->getPossiblePipes(); // set of pipe ids possible at adjacent cell
 #if ANNOUNCE_SOLVER_DETAIL
-            logger << p->getCoordinate() << " " << asString(d) << " has " << ids.size() << " possibilities";
-            for (PipeId id : ids)
+            logger << pCheck->getCoordinate() << " " << asString(dirToAdjacent) << " has " << idsPossible.size() << " possibilities";
+            for (PipeId id : idsPossible)
                 logger << "'" << id << "' ";
             logger << std::endl;
 #endif
-            if (ids.size() == 1)
+            if (idsPossible.size() == 1)
             {
-                PipeId id = *std::begin(ids);
-                if (id != p->getPipeId())
+                PipeId id = *std::begin(idsPossible);
+                if (id != pCheck->getPipeId())
                     continue;
-                if (p->getConnection(d) == CellConnection::FIXTURE_CONNECTION)
+                if (pCheck->getConnection(dirToAdjacent) == CellConnection::FIXTURE_CONNECTION)
                     continue;
 #if ANNOUNCE_SOLVER_DETAIL
                 logger << "Connect with only 1 possibility at " << pAdj->getCoordinate() << std::endl;
 #endif
-                connectAndRevise(p, pAdj, CellConnection::FIXTURE_CONNECTION);
-                changed = true;
+                try
+                {
+                    connectAndRevise(pCheck, pAdj, CellConnection::FIXTURE_CONNECTION);
+                    changed = true; // TODO not sure if this should return immediately
+                }
+                catch (PuzzleException & ex)
+                {
+                    ex.addContext(SOURCE_REF, "connect for only 1 possibility");
+                    throw;
+                }
             }
-            else if (ids.find(p->getPipeId()) != ids.end())
+            else if (idsPossible.find(pCheck->getPipeId()) != idsPossible.end())
             {
-                sameIdsAdjacent.insert(d);
+                sameIdsAdjacent.insert(dirToAdjacent);
             }
         }
         if (sameIdsAdjacent.size() == 1)
         {
             Direction d = *std::begin(sameIdsAdjacent);
-            if (p->getConnection(d) == CellConnection::FIXTURE_CONNECTION || p->getConnection(d) == CellConnection::NO_CONNECTOR)
+            if (pCheck->getConnection(d) == CellConnection::FIXTURE_CONNECTION || pCheck->getConnection(d) == CellConnection::NO_CONNECTOR)
                 return;
-            CellPtr pAdj = m_puzzle->getCellAdjacent(p->getCoordinate(), d);
+            CellPtr pAdj = m_puzzle->getCellAdjacent(pCheck->getCoordinate(), d);
 #if ANNOUNCE_SOLVER_DETAIL
             logger << "Connect with only 1 possible direction at " << pAdj->getCoordinate() << std::endl;
 #endif
-            connectAndRevise(p, pAdj, CellConnection::FIXTURE_CONNECTION);
-            changed = true;
+            try
+            {
+                connectAndRevise(pCheck, pAdj, CellConnection::FIXTURE_CONNECTION);
+                changed = true;
+            }
+            catch (PuzzleException & ex)
+            {
+                ex.addContext(SOURCE_REF, "connect for only 1 possible direction");
+                throw;
+            }
         }
     }
 }
@@ -550,27 +614,30 @@ void Solver::connectIfOnlyOnePossibility (CellPtr p, bool & changed)
 /**
  * Check if there is an obstruction after 1 cell in direction from given cell,
  * and if the obstruction is a pipe, that it is not the same pipe as in the given cell.
+ * @param pCell     Cell to check
+ * @param dirCheck  Direction to check from cell
+ * @return true if path is obstructed after 1 empty cell in the given direction
  */
-bool Solver::checkObstructionAfter1 (ConstCellPtr pCell, Direction d)
+bool Solver::checkObstructionAfter1 (ConstCellPtr pCell, Direction dirCheck)
 {
     if (pCell == nullptr)
         return false;
 #if ANNOUNCE_SOLVER_DETAIL
-    logger << "check obstruction " << asString(d) << " after 1" << std::endl;
+    logger << "check obstruction " << asString(dirCheck) << " after 1" << std::endl;
 #endif
-    if (!pCell->isBorderOpen(d)) // obstructed by a wall
+    if (!pCell->isBorderOpen(dirCheck)) // obstructed by a wall
         return false;
 
     Coordinate c = pCell->getCoordinate();
-    if (bool obstruct = true; m_puzzle->gapToObstruction(c, d) == 1)
+    if (bool obstruct = true; m_puzzle->gapToObstruction(c, dirCheck) == 1)
     {
-        CellPtr pAdj = m_puzzle->getCellAdjacent(c, d);
+        CellPtr pAdj = m_puzzle->getCellAdjacent(c, dirCheck);
         if (pAdj != nullptr)
         {
-            if (pAdj->isBorderOpen(d)) // Obstruction is a pipe
+            if (pAdj->isBorderOpen(dirCheck)) // Obstruction is a pipe
             {
                 CellPtr pObstruct = nullptr;
-                if (Coordinate coordObstruction = c; coordinateChange(coordObstruction, d, 2))
+                if (Coordinate coordObstruction = c; coordinateChange(coordObstruction, dirCheck, 2))
                 {
                     pObstruct = m_puzzle->getCellAtCoordinate(coordObstruction);
                     if (pObstruct->getPipeId() == pCell->getPipeId())
@@ -681,8 +748,16 @@ void Solver::checkFillToObstruction (CellPtr pCell, bool & changed)
         // If the obstruction is actually another step away, it will be dealt with in another iteration
         Coordinate dest = pCell->getCoordinate();
         coordinateChange(dest, d);
-        connectAndRevise(pCell, m_puzzle->getCellAtCoordinate(dest), CellConnection::FIXTURE_CONNECTION);
-        changed = true;
+        try
+        {
+            connectAndRevise(pCell, m_puzzle->getCellAtCoordinate(dest), CellConnection::FIXTURE_CONNECTION);
+            changed = true;
+        }
+        catch (PuzzleException & ex)
+        {
+            ex.addContext(SOURCE_REF, "connect " + asString(d) + " towards obstruction");
+            throw;
+        }
     }
 }
 
@@ -695,7 +770,15 @@ void Solver::checkOneWay (CellPtr pCellFrom, bool & changed)
     {
         changed = true;
         CellPtr pCellAdjacent = m_puzzle->getCellAdjacent(pCellFrom->getCoordinate(), oneWay);
-        connectAndRevise(pCellFrom, pCellAdjacent, CellConnection::FIXTURE_CONNECTION);
+        try
+        {
+            connectAndRevise(pCellFrom, pCellAdjacent, CellConnection::FIXTURE_CONNECTION);
+        }
+        catch (PuzzleException & ex)
+        {
+            ex.addContext(SOURCE_REF, "connect " + asString(oneWay) + " only from " + coordinateToString(pCellFrom->getCoordinate()));
+            throw;
+        }
 
         //m_puzzle->streamPuzzleMatrix(std::cout);
     }
@@ -717,7 +800,7 @@ void listCellPossibilities (const PuzzlePtr p)
     p->forEveryCell(&lam);
 }
 
-bool Solver::solve()
+bool Solver::solve() noexcept
 {
     m_puzzle->streamPuzzleMatrix(std::cout);
     try

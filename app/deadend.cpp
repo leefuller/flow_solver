@@ -46,6 +46,10 @@ bool detectDeadEndFormation (ConstPuzzlePtr puzzle, Coordinate coord)
           B . .       |. .
             C          B
          */
+        // FIXME: It is a dead end with an empty cell adjacent where obstructions are in the other 3 directions,
+        // and those obstructions can be walls or completed route(s).
+        // But at this level we don't know if an adjacent pipe is in a completed route.
+
         if (emptyAdjacent > 0)
             return false;
 

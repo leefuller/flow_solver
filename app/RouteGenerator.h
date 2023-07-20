@@ -9,6 +9,7 @@
 #include "Puzzle.h"
 #include "RouteReceiver.h"
 #include "PuzzleException.h"
+#include "../include/Logger.h"
 
 class Puzzle;
 
@@ -39,11 +40,11 @@ class RouteGenerator
         }
         catch (const PuzzleException & ex)
         {
-            std::cerr << "Puzzle exception in route processor: " << ex << std::endl;
+            getLogger() << "Puzzle exception in route processor: " << ex << std::endl;
         }
         catch (...)
         {
-            std::cerr << "Something thrown by route processor" << std::endl;
+            getLogger() << "Something thrown by route processor" << std::endl;
         }
         return true;
     }
@@ -53,6 +54,9 @@ class RouteGenerator
 
     void removeReceiver()
     { m_receiver = nullptr; }
+
+  protected:
+    virtual Logger & getLogger () const noexcept = 0;
 
   private:
     RouteReceiver * m_receiver{nullptr};

@@ -149,7 +149,7 @@ const char * puzzleDef3 = \
  " =================== "   \
 };
 
-const char * worm31 =
+const char * worm31 = // FIXME: Fails to solve this.
  //0 1 2 3 4 5 6 7 8 9 10
 {" ===================== ,"  \
  "|N .|     |O . . . . .|,"  \
@@ -259,7 +259,7 @@ const char * _8x8_Mania1 = \
  " = = = = = = = ="   \
 };
 
-const char * extreme22 = \
+const char * extreme8x8_22 = \
 {" = = = = = = = = ,"  \
  "|. . . . . . . .|,"  \
  "|               |,"  \
@@ -278,7 +278,17 @@ const char * extreme22 = \
  "|. . . . . G Y R|,"  \
  " = = = = = = = ="   \
 };
-/*
+/*  After preliminary phase, should have:
+. . . . . . . .
+. B . . . . . .
+. . . G . . . .
+. . . . . . . .
+. . . R . . . .
+. . B . . . . R
+Y . . . . . Y R
+Y Y . . . G Y R
+
+Solution:
 R R R R R R R R
 R B Y Y Y Y Y R
 R B Y G G G Y R
@@ -289,6 +299,80 @@ Y R R R Y G Y R
 Y Y Y Y Y G Y R
 */
 
+const char * extreme10x10_13 = \
+{" = = = = = = = = = = ,"  \
+ "|R . . . . . . . . B|,"  \
+ "|                   |,"  \
+ "|O . . . . . . . . P|,"  \
+ "|                   |,"  \
+ "|. . . . . . . . . .|,"  \
+ "|                   |,"  \
+ "|. G . . . . . . Y .|,"  \
+ "|                   |,"  \
+ "|. . . . . . . R . .|,"  \
+ "|                   |,"  \
+ "|. . . O . . . P . .|,"  \
+ "|                   |,"  \
+ "|. . . . . . . B . .|,"  \
+ "|                   |,"  \
+ "|. . . . . . . G . .|,"  \
+ "|                   |,"  \
+ "|. Y . . . . . . . .|,"  \
+ "|                   |,"  \
+ "|. . . . . . . . . .|,"  \
+ " = = = = = = = = = ="   \
+};
+/* Solution
+R R R R R B B B B B
+O O O O R B P P P P
+R R R O R B P R R R
+R G R O R B P R Y R
+R G R O R B P R Y R
+R G R O R B P P Y R
+R G R R R B B B Y R
+R G G G G G G G Y R
+R Y Y Y Y Y Y Y Y R
+R R R R R R R R R R
+*/
+
+const char * party26 = \
+{" = = = = = = = = = = = = = = = ,"  \
+ "|         |. . . . .|         |,"  \
+ "|      = =           = =      |,"  \
+ "|     |. . . D . D . . W|     |,"  \
+ "|    =                   =    |,"  \
+ "|   |O . . . . . . . . G .|   |,"  \
+ "|  =                       =  |,"  \
+ "| |E . . . X . . . . . W . R| |,"  \
+ "| |                         | |,"  \
+ "| |. g . . . . . . . . . . .| |,"  \
+ "|=       = =       = =       =|,"  \
+ "|K . . .|   |. . .|   |. . . .|,"  \
+ "|       |   |     |   |       |,"  \
+ "|. . . T|   |. . .|   |. . . .|,"  \
+ "|       |   |     |   |       |,"  \
+ "|. . . X|   |. . .|   |. Y . .|,"  \
+ "|       |   |     |   |       |,"  \
+ "|. . . E|   |. . .|   |. . . .|,"  \
+ "|        = =       = =        |,"  \
+ "|. . . . . . . . . . . . . . .|,"  \
+ "|                             |,"  \
+ "|. . . . . . . . . . . . . . .|,"  \
+ "|                             |,"  \
+ "|. . . . . . . . . . . . . . .|,"  \
+ "|                             |,"  \
+ "|. . . . g . . . . . Y . . . .|,"  \
+ "|                             |,"  \
+ "|. N . . . . . P . O . . . C .|,"  \
+ "|  =           =           =  |,"  \
+ "|N| |. . T . P| |. . G . .| |C|,"  \
+ "|=   =       =   =       =   =|,"  \
+ "|     |K . .|     |. . R|     |,"  \
+ "|      =   =       =   =      |,"  \
+ "|       |L|         |L|       |,"  \
+ " = = = = = = = = = = = = = = = "   \
+};
+
 const char * puzzleDefs[] = {
     simplePuzzleDef1,
     simplePuzzleDef2,
@@ -297,14 +381,16 @@ const char * puzzleDefs[] = {
     inkblot1,
     pockets34,
     _8x8_Mania1,
-    //worm31,
-    extreme22,
+    worm31,             // Fails to solve
+    extreme8x8_22,
+    //party26,            // Takes a few minutes
+    extreme10x10_13,      // Takes a few minutes
     nullptr
 };
 
 /**
  * @return the puzzle definition for a single puzzle
- */
+ *
 const char * getPuzzleDef ()
 {
     return simplePuzzleDef1;
@@ -315,4 +401,4 @@ const char * getPuzzleDef ()
     //return pockets34;
     //return _8x8_Mania1;
     //return worm31;
-}
+}*/

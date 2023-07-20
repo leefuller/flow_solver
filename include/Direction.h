@@ -40,11 +40,16 @@ using Route = std::vector<Coordinate>;
 inline Coordinate createCoordinate (int r, int c) noexcept
 { return {r, c}; }
 
+inline std::string coordinateToString (Coordinate c)
+{ return std::string(std::to_string(c[0]) + "," + std::to_string(c[1])); }
+
 inline std::ostream & operator<< (std::ostream & os, Coordinate c) noexcept
 {
-    os << '{' << c[0] << ',' << c[1] << '}';
+    os << '{' << coordinateToString(c) << '}';
     return os;
 }
+
+std::string routeToString (const Route & route) noexcept;
 
 extern bool routesEqual (const Route & route1, const Route & route2);
 
@@ -64,7 +69,13 @@ inline void forEachTraversalDirection (std::function<void(Direction d)> * f)
         (*f)(direction);
 }
 
-const char * asString (Direction d) noexcept;
+const char * asCharSequence (Direction d) noexcept;
+
+/**
+ * @return string representation of direction
+ */
+inline std::string asString (Direction d) noexcept
+{ return std::string(asCharSequence(d)); }
 
 inline std::ostream & operator<< (std::ostream & os, Direction d) noexcept
 {

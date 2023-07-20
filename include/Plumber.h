@@ -2,6 +2,7 @@
 #define PLUMBER_H
 
 #include <memory>
+#include <string>
 
 #include "Pipe.h"
 #include "Direction.h"
@@ -13,14 +14,16 @@ class Puzzle;
 class PlumberException : public PuzzleException
 {
     public:
-        PlumberException (const char * fmt,...) noexcept;
-
-        PlumberException (const std::string & msg) noexcept
-            : PuzzleException(msg)
+        PlumberException (const SourceRef & ref, const std::string & msg) noexcept
+            : PuzzleException(ref, msg)
         {}
 
-        PlumberException (const std::string && msg) noexcept
-            : PuzzleException(msg)
+        PlumberException (const SourceRef & ref, const std::string && msg) noexcept
+            : PuzzleException(ref, msg)
+        {}
+
+        PlumberException (const SourceRef & ref, const std::string & msg, const Coordinate & c) noexcept
+            : PuzzleException(ref, msg + " at " + std::to_string(c[0]) + "," + std::to_string(c[1]))
         {}
 
         PlumberException (const PlumberException & ex) = default;
@@ -41,7 +44,7 @@ class Plumber
 
         // TODO? void disconnect (Coordinate c1, Coordinate c2) const noexcept(false);
 
-        bool removeConnector (CellPtr pCell, Direction d);
+        bool removeConnector (CellPtr pCell, Direction d) noexcept(false);
 
     private:
 

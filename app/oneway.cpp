@@ -221,24 +221,24 @@ Direction theOnlyWay (ConstPuzzlePtr puzzle, Coordinate coord)
     // adjacentCells now only contains existing cells.
     if (cellGroup.size() == 1) // Only 1 cell adjacent
     {
-        Direction d = std::begin(cellGroup)->first;
+        Direction dirToAdjacent = std::begin(cellGroup)->first;
         ConstCellPtr pAdj = std::begin(cellGroup)->second;
         if (pAdj->isEmpty())
-            return d;
+            return dirToAdjacent;
         if (pAdj->getPipeId() == pCell->getPipeId())
         {
             // Connect to adjacent cell with same pipe
-            if (pAdj->getConnection(opposite(d)) == CellConnection::OPEN_FIXTURE)
+            if (pAdj->getConnection(opposite(dirToAdjacent)) == CellConnection::OPEN_FIXTURE)
             {
 #if ANNOUNCE_ONE_WAY_DETECT
-                logger << pCell->getCoordinate() << " " << asString(d) << " can connect to open fixture at " << pAdj->getCoordinate() << std::endl;
+                logger << pCell->getCoordinate() << " " << asString(dirToAdjacent) << " can connect to open fixture at " << pAdj->getCoordinate() << std::endl;
 #endif
-                return d;
+                return dirToAdjacent;
             }
             else
             {
 #if ANNOUNCE_ONE_WAY_DETECT
-                logger << pCell->getCoordinate() << " " << asString(d) << " has connector " << pAdj->getConnection(opposite(d)) << std::endl;
+                logger << pCell->getCoordinate() << " " << asString(dirToAdjacent) << " has connector " << pAdj->getConnection(opposite(dirToAdjacent)) << std::endl;
 #endif
             }
         }

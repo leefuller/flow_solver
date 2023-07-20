@@ -336,7 +336,7 @@ void Puzzle::insertRoute (PipeId idPipe, const Route & route)
             if (pCell->getPipeId() != NO_PIPE_ID)
             {
                 // unexpected pipe mismatch
-                throw PuzzleException("attempt to insert route on top of another");
+                throw PuzzleException(SOURCE_REF, "attempt to insert route on top of another");
             }
             // else new pipe component
             pCell->setPipeId(idPipe);

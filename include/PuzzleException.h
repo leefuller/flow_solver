@@ -6,20 +6,35 @@
 #include <vector>
 #include <cstdarg>
 
+#include "SourceRef.h"
+
 class PuzzleException : public std::exception
 {
-public:
-    PuzzleException (const char * fmt,...) noexcept;
+    struct ExceptionContext
+    {
+        std::string msg;
+        SourceRef ref;
 
-    PuzzleException (const std::string & msg) noexcept
-        : m_msg(msg)
+        ExceptionContext (const std::string & s, const SourceRef & r)
+            : msg(s), ref(r)
+        {}
+    };
+
+public:
+    PuzzleException (const SourceRef & ref, const char * fmt,...) noexcept;
+
+    PuzzleException (const SourceRef & ref, const std::string & msg) noexcept
+        : m_ref(ref), m_msg(msg)
     {}
 
-    PuzzleException (const std::string && msg) noexcept
-        : m_msg(std::move(msg))
+    PuzzleException (const SourceRef & ref, const std::string && msg) noexcept
+        : m_ref(ref), m_msg(std::move(msg))
     {}
 
 	PuzzleException (const PuzzleException & ex) = default;
+
+    const SourceRef & getSourceRef () const noexcept
+    { return m_ref; }
 
 	const std::string & getMessage () const noexcept
 	{ return m_msg; }
@@ -27,22 +42,22 @@ public:
 	const char * what () const noexcept
 	{ return m_msg.c_str(); }
 
-	void addContext (const std::string & c) noexcept
-	{ m_context.push_back(c); }
+	void addContext (const SourceRef & ref, const std::string & c) noexcept
+	{ m_context.push_back(ExceptionContext(c, ref)); }
 
-    void addContext (const char * p) noexcept
-    { m_context.push_back(std::string(p)); }
+    void addContext (const SourceRef & ref, const char * p) noexcept
+    { m_context.push_back(ExceptionContext(std::string(p), ref)); }
 
     std::ostream & outputContext (std::ostream & os) const noexcept
     {
-        for (const std::string & context : m_context)
-            os << context;
+        for (const ExceptionContext & context : m_context)
+            os << " upon " << context.msg << " at " << context.ref;
         return os;
     }
 
 protected:
-    PuzzleException ()
-      : PuzzleException("PuzzleException")
+    PuzzleException (const SourceRef & ref)
+      : PuzzleException(ref, "PuzzleException")
     {}
 
     std::string buildString (const char * fmt, va_list & args) noexcept;
@@ -51,10 +66,11 @@ protected:
     { m_msg = msg; }
 
 private:
-    PuzzleException (const char * fmt, va_list & args) noexcept;
+    PuzzleException (const SourceRef & ref, const char * fmt, va_list & args) noexcept;
 
+    SourceRef m_ref;
 	std::string m_msg;
-	std::vector<std::string> m_context;
+	std::vector<ExceptionContext> m_context;
 };
 
 inline std::ostream & operator<< (std::ostream & os, const PuzzleException & ex) noexcept
@@ -67,12 +83,12 @@ inline std::ostream & operator<< (std::ostream & os, const PuzzleException & ex)
 class PuzzleIntegrityCheckFail : public PuzzleException
 {
 public:
-    PuzzleIntegrityCheckFail (const char * msg) noexcept
-        : PuzzleException(msg)
+    PuzzleIntegrityCheckFail (const SourceRef & ref, const char * msg) noexcept
+        : PuzzleException(ref, msg)
     {}
 
-    PuzzleIntegrityCheckFail () noexcept
-        : PuzzleIntegrityCheckFail("integrity check failed")
+    PuzzleIntegrityCheckFail (const SourceRef & ref) noexcept
+        : PuzzleIntegrityCheckFail(ref, "integrity check failed")
     {}
 };
 

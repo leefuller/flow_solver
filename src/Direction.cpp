@@ -6,7 +6,7 @@
 /**
  * @return string representation of direction
  */
-const char * asString (Direction d) noexcept
+const char * asCharSequence (Direction d) noexcept
 {
     switch (d)
     {
@@ -148,7 +148,7 @@ Direction addDirections (Direction d1, Direction d2)
                 return SOUTH;
             break;
     }
-    throw InvalidOperation("Cannot define direction from addition");
+    throw InvalidOperation(SOURCE_REF, "Cannot define direction from addition");
 }
 
 /**
@@ -238,7 +238,7 @@ Direction getDirectionBetweenCoordinates (Coordinate start, Coordinate dest) noe
     // For 8 compass points, a diagonal direction must have the same x and y distances
     if (abs(xDistance) != abs(yDistance))
     {
-        throw InvalidOperation("Cannot derive direction from coordinates");
+        throw InvalidOperation(SOURCE_REF, "Cannot derive direction from coordinates");
     }
     if (xDistance > 0)
         return yDistance > 0 ? Direction::SOUTH_EAST : Direction::NORTH_EAST;
@@ -259,6 +259,20 @@ std::ostream & operator<< (std::ostream & os, const Route & route) noexcept
         started = true;
     }
     return os;
+}
+
+std::string routeToString (const Route & route) noexcept
+{
+    std::string result;
+    bool started = false;
+    for (Coordinate c : route)
+    {
+        if (started)
+            result += ",";
+        result = result + '{' + coordinateToString(c) + '}';
+        started = true;
+    }
+    return result;
 }
 
 bool routesEqual (const Route & route1, const Route & route2)

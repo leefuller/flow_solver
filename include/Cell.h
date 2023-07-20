@@ -238,8 +238,8 @@ class Cell
     const std::set<PipeId> & getPossiblePipes () const noexcept
     { return m_possiblePipes; }
 
-    /*bool hasPossible (PipeId id) const noexcept
-    { return std::find(std::begin(m_possiblePipes), std::end(m_possiblePipes), id) != m_possibilePipes.end(); }*/
+    bool hasPossible (PipeId id) const noexcept
+    { return std::find(std::begin(m_possiblePipes), std::end(m_possiblePipes), id) != m_possiblePipes.end(); }
 
   private:
 

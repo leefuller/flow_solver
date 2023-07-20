@@ -163,7 +163,7 @@ std::ostream & Cell::describe (std::ostream & os) const noexcept
 void Cell::changeConnections (CellConnection from, CellConnection to) noexcept(false)
 {
     if (from == CellConnection::FIXTURE_CONNECTION && to != CellConnection::FIXTURE_CONNECTION)
-        throw PuzzleException("Cell attempt to change fixed connection at [%u,%u]", std::get<0>(getCoordinate()), std::get<1>(getCoordinate()));
+        throw PuzzleException(SOURCE_REF, "Cell attempt to change fixed connection at [%u,%u]", std::get<0>(getCoordinate()), std::get<1>(getCoordinate()));
     if (m_connection[Direction::NORTH] == from)
         setConnection(Direction::NORTH, to);
     if (m_connection[Direction::SOUTH] == from)

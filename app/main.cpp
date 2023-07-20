@@ -32,24 +32,24 @@ int main (int argc, const char * argv[])
             Solver solver(puzzleDefs[i]);
             bool solved = solver.solve();
             if (!solved)
-                logger << "No solution found" << std::endl;
+                logger << "Solution not found" << std::endl;
         }
     }
     catch (const PuzzleException & ex)
     {
-    	std::cerr << ex << std::endl;
+    	logger << ex << std::endl;
     }
     catch (const std::exception & ex)
     {
-        std::cerr << ex.what() << std::endl;
+        logger << ex.what() << std::endl;
     }
     catch (const char * s)
     {
-        std::cerr << s << std::endl;
+        logger << s << std::endl;
     }
     catch (...)
     {
-        std::cerr << "Unexpected object thrown" << std::endl;
+        logger << "Unexpected object thrown" << std::endl;
     }
 
     logger << "Exit." << std::endl;
