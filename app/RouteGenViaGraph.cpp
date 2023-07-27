@@ -155,7 +155,9 @@ void RouteGenViaGraph::generateRoutes (PipeId id, ConstPuzzlePtr puzzle)
 
     ConstCellPtr startCell = puzzle->getConstCellAtCoordinate(start);
     //ConstCellPtr destCell = puzzle->getConstCellAtCoordinate(end);
+#if DEBUG_ROUTEGEN
     logger << "Generate paths from " << start << " to " << end << std::endl;
+#endif
     m_graph.genAllPaths(startCell, destCell);
 }
 
@@ -165,11 +167,21 @@ void RouteGenViaGraph::generateRoutes (PipeId id, ConstPuzzlePtr puzzle)
 void RouteGenViaGraph::handleStartEndPoint (const Puzzle & puzzle, ConstCellPtr pCell, Matrix<bool> & visited)
 {
     // Check for a fixed connection.
+    std::set<Direction> directions = puzzle.getConnectedDirections(pCell->getCoordinate());
+#if DEBUG_ROUTEGEN
+    if (directions.empty())
+    {
+        logger << "No connected directions for " << pCell->getCoordinate() << std::endl;
+    }
+#endif
     // If a fixed connection is found, the start/end point only needs 1 directed edge
-    for (Direction direction : puzzle.getConnectedDirections(pCell->getCoordinate()))
+    for (Direction direction : directions)
     {
         if (pCell->getConnection(direction) == CellConnection::FIXTURE_CONNECTION)
         {
+#if DEBUG_ROUTEGEN
+            logger << "Add connected direction for " << pCell->getCoordinate() << " " << asString(direction) << std::endl;
+#endif
             ConstCellPtr pCellAdjacent = puzzle.getConstCellAdjacent(pCell->getCoordinate(), direction);
             if (pCellAdjacent == nullptr)
                 continue;
@@ -184,6 +196,12 @@ void RouteGenViaGraph::handleStartEndPoint (const Puzzle & puzzle, ConstCellPtr 
             m_graph.addEdge(pCell, pCellAdjacent);
 #endif
             return; // There can be only one fixture edge on start/end point
+        }
+        else
+        {
+#if DEBUG_ROUTEGEN
+            logger << "No fixture connected for " << pCell->getCoordinate() << " " << asString(direction) << std::endl;
+#endif
         }
     }
     // else start/end point has no attached fixtures, so there can be more than one edge
@@ -217,16 +235,38 @@ void RouteGenViaGraph::traverseToCreateGraph (const Puzzle & puzzle, PipeId idPi
 {
     if (visited.at(from))
         return;
+#if DEBUG_ROUTEGEN
+    logger << "Traverse from " << from << " to create graph for " << idPipe << std::endl;
+#endif
     // Cell for current graph node
     ConstCellPtr pCell = puzzle.getConstCellAtCoordinate(from);
     visited.at(from) = true;
     if (pCell->getPipeId() != idPipe && pCell->getPipeId() != NO_PIPE_ID)
         return; // cell is for different pipe
     if (!pCell->hasPossible(idPipe))
+    {
+#if DEBUG_ROUTEGEN
+        logger << "Pipe " << idPipe << " not possible at " << from << std::endl;
+        if (pCell->getPossiblePipes().empty())
+        {
+            logger << "Nothing possible at " << from << std::endl;
+        }
+        else
+        {
+            for (PipeId id : pCell->getPossiblePipes())
+            {
+                logger << id << " possible at " << from << std::endl;
+            }
+        }
+#endif
         return; // pipe not possible at cell
+    }
 
     if (pCell->getEndpoint() == PipeEnd::PIPE_START || pCell->getEndpoint() == PipeEnd::PIPE_END)
     {
+#if DEBUG_ROUTEGEN
+        logger << "Handle end point " << from << " for pipe " << pCell->getPipeId() << std::endl;
+#endif
         handleStartEndPoint(puzzle, pCell, visited);
     }
     else

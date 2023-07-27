@@ -381,9 +381,9 @@ const char * puzzleDefs[] = {
     inkblot1,
     pockets34,
     _8x8_Mania1,
-    worm31,             // Fails to solve
+    worm31,
     extreme8x8_22,
-    //party26,            // Takes a few minutes
+    party26,            // Takes a few minutes
     extreme10x10_13,      // Takes a few minutes
     nullptr
 };

@@ -668,8 +668,8 @@ void Solver::checkCornerFormation (CellPtr pCell, Direction dCorner)
 
        (1)
         ==
-         .|     Cell in the corner cannot be 'X'.
-       X
+         .|     Cell in the corner cannot be 'X', unless a start or end point for a different pipe occupies a cell adjacent to the corner,
+       X        and the corner contains a start or endpoint for pipe X.
 
       If there is an obstruction 1 step north or east of 'X', then the cell between
       (marked 'o') cannot be 'X'.
@@ -690,6 +690,11 @@ void Solver::checkCornerFormation (CellPtr pCell, Direction dCorner)
     {
         // Case (1) Given cell is diagonal from corner
         CellPtr pCorner = m_puzzle->getCellAdjacent(c, dCorner);
+        if (pCorner->isEndpoint())
+        {
+            // TODO can something be derived/updated here?
+            return;
+        }
 #if ANNOUNCE_SOLVER_DETAIL
         logger << asString(dCorner) << " corner from " << c << " removes possibility of " << idPipe << " at " << pCorner->getCoordinate() << std::endl;
 #endif
